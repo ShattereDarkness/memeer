@@ -3,7 +3,16 @@ import tkinter
 import tkinter.filedialog
 from tkinter import ttk
 from tksheet import Sheet
+
+import json
+import requests
+import os
+
+import p3dfunc
 import pyback
+
+headers = {'Content-type': 'application/json'}
+animurl = 'http://localhost:5000/getanim'
 
 #Make the root widget
 root = tkinter.Tk()
@@ -11,12 +20,12 @@ root.geometry("950x650")
 nb = ttk.Notebook(root)
 nb.pack()
 
-def create_entry (framep='', width=0, gridcolumn=0, gridrow=0, columnspan=1, settext='', holder = 0, holderkey = '', withlabel = ''):
+def create_entry (framep='', width=0, gridcolumn=0, gridrow=0, columnspan=1, settext='', holder = 0, holderkey = '', withlabel = '', sticky='nw'):
 	if withlabel != '':
 		ttk.Label(framep, text=withlabel).grid(column=gridcolumn-1, row=gridrow)
 	entry_text = tkinter.StringVar()
 	entry_text_entry = ttk.Entry(framep, width=width, textvariable=entry_text)
-	entry_text_entry.grid(column=gridcolumn, row=gridrow, sticky='nw', columnspan=columnspan)
+	entry_text_entry.grid(column=gridcolumn, row=gridrow, sticky=sticky, columnspan=columnspan)
 	entry_text.set(settext)
 	if isinstance(holder, dict):
 		holder[holderkey] = entry_text
@@ -32,7 +41,7 @@ conf_user_idnt = create_entry (framep=frame_conf, width=32, gridcolumn=3, gridro
 ttk.Label(frame_conf, text="User Secret Text").grid(column=1, row=2)
 conf_secrettxt = create_entry (framep=frame_conf, width=32, gridcolumn=3, gridrow=2, settext=localconf['secrettxt'])
 ttk.Label(frame_conf, text="Working Directory").grid(column=1, row=3)
-conf_portf_dir = create_entry (framep=frame_conf, width=48, gridcolumn=3, gridrow=3, settext=localconf['portf_dir'])
+conf_portf_dir = create_entry (framep=frame_conf, width=90, gridcolumn=3, gridrow=3, settext=localconf['portf_dir'])
 
 # Make portfolio detal and review tab
 ## Start with framing setup
@@ -220,15 +229,63 @@ def addLine(event):
 	canvas.create_line((lastx, lasty, event.x, event.y))
 	savePosn(event)
 
+def playall ():
+	mystory={"mystory": storybox.get("1.0", "end")}
+	mystory=json.dumps(mystory)
+	response = requests.post(animurl, headers=headers, data=mystory)
+	animation = json.loads(response.text)
+	serealize = p3dfunc.serealize(animation)
+	with open("C:\ProgramData\Memeer\data.py", "w") as outfile: json.dump(serealize, outfile) 
+	#execfile('production.py')
+	os.system('ppython production.py')
+	return 1
+
+def playatedit (*args):
+	return 1
+
+def playbetween (*args):
+	return 1
+
+def prvframe (*args):
+	return 1
+
+def playpending (*args):
+	return 1
+
 mframe_main = tkinter.Frame(nb)
 nb.add(mframe_main, text="Welcome to Meme'er")
-storybox = tkinter.Text(mframe_main, width=50, height=25).grid(column=0, row=0)
+storybox = tkinter.Text(mframe_main, width=50, height=25)
+storybox.grid(column=0, row=0, columnspan=3)
 canvas = tkinter.Canvas(mframe_main, width=400, height=400, background='gray75')
-canvas.grid(column=1, row=0)
+canvas.grid(column=3, row=0, columnspan=3)
 canvas.bind("<Button-1>", savePosn)
 canvas.bind("<B1-Motion>", addLine)
 myimg = tkinter.PhotoImage(file='models/2dpics/basemedia/indiamap.png')
 canvas.create_image(10, 10, image=myimg, anchor='nw')
+indexbox = tkinter.Text(mframe_main, width=11, height=25).grid(column=6, row=0, columnspan=2)
+ttk.Label(mframe_main, text=".    .    .    .    .    .    .    .").grid(column=1, row=1, columnspan=7)
+ttk.Label(mframe_main, text="C    O    N    T    R    O    L    S").grid(column=1, row=2, columnspan=7)
+ttk.Label(mframe_main, text="    .    .    .    .    .    .    .    ").grid(column=1, row=3, columnspan=7)
+
+ttk.Button(mframe_main, text="Start Full Play", command=playall).grid(column=1, row=4)
+ttk.Button(mframe_main, text="Start Play from Edit", command=playatedit).grid(column=1, row=5)
+mainplayfro = create_entry (framep=mframe_main, width=6, gridcolumn=0, gridrow=6, sticky='ne')
+ttk.Button(mframe_main, text="Show Between Frames", command=playbetween).grid(column=1, row=6)
+mainplaytil = create_entry (framep=mframe_main, width=6, gridcolumn=2, gridrow=6)
+
+ttk.Button(mframe_main, text="Previous Frame", command=prvframe).grid(column=3, row=4, sticky='ne')
+ttk.Button(mframe_main, text="Next Frame", command=prvframe).grid(column=4, row=4, sticky='ne')
+ttk.Button(mframe_main, text="Play at Speed", command=playpending).grid(column=3, row=5, sticky='ne')
+mainframspd = create_entry (framep=mframe_main, width=3, gridcolumn=4, gridrow=5, sticky='ne')
+ttk.Button(mframe_main, text="Between Frames", command=playbetween).grid(column=3, row=6, sticky='ne')
+mainframfro = create_entry (framep=mframe_main, width=3, gridcolumn=4, gridrow=6, sticky='ne')
+mainframtil = create_entry (framep=mframe_main, width=3, gridcolumn=5, gridrow=6, sticky='nw')
+
+mainindxnam = create_entry (framep=mframe_main, width=5, gridcolumn=6, gridrow=4)
+ttk.Button(mframe_main, text="Save Indexes", command=playbetween).grid(column=7, row=4)
+mainindxmrg = create_entry (framep=mframe_main, width=3, gridcolumn=6, gridrow=5)
+ttk.Button(mframe_main, text="Orthogonal merge", command=playbetween).grid(column=7, row=5)
+ttk.Button(mframe_main, text="Start/Stop IDX", command=playbetween).grid(column=6, row=6,  columnspan=2)
 
 nb.select(mframe_main)
 nb.enable_traversal()
