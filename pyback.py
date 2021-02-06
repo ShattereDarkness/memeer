@@ -2,15 +2,36 @@ import os
 from pathlib import Path
 import json
 
+univfile = 'portfolio/universe.js'
+conffile = 'localuser.js'
+
+def port_conf_save (uielems, lconf, univ):
+	lconf['user_idnt'] = uielems['user'].get()
+	lconf['secrettxt'] = uielems['pkey'].get()
+	lconf['portf_dir'] = uielems['wdir'].get()
+	putlocaluser (lconf)
+	univ['namedetail'] = uielems['desc'].get()
+	putUniverseJS (univ)
+
 def getlocaluser ():
-	lufile = 'localuser.js'
-	with open(lufile) as lujs: luser = json.load(lujs)
+	global conffile
+	with open(conffile) as lujs: luser = json.load(lujs)
 	return luser
 
+def putlocaluser (lconf):
+	global conffile
+	with open(conffile, "w") as lujs: json.dump(lconf, lujs)
+	return 1
+
 def getUniverseJS ():
-	lufile = 'portfolio/universe.js'
-	with open(lufile) as lujs: univ = json.load(lujs)
+	global univfile
+	with open(univfile) as lujs: univ = json.load(lujs)
 	return univ
+
+def putUniverseJS (univ):
+	global univfile
+	with open(univfile, "w") as lujs: json.dump(univ, lujs)
+	return 1
 
 def savethedata(lportui):
 	print(lportui['desc'].get())

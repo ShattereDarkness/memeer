@@ -26,29 +26,24 @@ root.geometry("950x650")
 nb = ttk.Notebook(root)
 nb.pack()
 
-#univ = pyback.getUniverseData (lconfui['user_idnt'].get(), lconfui['portf_dir'].get())
-univ = pyback.getUniverseJS ()
 lconf = pyback.getlocaluser()
+lportui = {'conf': {}, 'acts': [], 'objs': [], 'logix': [], 'funcs': []}
 
-lportui = {}
 frame_conf = pytkui.addstdframe (nb, "User Local Configuration")
-pytkui.lconfuisetup (lconf, univ, frame_conf, lportui)
+pytkui.lconfuisetup (lconf, {}, frame_conf, lportui['conf'])
 
-lportui['acts'] = []
 frame_acts = pytkui.addcnvframe (nb, "Portfolio Actions")
-pytkui.lactsuisetup (univ['actions'], frame_acts, lportui['acts'])
-
-lportui['objs'] = []
 frame_objs = pytkui.addcnvframe (nb, "Portfolio Objects")
-pytkui.lobjsuisetup (univ['objects'], frame_objs, lportui['objs'])
-
-lportui['logix'] = []
 frame_logix = pytkui.addcnvframe (nb, "Logical Functions")
-pytkui.llogixuisetup (univ['logicals'], frame_logix, lportui['logix'])
-
-lportui['funcs'] = []
 frame_funcs = pytkui.addcnvframe (nb, "Panda3dUI Functions")
-pytkui.lfuncsuisetup (univ['functions'], frame_funcs, lportui['funcs'])
+conf_frames = {'conf': frame_conf, 'acts': frame_acts, 'objs': frame_objs, 'logix': frame_logix, 'funcs': frame_funcs}
+
+univ = pytkui.refresh_universe(lportui, conf_frames, lconf)
+
+def frame_conf_save(): pyback.port_conf_save (lportui['conf'], lconf, univ)
+
+btn_conf_save = ttk.Button(frame_conf, text="\tSave the configuration\t", command=frame_conf_save).grid(column=1, row=6, columnspan=3)
+btn_conf_open = ttk.Button(frame_conf, text="Open Workdir", command=lambda: pytkui.refresh_universe(lportui, conf_frames, lconf)).grid(column=4, row=4)
 
 def savethedata(*args):
 	nuniv = {}

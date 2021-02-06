@@ -9,7 +9,6 @@ import tkinter.scrolledtext as scrolledtext
 def addstdframe (root, framedesc, row=0, col=0):
 	nframe = tkinter.Frame(root)
 	root.add(nframe, text=framedesc)
-	#nframe.pack()
 	return nframe
 
 def addcnvframe (root, framedesc):
@@ -30,18 +29,34 @@ def addcnvframe (root, framedesc):
 def newentry (framep='', width=0, col=0, row=0, colspan=1, text='', lbltext = '', sticky='nw'):
 	if lbltext != '':
 		ttk.Label(framep, text=lbltext).grid(column=col-1, row=row)
-	entry_text = tkinter.StringVar()
-	entry_text_entry = ttk.Entry(framep, width=width, textvariable=entry_text)
+	entry_text_entry = ttk.Entry(framep, width=width)
 	entry_text_entry.grid(column=col, row=row, sticky=sticky, columnspan=colspan)
-	entry_text.set(text)
-	return entry_text
+	entry_text_entry.insert(0, text)
+	return entry_text_entry
 
-def lconfuisetup (lconf, univ, root, lportui):
+def refresh_universe(lportui, conf_frames, lconf):
+	if 'desc' in lportui['conf']:
+		print (lportui['conf'])
+		lportui['conf']['desc'].destroy()
+	for code, frames in conf_frames.items():
+		if code == 'conf': continue
+		for tkitems in frames.winfo_children():
+			tkitems.destroy()
+	univ = pyback.getUniverseJS ()#pyback.getUniverseData (lconfui['user_idnt'].get(), lconfui['portf_dir'].get())
+	lconfuisetup (lconf, univ, conf_frames['conf'], lportui['conf'])
+	lactsuisetup (univ['actions'], conf_frames['acts'], lportui['acts'])
+	lobjsuisetup (univ['objects'], conf_frames['objs'], lportui['objs'])
+	llogixuisetup (univ['logicals'], conf_frames['logix'], lportui['logix'])
+	lfuncsuisetup (univ['functions'], conf_frames['funcs'], lportui['funcs'])
+	return univ
+
+def lconfuisetup (lconf, univ, root, lportui, retry=1):
 	ttk.Label(root, text="\t\t\t").grid(column=2, row=1)
 	lportui['user'] = newentry (framep=root, width=90, col=3, row=2, text=lconf['user_idnt'], lbltext = 'User Identity')
 	lportui['pkey'] = newentry (framep=root, width=90, col=3, row=3, text=lconf['secrettxt'], lbltext = 'Secret Passkey')
 	lportui['wdir'] = newentry (framep=root, width=90, col=3, row=4, text=lconf['portf_dir'], lbltext = 'Working Directory')
-	lportui['desc'] = newentry (framep=root, width=90, col=3, row=5, text=univ['namedetail'], lbltext = 'Name Description')
+	if 'namedetail' in univ and retry == 1: lportui['desc'] = newentry (framep=root, width=90, col=3, row=5, text=univ['namedetail'])
+	else: ttk.Label(root, text='Name Description').grid(column=2, row=5)
 
 def _get_syns_jjrb (attrs = [], holder = {}, rownum=1, framep = {}, source = {}):
 	if 'syns' in attrs or 'jjrb' in attrs:
