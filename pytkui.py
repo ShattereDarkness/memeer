@@ -40,9 +40,10 @@ def refresh_universe(lportui, conf_frames, lconf):
 		lportui['conf']['desc'].destroy()
 	for code, frames in conf_frames.items():
 		if code == 'conf': continue
-		for tkitems in frames.winfo_children():
-			tkitems.destroy()
-	univ = pyback.getUniverseJS ()#pyback.getUniverseData (lconfui['user_idnt'].get(), lconfui['portf_dir'].get())
+		for tkitemls in frames.winfo_children():
+			## We delete only items within canvas frame and not canvas frame itself
+			tkitemls.destroy()
+	univ = pyback.getUniverseData (lconf['user_idnt'], lconf['portf_dir'])
 	lconfuisetup (lconf, univ, conf_frames['conf'], lportui['conf'])
 	lactsuisetup (univ['actions'], conf_frames['acts'], lportui['acts'])
 	lobjsuisetup (univ['objects'], conf_frames['objs'], lportui['objs'])
@@ -75,6 +76,25 @@ def _get_syns_jjrb (attrs = [], holder = {}, rownum=1, framep = {}, source = {})
 		rownum = rownum + 1
 	return rownum
 
+def splittext (text = '', asnum = 0, sep = ','):
+	retval = []
+	for nstr in text.split(sep):
+		if nstr == '': continue
+		if asnum == 1: retval.append(float(nstr))
+		else: retval.append(nstr.strip())
+	return retval
+
+def lactsuiread (lactsui):
+	retval = []
+	for act in lactsui:
+		lact = {}
+		if 'func' in act: lact['func'] = act['func']
+		else: lact['acts'] = act['acts']
+		lact['syns'] = splittext (text = act['syns'].get())
+		lact['jjrb'] = splittext (text = act['jjrb'].get())
+		retval.append(lact)
+	return retval
+
 def lactsuisetup (actions, root, lactsui):
 	rownum = 0
 	for actid, action in enumerate(actions):
@@ -85,6 +105,28 @@ def lactsuisetup (actions, root, lactsui):
 		ttk.Label(root, text="Function Name: "+action['func']).grid(column=0, row=rownum, sticky='nw')
 		rownum = _get_syns_jjrb (attrs = ['syns', 'jjrb'], holder = lactui, rownum=rownum+2, framep = root, source = action)
 		lactsui.append(lactui)
+
+def lobjsuiread (lobjsui):
+	retval = []
+	for obj in lobjsui:
+		lobj = {'model': [], 'acts': []}
+		lobj['syns'] = splittext (text = obj['syns'].get())
+		lobj['jjrb'] = splittext (text = obj['jjrb'].get())
+		lobj['move'] = splittext (text = obj['move'].get())
+		lobj['xyz'] = splittext (text = obj['xyz'].get(), asnum = 1)
+		lobj['hpr'] = splittext (text = obj['hpr'].get(), asnum = 1)
+		lobj['lbh'] = splittext (text = obj['lbh'].get(), asnum = 1)
+		for mfile in obj['mfile']:
+			mfdetjjrb = splittext (text = mfile['jjrb'].get())
+			mfdet = {'file': mfile['file'].get(), 'jjrb': mfdetjjrb}
+			lobj['jjrb'].extend(mfdetjjrb)
+			lobj['model'].append(mfdet)
+		for macts in obj['action']:
+			mfdet = {'speed': int(macts['speed'].get()), 'fstart': int(macts['fstart'].get()), 'flast': int(macts['flast'].get())}
+			mfdet['jjrb'] = splittext (text = macts['jjrb'].get())
+			lobj['acts'].append({macts['afid']: mfdet})
+		retval.append(lobj)
+	return retval
 
 def lobjsuisetup (objects, root, lobjsui):
 	rownum = 0
@@ -107,12 +149,22 @@ def lobjsuisetup (objects, root, lobjsui):
 		for afildet in model['acts']:
 			afile, actdet = list(afildet.items())[0]
 			lobjfui = {'afid': afile}
-			ttk.Label(root, text=objname+', Action file: '+afile).grid(column=0, row=rownum, columnspan=4)
-			rownum = rownum+1
-			rownum = _get_syns_jjrb (attrs = ['syns', 'jjrb', 'xyz', 'hpr', 'lbh', 'speed', 'ffrst', 'flast'], holder = lobjfui, rownum=rownum, framep = root, source = actdet)
+			ttk.Label(root, text=objname+', Action file: '+afile).grid(column=0, row=rownum)
+			rownum = _get_syns_jjrb (attrs = ['jjrb', 'speed', 'fstart', 'flast'], holder = lobjfui, rownum=rownum, framep = root, source = actdet)
 			lobjui['action'].append(lobjfui)
-			rownum = rownum + 4
+			rownum = rownum + 5
 		lobjsui.append(lobjui)
+
+def llogixuiread (llogixui):
+	retval = []
+	for llist in llogixui:
+		logic = {}
+		logic['basic'] = llist['basic'].get()
+		if logic['basic'] == '': continue
+		logic['addon'] = splittext (text = llist['addon'].get('1.0', tkinter.END), sep = "\n")
+		print (logic)
+		retval.append(logic)
+	return retval
 
 def llogixuisetup (logix, root, llogxui):
 	rownum = 0
@@ -124,6 +176,7 @@ def llogixuisetup (logix, root, llogxui):
 		indexbox = scrolledtext.ScrolledText(root, undo=True, width=60, height=5)
 		indexbox.grid(column=1, row=rownum+2, columnspan=5)
 		indexbox.insert(1.0, "\n".join(logic['addon']))
+		llogcui['addon'] = indexbox
 		rownum=rownum+3
 		llogxui.append(llogcui)
 

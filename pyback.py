@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import json
+import re
 
 univfile = 'portfolio/universe.js'
 conffile = 'localuser.js'
@@ -12,6 +13,11 @@ def port_conf_save (uielems, lconf, univ):
 	putlocaluser (lconf)
 	univ['namedetail'] = uielems['desc'].get()
 	putUniverseJS (univ)
+
+def saveuniv(what, citemls):
+	nuniv = getUniverseJS ()
+	nuniv[what] = citemls
+	putUniverseJS (nuniv)
 
 def getlocaluser ():
 	global conffile
@@ -42,19 +48,20 @@ def getUniverseData (user, portf_dir_str):
 	universe = portf_dir / 'universe.js'
 	# Start reading basic setup at directory
 	with universe.open('r') as univjs: univ = json.load(univjs)
-	univ['description'] = 'Basic environment for create at '+portf_dir_str+' for user '+user
+	if 'namedetail' not in univ or univ['namedetail'] == '':
+		univ['namedetail'] = 'Basic environment for create at '+portf_dir_str+' for user '+user
 	model_dir = portf_dir / 'model'
 	actor_dir = portf_dir / 'actor'
 	# Start checking for models and actions
-	if 'action' not in univ: univ['action'] = []
-	if 'object' not in univ: univ['object'] = []
+	if 'actions' not in univ: univ['actions'] = []
+	if 'objects' not in univ: univ['objects'] = []
 	## First setup the actions
-	for func in ['move', 'locate']:
-		if len(list(filter(lambda x : 'func' in x and x['func'] == func, univ['action']))) == 0:
-			univ['action'].append({'jjrb': ['slow', 'quick'], 'syns': [func], 'func': func})
+	for func in ['move', 'locate', 'say']:
+		if len(list(filter(lambda x : 'func' in x and x['func'] == func, univ['actions']))) == 0:
+			univ['actions'].append({'jjrb': ['slow', 'quick'], 'syns': [func], 'func': func})
 	## Check for camera and pronouns
 	def setup_object (objname):
-		for object in univ['object']:
+		for object in univ['objects']:
 			if len(list(filter(lambda x : x['file'] == objname, object['model']))) > 0: return 1
 		newobj = {}
 		if objname == 'camera':
@@ -64,27 +71,27 @@ def getUniverseData (user, portf_dir_str):
 			newobj = {'syns': ['there', 'it', 'that'], 'move': [], 'jjrb': [], 'acts': [],
 				'xyz': [0, 0, 0], 'hpr': [0, 0, 0], 'lbh': [1, 1, 1], 'acts': [], 'model': [{'file': '__blank__', 'jjrb': []}]}
 		else:
-			newobj = {'syns': [], 'move': ['look', 'move', 'locat'], 'jjrb': [], 'acts': [],
+			newobj = {'syns': [], 'move': ['look', 'move', 'locat', 'say'], 'jjrb': [], 'acts': [],
 							'xyz': [0, 0, 0], 'hpr': [0, 0, 0], 'lbh': [1, 1, 1], 'model': [{'file': objname, 'jjrb': []}]}
 			for action in actor_dir.glob('action/'+objname+'__*.egg'):
 				basefile = action.stem
 				actname = re.sub(objname+'__', '', basefile)
 				if actname == basefile: continue
-				newobj['acts'].append({actname: {'jjrb': [], 'speed': 1, 'syns': [], 'fstart': 0, 'fdone': 1}})
-				if len(list(filter(lambda x : 'actf' in x and x['actf'] == actname, univ['action']))) > 0: continue
-				univ['action'].append({'jjrb': ['slow', 'quick'], 'syns': [], 'actf': actname, 'speed': 1, 'fstart': 0, 'fdone': 1})
-		univ['object'].append(newobj)
+				newobj['acts'].append({actname: {'jjrb': [], 'speed': 1, 'fstart': 0, 'flast': 1}})
+				if len(list(filter(lambda x : 'actf' in x and x['actf'] == actname, univ['actions']))) > 0: continue
+				univ['actions'].append({'jjrb': ['slow', 'quick'], 'syns': [], 'func': actname})
+		univ['objects'].append(newobj)
 	# Check for each model now
 	setup_object ('camera')
 	setup_object ('__blank__')
 	for model in model_dir.glob('*.egg'): setup_object (model.stem)
 	for actor in actor_dir.glob('*.egg'): setup_object (actor.stem)
 	# Additional components
-	if 'logix' not in univ: univ['logic_setup'] = []
-	if 'funcs' not in univ: univ['funcs'] = {}
-	if 'camerafocus' not in univ['funcs']: univ['funcs']['camerafocus'] = [{'tag': 'text', 'texts': 'camera looks'}]
-	if 'objectlay' not in univ['funcs']: univ['funcs']['objectlay'] = [{'tag': 'text', 'texts': ['tree stand', 'car parked', 'it is road', 'stool lay']}]
-	if 'objectmov' not in univ['funcs']: univ['funcs']['objectmov'] = [{'tag': 'text', 'texts': ['car move']}, {'tag': 'wrate', 'texts': ['table thrown slowly']}]
+	if 'logicals' not in univ: univ['logicals'] = []
+	if 'functions' not in univ: univ['functions'] = {}
+	if 'camerafocus' not in univ['functions']: univ['functions']['camerafocus'] = [{'tag': 'text', 'texts': ['camera looks']}]
+	if 'objectlay' not in univ['functions']: univ['functions']['objectlay'] = [{'tag': 'text', 'texts': ['tree stand', 'car parked', 'it is road', 'stool lay']}]
+	if 'objectmov' not in univ['functions']: univ['functions']['objectmov'] = [{'tag': 'text', 'texts': ['car move']}, {'tag': 'wrate', 'texts': ['table thrown slowly']}]
 	# update the values in universe
 	with universe.open('w') as univjs: json.dump(univ, univjs)
 	return univ

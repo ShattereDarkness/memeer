@@ -38,12 +38,40 @@ frame_logix = pytkui.addcnvframe (nb, "Logical Functions")
 frame_funcs = pytkui.addcnvframe (nb, "Panda3dUI Functions")
 conf_frames = {'conf': frame_conf, 'acts': frame_acts, 'objs': frame_objs, 'logix': frame_logix, 'funcs': frame_funcs}
 
-univ = pytkui.refresh_universe(lportui, conf_frames, lconf)
+def frame_acts_save ():
+	cacts = pytkui.lactsuiread(lportui['acts'])
+	pyback.saveuniv('actions', cacts)
 
-def frame_conf_save(): pyback.port_conf_save (lportui['conf'], lconf, univ)
+def frame_objs_save ():
+	cobjs = pytkui.lobjsuiread(lportui['objs'])
+	print (cobjs)
+	pyback.saveuniv('objects', cobjs)
+
+def frame_logix_save ():
+	print(lportui['logix'])
+	cobjs = pytkui.llogixuiread(lportui['logix'])
+	pyback.saveuniv('logicals', cobjs)
+
+def refresh_frame_buttons ():
+	frame_size = frame_acts.grid_size()
+	btn_acts_save = ttk.Button(frame_acts, text="\tSave Action configuration\t", command=frame_acts_save).grid(column=4, row=frame_size[1])
+	frame_size = frame_objs.grid_size()
+	btn_objs_save = ttk.Button(frame_objs, text="\tSave Object configuration\t", command=frame_objs_save).grid(column=4, row=frame_size[1])
+	frame_size = frame_logix.grid_size()
+	btn_logix_save = ttk.Button(frame_logix, text="\tSave Logical configuration\t", command=frame_logix_save).grid(column=1, row=frame_size[1])
+
+univ = pytkui.refresh_universe(lportui, conf_frames, lconf)
+refresh_frame_buttons ()
+
+def frame_conf_save():
+	pyback.port_conf_save (lportui['conf'], lconf, univ)
+
+def refresh_full_universe():
+	pytkui.refresh_universe(lportui, conf_frames, lconf)
+	refresh_frame_buttons ()
 
 btn_conf_save = ttk.Button(frame_conf, text="\tSave the configuration\t", command=frame_conf_save).grid(column=1, row=6, columnspan=3)
-btn_conf_open = ttk.Button(frame_conf, text="Open Workdir", command=lambda: pytkui.refresh_universe(lportui, conf_frames, lconf)).grid(column=4, row=4)
+btn_conf_open = ttk.Button(frame_conf, text="Open Workdir", command=refresh_full_universe).grid(column=4, row=4)
 
 def savethedata(*args):
 	nuniv = {}
