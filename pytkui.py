@@ -59,6 +59,41 @@ def lconfuisetup (lconf, univ, root, lportui, retry=1):
 	if 'namedetail' in univ and retry == 1: lportui['desc'] = newentry (framep=root, width=90, col=3, row=5, text=univ['namedetail'])
 	else: ttk.Label(root, text='Name Description').grid(column=2, row=5)
 
+def storyroomsetup (lstory, csize=500):
+	def savePosn(event):
+		global lastx, lasty
+		lastx, lasty = event.x, event.y
+		print (lastx, lasty)
+	def addLine(event):
+		canvas.create_line((lastx, lasty, event.x, event.y))
+		savePosn(event)
+	def loadCombobox (root = {}, lovalues = (), col=0, row=0, colspan = 1, ):
+		countryvar = tkinter.StringVar()
+		country = ttk.Combobox(root, textvariable=countryvar)
+		country.grid(column=col, row=row, sticky='n', columnspan=colspan)
+		country['values'] = lovalues
+		country.state(["readonly"])
+		return country
+	storybox = scrolledtext.ScrolledText(lstory, undo=True, width=30, height=35)
+	storybox.grid(column=0, row=0, sticky='n', rowspan=35, columnspan=30)
+	storycmb = loadCombobox (root = lstory, lovalues = ('Save Story as ...', 'Show Below Story', 'Show Story Lists'), col=4, row=35, colspan = 25)
+	storyent = newentry (framep=lstory, width=30, col=0, row=36, text='', colspan=30)
+	canvas = tkinter.Canvas(lstory, width=csize, height=csize, background='gray75')
+	canvas.grid(column=31, row=0, sticky='n', columnspan=10)
+	canvas.bind("<Button-1>", savePosn)
+	canvas.bind("<B1-Motion>", addLine)
+	frmatent = newentry (framep=lstory, width=4, col=33, row=35, text='-1')
+	froment = newentry (framep=lstory, width=4, col=34, row=34, text='0', lbltext='From')
+	tillent = newentry (framep=lstory, width=4, col=36, row=34, text='-1', lbltext='Till')
+	ffpsent = newentry (framep=lstory, width=4, col=38, row=34, text='1', lbltext='FPS')
+	coordbox = scrolledtext.ScrolledText(lstory, undo=True, width=17, height=30)
+	coordbox.grid(column=42, row=0, sticky='n', columnspan=16)
+	coordcmb = loadCombobox (root=lstory, lovalues=('Save coords as','Load/Trace Below coords','Show coords Lists','Merge coords with'), col=44, row=34, colspan = 15)
+	coordent = newentry (framep=lstory, width=24, col=44, row=35, text='', colspan=18)
+	lstoryui = {'storybox': storybox, 'storycmb': storycmb, 'storyent': storyent, 'canvas': canvas,
+				'frmatent': frmatent, 'froment': froment, 'tillent': tillent, 'ffpsent': ffpsent, 'coordbox': coordbox, 'coordcmb': coordcmb, 'coordent': coordent}
+	return lstoryui
+
 def _get_syns_jjrb (attrs = [], holder = {}, rownum=1, framep = {}, source = {}):
 	if 'syns' in attrs or 'jjrb' in attrs:
 		if 'syns' in source: holder['syns'] = newentry (framep=framep, width=40, col=1, row=rownum, colspan=2, text=', '.join(source['syns']), lbltext='Synonyms')

@@ -1,0 +1,75 @@
+<Comment> {
+  "egg-texture-cards -o snowslipdrive.egg 'pics\snowslipdrive0001.png' 'pics\snowslipdrive0002.png' 'pics\snowslipdrive0003.png' 'pics\snowslipdrive0004.png' 'pics\snowslipdrive0005.png'"
+}
+<Texture> snowslipdrive0005 {
+  "pics/snowslipdrive0005.png"
+}
+<Texture> snowslipdrive0004 {
+  "pics/snowslipdrive0004.png"
+}
+<Texture> snowslipdrive0003 {
+  "pics/snowslipdrive0003.png"
+}
+<Texture> snowslipdrive0002 {
+  "pics/snowslipdrive0002.png"
+}
+<Texture> snowslipdrive0001 {
+  "pics/snowslipdrive0001.png"
+}
+<Group> {
+  <Switch> { 1 }
+  <Scalar> fps { 2 }
+  <VertexPool> vpool {
+    <Vertex> 0 {
+      -0.5 0.5 0
+      <UV> { 0 1 }
+    }
+    <Vertex> 1 {
+      -0.5 -0.5 0
+      <UV> { 0 0 }
+    }
+    <Vertex> 2 {
+      0.5 -0.5 0
+      <UV> { 1 0 }
+    }
+    <Vertex> 3 {
+      0.5 0.5 0
+      <UV> { 1 1 }
+    }
+  }
+  <Group> snowslipdrive0001 {
+    <Polygon> {
+      <RGBA> { 1 1 1 1 }
+      <TRef> { snowslipdrive0001 }
+      <VertexRef> { 0 1 2 3 <Ref> { vpool } }
+    }
+  }
+  <Group> snowslipdrive0002 {
+    <Polygon> {
+      <RGBA> { 1 1 1 1 }
+      <TRef> { snowslipdrive0002 }
+      <VertexRef> { 0 1 2 3 <Ref> { vpool } }
+    }
+  }
+  <Group> snowslipdrive0003 {
+    <Polygon> {
+      <RGBA> { 1 1 1 1 }
+      <TRef> { snowslipdrive0003 }
+      <VertexRef> { 0 1 2 3 <Ref> { vpool } }
+    }
+  }
+  <Group> snowslipdrive0004 {
+    <Polygon> {
+      <RGBA> { 1 1 1 1 }
+      <TRef> { snowslipdrive0004 }
+      <VertexRef> { 0 1 2 3 <Ref> { vpool } }
+    }
+  }
+  <Group> snowslipdrive0005 {
+    <Polygon> {
+      <RGBA> { 1 1 1 1 }
+      <TRef> { snowslipdrive0005 }
+      <VertexRef> { 0 1 2 3 <Ref> { vpool } }
+    }
+  }
+}

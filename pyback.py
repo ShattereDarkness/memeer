@@ -95,3 +95,24 @@ def getUniverseData (user, portf_dir_str):
 	# update the values in universe
 	with universe.open('w') as univjs: json.dump(univ, univjs)
 	return univ
+
+def savestoryas (fname, storytxt, portf_dir_str):
+	portf_dir = Path(portf_dir_str)
+	if fname == '': return 1
+	fname = fname+'.txt'
+	saveas = portf_dir / 'stories' / fname
+	saveas.write_text(storytxt)
+	return 1
+
+def showstories (portf_dir_str):
+	retval = ''
+	portf_dir = Path(portf_dir_str) / 'stories'
+	for file in portf_dir.iterdir():
+		if file.suffix != '.txt': continue
+		retval = retval + file.name + "\n"
+	return retval
+
+def showastory (fname, portf_dir_str):
+	print(fname)
+	fromf = Path(portf_dir_str) / 'stories' / fname
+	return fromf.read_text()

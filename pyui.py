@@ -2,11 +2,12 @@
 import tkinter
 import tkinter.filedialog
 from tkinter import ttk
-from tksheet import Sheet
+from tkinter import BOTH, END, LEFT
 
 import json
 import requests
 import os
+import re
 
 import p3dfunc
 import pyback
@@ -28,6 +29,7 @@ nb.pack()
 
 lconf = pyback.getlocaluser()
 lportui = {'conf': {}, 'acts': [], 'objs': [], 'logix': [], 'funcs': []}
+lstoryui = {}
 
 frame_conf = pytkui.addstdframe (nb, "User Local Configuration")
 pytkui.lconfuisetup (lconf, {}, frame_conf, lportui['conf'])
@@ -37,6 +39,8 @@ frame_objs = pytkui.addcnvframe (nb, "Portfolio Objects")
 frame_logix = pytkui.addcnvframe (nb, "Logical Functions")
 frame_funcs = pytkui.addcnvframe (nb, "Panda3dUI Functions")
 conf_frames = {'conf': frame_conf, 'acts': frame_acts, 'objs': frame_objs, 'logix': frame_logix, 'funcs': frame_funcs}
+frame_story = pytkui.addstdframe (nb, "User Stories and play")
+lstoryui = pytkui.storyroomsetup (frame_story)
 
 def frame_acts_save ():
 	cacts = pytkui.lactsuiread(lportui['acts'])
@@ -72,6 +76,40 @@ def refresh_full_universe():
 
 btn_conf_save = ttk.Button(frame_conf, text="\tSave the configuration\t", command=frame_conf_save).grid(column=1, row=6, columnspan=3)
 btn_conf_open = ttk.Button(frame_conf, text="Open Workdir", command=refresh_full_universe).grid(column=4, row=4)
+
+def frame_story_story():
+	selection = lstoryui['storycmb'].get()
+	if len (selection) < 2: print ("No execution")
+	elif selection == 'Save Story as ...':
+		fname = lstoryui['storyent'].get()
+		storytxt = lstoryui['storybox'].get("1.0",END)
+		pyback.savestoryas (fname, storytxt, lconf['portf_dir'])
+	elif selection == 'Show Story Lists':
+		filelist = pyback.showstories (lconf['portf_dir'])
+		print (filelist)
+		lstoryui['storybox'].delete('1.0', END)
+		lstoryui['storybox'].insert(1.0, filelist)
+	elif selection == 'Show Below Story':
+		fname = re.sub("\n", "", lstoryui['storyent'].get())
+		storytext = pyback.showastory (fname, lconf['portf_dir'])
+		lstoryui['storybox'].delete('1.0', END)
+		lstoryui['storybox'].insert(1.0, storytext)
+	return 1
+
+def frame_story_coord():
+	return 1
+def frame_play_full():
+	return 1
+def frame_play_edit():
+	return 1
+
+btn_story_story = ttk.Button(frame_story, text="Exec", command=frame_story_story).grid(column=0, row=35)
+btn_story_coord = ttk.Button(frame_story, text="Exec", command=frame_story_coord).grid(column=46, row=36)
+btn_play_full = ttk.Button(frame_story, text="Play from start", command=frame_play_full).grid(column=32, row=33)
+btn_play_edit = ttk.Button(frame_story, text="Play from edit", command=frame_play_edit).grid(column=35, row=33)
+btn_frame_play = ttk.Button(frame_story, text="Play frames", command=frame_play_edit).grid(column=32, row=34)
+btn_frame_stop = ttk.Button(frame_story, text="Stop/ at frame", command=frame_play_edit).grid(column=32, row=35)
+btn_frame_save = ttk.Button(frame_story, text="Save movie", command=frame_play_edit).grid(column=35, row=35)
 
 def savethedata(*args):
 	nuniv = {}
