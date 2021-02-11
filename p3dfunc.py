@@ -18,7 +18,7 @@ def getlocations (action = {}, position = {}, frames = 0):
             retval.append([0, 0, 0, 0, 0, 0, 1, 1, 1])
     return retval
 
-def serealize (animation = []):
+def serialize (animation = []):
     scenefunc = []
     for ano, anime in enumerate(animation):
         scene = anime['scene']['act']

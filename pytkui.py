@@ -197,7 +197,6 @@ def llogixuiread (llogixui):
 		logic['basic'] = llist['basic'].get()
 		if logic['basic'] == '': continue
 		logic['addon'] = splittext (text = llist['addon'].get('1.0', tkinter.END), sep = "\n")
-		print (logic)
 		retval.append(logic)
 	return retval
 
@@ -215,6 +214,15 @@ def llogixuisetup (logix, root, llogxui):
 		rownum=rownum+3
 		llogxui.append(llogcui)
 
+def lfuncsuiread (lfuncsui):
+	retval = {}
+	for llist in lfuncsui:
+		retval[llist['fname']] = []
+		for tags in llist['tags']:
+			retval[llist['fname']].append({'tag': tags['tagn'], 'texts': splittext (text = tags['ttext'].get())})
+	print(retval)
+	return retval
+
 def lfuncsuisetup (funcs, root, lfuncsui):
 	rownum = 0
 	for fname, funcdet in funcs.items():
@@ -224,9 +232,8 @@ def lfuncsuisetup (funcs, root, lfuncsui):
 		lfuncui['tags'] = []
 		rownum=rownum+2
 		for ftid, ftext in enumerate(funcdet):
-			print (rownum)
 			lfunctui = newentry (framep=root, width=90, col=1, row=rownum, colspan=6, text=', '.join(ftext['texts']), lbltext=ftext['tag'])
-			lfuncui['tags'].append(lfunctui)
+			lfuncui['tags'].append({'tagn':ftext['tag'], 'ttext': lfunctui})
 			rownum=rownum+1
 		lfuncsui.append(lfuncui)
 		rownum=rownum+1

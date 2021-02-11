@@ -1,4 +1,58 @@
-#import tkinter and ttk modules
+mystory = """
+it is narrator @(0,0,0,0,0,0,1,1,1)
+
+narrator says "hello youong frinds" #36
+
+narrator says "welcome to this animmation on far flung cltures of India" #72
+
+narrator says "My name is Ahmad Balti and today, I will tell you about my Balti people" #72
+
+it is Indiamap @(0,0,0,0,0,0,1,1,1) #12
+
+it is narrator @(0,0,0,0,0,0,0,0,0)
+
+narrator says "first, some basics" #36
+
+narrator says "Geography" #12
+
+camera moves @(0,0,9,0,0,0,1,1,1)-@(0,9,0,0,0,0,1,1,1)
+
+narrator says "there i am... there on the top of mountains of mighty himalaya, some 3km above sea level" #96
+
+narrator says "and now a brief history" #36
+
+it is Indiamap @(0,1,0,0,0,0,0,0,0)
+
+it is SEAMap @(0,0,0,0,0,0,1,1,1)
+
+narrator says "Balti people have been carrying the legacy of Tibet since atleast 600AD. The overall geneology of this group contain Tibet, Laddakh and Mongolan ancestry." #120
+
+narrator says "Around 600 years back, a persian by name of Mir Sayyid Ali bought Shia branch of Islam to the region." #120
+
+narrator says "Troughout history, this area have been ruled by Rajas of Hunza, Dogra, and part of the princely state of Jammu and Kashmir rulers." #120
+
+narrator says "In the year 1947, following the Pakistani army invasion, Pakistani army captured our land, which was partially freed in 1971 war." #120
+it is narrator @(0,0,0,0,0,0,1,1,1)
+
+it is SEAMap @(0,0,0,0,0,0,0,0,0)
+
+narrator says "Ok, so enough boring study time... let us move to the cool things you may like here :) " #120
+
+it is narrator @(0,0,0,0,0,0,0,0,0)
+
+it is Indiamap @(0,0,0,0,0,0,0,0,0)
+
+it is Outsideview "Primordial thing in here: beauty, lots of it" #48 @(0,0,0,0,0,0,1,1,1)
+
+it is Outsideview @(0,0,0,0,0,0,0,0,0)
+
+it is Babyiceat "And snow! Remember, we walk snow, we eat snow, we dream snow, and look all cute doing so ;P" #120 @(0,0,0,0,0,0,1,1,1)
+it is Babyiceat @(0,0,0,0,0,0,0,0,0)
+
+it is Snowslipdrive "Did we mentioned we drive in snow too? yeah, thats part of the life" #120 @(0,0,0,0,0,0,1,1,1)
+
+"""
+
 import tkinter
 import tkinter.filedialog
 from tkinter import ttk
@@ -21,9 +75,14 @@ headers = {'Content-type': 'application/json'}
 animurl = 'http://localhost:5000/getanim'
 stopauto = 0
 
+laststory = ''
+
 #Make the root widget
 root = tkinter.Tk()
 root.geometry("950x650")
+root.iconphoto(False, tkinter.PhotoImage(file='icon.png'))
+root.title("Meme'er")
+
 nb = ttk.Notebook(root)
 nb.pack()
 
@@ -41,6 +100,7 @@ frame_funcs = pytkui.addcnvframe (nb, "Panda3dUI Functions")
 conf_frames = {'conf': frame_conf, 'acts': frame_acts, 'objs': frame_objs, 'logix': frame_logix, 'funcs': frame_funcs}
 frame_story = pytkui.addstdframe (nb, "User Stories and play")
 lstoryui = pytkui.storyroomsetup (frame_story)
+lstoryui['storybox'].insert(1.0, mystory)
 
 def frame_acts_save ():
 	cacts = pytkui.lactsuiread(lportui['acts'])
@@ -52,9 +112,9 @@ def frame_objs_save ():
 	pyback.saveuniv('objects', cobjs)
 
 def frame_logix_save ():
-	print(lportui['logix'])
-	cobjs = pytkui.llogixuiread(lportui['logix'])
-	pyback.saveuniv('logicals', cobjs)
+	print(lportui['funcs'])
+	clogix = pytkui.llogixuiread(lportui['logix'])
+	pyback.saveuniv('logicals', clogix)
 
 def refresh_frame_buttons ():
 	frame_size = frame_acts.grid_size()
@@ -89,22 +149,32 @@ def frame_story_story():
 		print (filelist)
 		lstoryui['storybox'].delete('1.0', END)
 		lstoryui['storybox'].insert(1.0, filelist)
+		laststory = ''
 	elif selection == 'Show Below Story':
 		fname = re.sub("\n", "", lstoryui['storyent'].get())
 		storytext = pyback.showastory (fname, lconf['portf_dir'])
 		lstoryui['storybox'].delete('1.0', END)
 		lstoryui['storybox'].insert(1.0, storytext)
+		laststory = ''
 	return 1
 
-def frame_story_coord():
+def frame_story_edit():
 	return 1
 def frame_play_full():
-	return 1
+	storytext = lstoryui['storybox'].get("1.0",END)
+	cacts = pytkui.lactsuiread(lportui['acts'])
+	cobjs = pytkui.lobjsuiread(lportui['objs'])
+	clogix = pytkui.llogixuiread(lportui['logix'])
+	cfuncs = pytkui.lfuncsuiread(lportui['funcs'])
+	cuniv = {'actions': cacts, 'objects': cobjs, 'logicals': clogix, 'functions': cfuncs}
+	animation = pyback.response_textplay (cuniv, storytext)
+	serialized = p3dfunc.serialize (animation = animation)
+
 def frame_play_edit():
 	return 1
 
 btn_story_story = ttk.Button(frame_story, text="Exec", command=frame_story_story).grid(column=0, row=35)
-btn_story_coord = ttk.Button(frame_story, text="Exec", command=frame_story_coord).grid(column=46, row=36)
+btn_story_edit = ttk.Button(frame_story, text="Exec", command=frame_story_edit).grid(column=46, row=36)
 btn_play_full = ttk.Button(frame_story, text="Play from start", command=frame_play_full).grid(column=32, row=33)
 btn_play_edit = ttk.Button(frame_story, text="Play from edit", command=frame_play_edit).grid(column=35, row=33)
 btn_frame_play = ttk.Button(frame_story, text="Play frames", command=frame_play_edit).grid(column=32, row=34)
@@ -153,7 +223,7 @@ def savePosn(event):
 	print (lastx, lasty)
 
 def addLine(event):
-	canvas.create_line((lastx, lasty, event.x, event.y))
+	clid = canvas.create_line((lastx, lasty, event.x, event.y))
 	savePosn(event)
 
 def autoplayfunc(pnglst):

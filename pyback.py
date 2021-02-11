@@ -116,3 +116,6 @@ def showastory (fname, portf_dir_str):
 	print(fname)
 	fromf = Path(portf_dir_str) / 'stories' / fname
 	return fromf.read_text()
+
+def response_textplay (univ, text):
+	return 1
