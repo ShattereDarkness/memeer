@@ -220,7 +220,6 @@ def lfuncsuiread (lfuncsui):
 		retval[llist['fname']] = []
 		for tags in llist['tags']:
 			retval[llist['fname']].append({'tag': tags['tagn'], 'texts': splittext (text = tags['ttext'].get())})
-	print(retval)
 	return retval
 
 def lfuncsuisetup (funcs, root, lfuncsui):
