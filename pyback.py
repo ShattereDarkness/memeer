@@ -91,7 +91,8 @@ def getUniverseData (user, portf_dir_str):
 	if 'logicals' not in univ: univ['logicals'] = []
 	if 'functions' not in univ: univ['functions'] = {}
 	if 'camerafocus' not in univ['functions']: univ['functions']['camerafocus'] = [{'tag': 'text', 'texts': ['camera looks']}]
-	if 'objectlay' not in univ['functions']: univ['functions']['objectlay'] = [{'tag': 'text', 'texts': ['tree stand', 'car parked', 'it is road', 'stool lay']}]
+	if 'objectlay' not in univ['functions']: univ['functions']['objectlay'] = [{'tag': 'text', "texts": ["it is pic"]}, {'tag': "singl", "texts": ["tree stand", "car parked", "pic say", "stool lay"]}]
+	if 'actordoes' not in univ['functions']: univ['functions']['actordoes'] = [{"tag": "text","texts": ["lady walk"]}]
 	if 'objectmov' not in univ['functions']: univ['functions']['objectmov'] = [{'tag': 'text', 'texts': ['car move']}, {'tag': 'wrate', 'texts': ['table thrown slowly']}]
 	# update the values in universe
 	with universe.open('w') as univjs: json.dump(univ, univjs)
@@ -118,9 +119,10 @@ def showastory (fname, portf_dir_str):
 	fromf = Path(portf_dir_str) / 'stories' / fname
 	return fromf.read_text()
 
+
 def response_textplay (animurl, headers, cuniverse, mystory):
 	animation = [{'mmaps': {'0': [{'wt': 1, 'gmodel': 1, 'smodel': 0}], '2': [{'wt': 1, 'gmodel': 10, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [0, 0, 0, 0, 0, 0, 1, 1, 1], 'sttmts': [], 'frames': []}, 'funct': {'fname': 'objectlay', 'ftag': 'text'}}, {'mmaps': {'0': [{'wt': 1, 'gmodel': 10, 'smodel': 0}], '1': [{'wt': 1, 'gmodel': 2, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [], 'sttmts': ['"hello youong frinds"'], 'frames': 36}, 'funct': {'fname': 'objectlay', 'ftag': 'text'}}, {'mmaps': {'0': [{'wt': 1, 'gmodel': 1, 'smodel': 0}], '2': [{'wt': 1, 'gmodel': 8, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [0, 0, 0, 0, 0, 0, 1, 1, 1], 'sttmts': [], 'frames': 12}, 'funct': {'fname': 'objectlay', 'ftag': 'text'}}, {'mmaps': {'0': [{'wt': 1, 'gmodel': 0, 'smodel': 0}], '1': [{'wt': 1, 'gmodel': 0, 'smodel': 0}]}, 'specs': {'locupto': [0, 9, 0, 0, 0, 0, 1, 1, 1], 'locfrom': [0, 0, 9, 0, 0, 0, 1, 1, 1], 'locpos': [], 'sttmts': [], 'frames': 0}, 'funct': {'fname': 'camerafocus', 'ftag': 'moves'}}, {'mmaps': {'0': [{'wt': 1, 'gmodel': 1, 'smodel': 0}], '2': [{'wt': 1, 'gmodel': 13, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [0, 0, 0, 0, 0, 0, 1, 1, 1], 'sttmts': [], 'frames': 0}, 'funct': {'fname': 'objectlay', 'ftag': 'text'}}, {'mmaps': {'0': [{'wt': 1, 'gmodel': 1, 'smodel': 0}], '2': [{'wt': 1, 'gmodel': 11, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [0, 0, 0, 0, 0, 0, 1, 1, 1], 'sttmts': ['"Primordial thing in here: beauty, lots of it"'], 'frames': 48}, 'funct': {'fname': 'objectlay', 'ftag': 'text'}}, {'mmaps': {'0': [{'wt': 1, 'gmodel': 1, 'smodel': 0}], '2': [{'wt': 1, 'gmodel': 3, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [0, 0, 0, 0, 0, 0, 1, 1, 1], 'sttmts': ['"And snow! Remember, we walk snow, we eat snow, we dream snow, and look all cute doing so ;P"'], 'frames': 120}, 'funct': {'fname': 'objectlay', 'ftag': 'text'}}, {'mmaps': {'0': [{'wt': 1, 'gmodel': 1, 'smodel': 0}], '2': [{'wt': 1, 'gmodel': 14, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [0, 0, 0, 0, 0, 0, 1, 1, 1], 'sttmts': ['"Did we mentioned we drive in snow too? yeah, thats part of the life"'], 'frames': 120}, 'funct': {'fname': 'objectlay', 'ftag': 'text'}}]
-	return animation
+	#return animation
 	mydata=json.dumps({'mystory': mystory, 'universe': cuniverse})
 	response = requests.post(animurl, headers=headers, data=mydata)
 	animation = json.loads(response.text)

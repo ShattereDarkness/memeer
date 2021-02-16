@@ -3,53 +3,11 @@ it is narrator @(0,0,0,0,0,0,1,1,1)
 
 narrator says "hello youong frinds" #36
 
-narrator says "welcome to this animmation on far flung cltures of India" #72
+narrator says "welcome to this animmation on far flung cltures of India" @(0,0,0,0,0,0,1,1,1)-@(0,0,0,0,0,0,4,4,4)
 
-narrator says "My name is Ahmad Balti and today, I will tell you about my Balti people" #72
+narrator says "My name is Ahmad Balti and today, I will tell you about my Balti people" #72-#144
 
-it is Indiamap @(0,0,0,0,0,0,1,1,1) #12
-
-it is narrator @(0,0,0,0,0,0,0,0,0)
-
-narrator says "first, some basics" #36
-
-narrator says "Geography" #12
-
-camera moves @(0,0,9,0,0,0,1,1,1)-@(0,9,0,0,0,0,1,1,1)
-
-narrator says "there i am... there on the top of mountains of mighty himalaya, some 3km above sea level" #96
-
-narrator says "and now a brief history" #36
-
-it is Indiamap @(0,1,0,0,0,0,0,0,0)
-
-it is SEAMap @(0,0,0,0,0,0,1,1,1)
-
-narrator says "Balti people have been carrying the legacy of Tibet since atleast 600AD. The overall geneology of this group contain Tibet, Laddakh and Mongolan ancestry." #120
-
-narrator says "Around 600 years back, a persian by name of Mir Sayyid Ali bought Shia branch of Islam to the region." #120
-
-narrator says "Troughout history, this area have been ruled by Rajas of Hunza, Dogra, and part of the princely state of Jammu and Kashmir rulers." #120
-
-narrator says "In the year 1947, following the Pakistani army invasion, Pakistani army captured our land, which was partially freed in 1971 war." #120
-it is narrator @(0,0,0,0,0,0,1,1,1)
-
-it is SEAMap @(0,0,0,0,0,0,0,0,0)
-
-narrator says "Ok, so enough boring study time... let us move to the cool things you may like here :) " #120
-
-it is narrator @(0,0,0,0,0,0,0,0,0)
-
-it is Indiamap @(0,0,0,0,0,0,0,0,0)
-
-it is Outsideview "Primordial thing in here: beauty, lots of it" #48 @(0,0,0,0,0,0,1,1,1)
-
-it is Outsideview @(0,0,0,0,0,0,0,0,0)
-
-it is Babyiceat "And snow! Remember, we walk snow, we eat snow, we dream snow, and look all cute doing so ;P" #120 @(0,0,0,0,0,0,1,1,1)
-it is Babyiceat @(0,0,0,0,0,0,0,0,0)
-
-it is Snowslipdrive "Did we mentioned we drive in snow too? yeah, thats part of the life" #120 @(0,0,0,0,0,0,1,1,1)
+lady walks "and that is true" #72-#144
 
 """
 

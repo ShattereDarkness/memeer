@@ -11,6 +11,7 @@ def serialize (universe = {}, animation = []):
 				retval[frid].append({'func': series['func'], 'file': series['file'], 'post': series['post'][frid-series['frames'][0]]})
 		return series['frames'][1]
 	print("universe:", universe)
+	print ("animation:", animation)
 	for ano, anime in enumerate(animation):
 		print ("anime:", anime)
 		series = globals()[anime['funct']['fname']] (universe = universe, sindex = sindex, tag = anime['funct']['ftag'], specs = anime['specs'], model = anime['mmaps'])
