@@ -121,9 +121,17 @@ def showastory (fname, portf_dir_str):
 
 
 def response_textplay (animurl, headers, cuniverse, mystory):
-	animation = [{'line': 0, 'mmaps': {'0': [{'wt': 1, 'gmodel': 1, 'smodel': 0}], '2': [{'wt': 1, 'gmodel': 10, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [0, 0, 0, 0, 0, 0, 1, 1, 1], 'sttmts': [], 'frames': []}, 'fname': 'objectlay', 'ftag': 'text'}, {'line': 1, 'mmaps': {'0': [{'wt': 1, 'gmodel': 10, 'smodel': 0}], '1': [{'wt': 1, 'gmodel': 2, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [], 'sttmts': ['"hello youong frinds"'], 'frames': [36, -1]}, 'fname': 'objectlay', 'ftag': 'singl'}, {'line': 2, 'mmaps': {'0': [{'wt': 1, 'gmodel': 10, 'smodel': 0}], '1': [{'wt': 1, 'gmodel': 2, 'smodel': 0}]}, 'specs': {'locupto': [0, 0, 0, 0, 0, 0, 4, 4, 4], 'locfrom': [0, 0, 0, 0, 0, 0, 1, 1, 1], 'locpos': [], 'sttmts': ['"welcome to this animmation on far flung cltures of India"'], 'frames': []}, 'fname': 'objectlay', 'ftag': 'singl'}, {'line': 3, 'mmaps': {'0': [{'wt': 1, 'gmodel': 10, 'smodel': 0}], '1': [{'wt': 1, 'gmodel': 2, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [], 'sttmts': ['"My name is Ahmad Balti and today, I will tell you about my Balti people"'], 'frames': [72, 144]}, 'fname': 'objectlay', 'ftag': 'singl'}, {'line': 4, 'mmaps': {'0': [{'wt': 1, 'gmodel': 18, 'smodel': 0}], '1': [{'wt': 1, 'gmodel': 5, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [], 'sttmts': ['"and that is true"'], 'frames': [72, 144]}, 'fname': 'actordoes', 'ftag': 'text'}]
-	return animation
+	#animation = [{'line': 0, 'mmaps': {'0': [{'wt': 1, 'gmodel': 1, 'smodel': 0}], '2': [{'wt': 1, 'gmodel': 10, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [0, 0, 0, 0, 0, 0, 1, 1, 1], 'sttmts': [], 'frames': []}, 'fname': 'objectlay', 'ftag': 'text'}, {'line': 1, 'mmaps': {'0': [{'wt': 1, 'gmodel': 10, 'smodel': 0}], '1': [{'wt': 1, 'gmodel': 2, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [], 'sttmts': ['"hello youong frinds"'], 'frames': [36, -1]}, 'fname': 'objectlay', 'ftag': 'singl'}, {'line': 2, 'mmaps': {'0': [{'wt': 1, 'gmodel': 10, 'smodel': 0}], '1': [{'wt': 1, 'gmodel': 2, 'smodel': 0}]}, 'specs': {'locupto': [0, 0, 0, 0, 0, 0, 4, 4, 4], 'locfrom': [0, 0, 0, 0, 0, 0, 1, 1, 1], 'locpos': [], 'sttmts': ['"welcome to this animmation on far flung cltures of India"'], 'frames': []}, 'fname': 'objectlay', 'ftag': 'singl'}, {'line': 3, 'mmaps': {'0': [{'wt': 1, 'gmodel': 10, 'smodel': 0}], '1': [{'wt': 1, 'gmodel': 2, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [], 'sttmts': ['"My name is Ahmad Balti and today, I will tell you about my Balti people"'], 'frames': [72, 144]}, 'fname': 'objectlay', 'ftag': 'singl'}, {'line': 4, 'mmaps': {'0': [{'wt': 1, 'gmodel': 18, 'smodel': 0}], '1': [{'wt': 1, 'gmodel': 5, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [], 'sttmts': ['"and that is true"'], 'frames': [72, 144]}, 'fname': 'actordoes', 'ftag': 'text'}]
+	#return animation
 	mydata=json.dumps({'mystory': mystory, 'universe': cuniverse})
 	response = requests.post(animurl, headers=headers, data=mydata)
 	animation = json.loads(response.text)
 	return animation
+
+def getchanged (laststory, currstory, change):
+	if change == 0: return 0
+	lastarr = laststory.split("\n")
+	currarr = currstory.split("\n")
+	for ix, lasttx in enumerate(lastarr):
+		if currarr[ix].strip() != lasttx.strip(): return ix
+	return ix

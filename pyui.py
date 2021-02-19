@@ -97,6 +97,7 @@ btn_conf_open = ttk.Button(frame_conf, text="Open Workdir", command=refresh_full
 
 def frame_story_story():
 	selection = lstoryui['storycmb'].get()
+	global laststory
 	if len (selection) < 2: print ("No execution")
 	elif selection == 'Save Story as ...':
 		fname = lstoryui['storyent'].get()
@@ -118,7 +119,10 @@ def frame_story_story():
 
 def frame_story_edit():
 	return 1
-def frame_play_full():
+
+def getstoryanim (change = 0):
+	retval = {'universe': {}, 'storytext': '', 'animation': [], 'line': 0}
+	global laststory
 	storytext = lstoryui['storybox'].get("1.0",END)
 	cacts = pytkui.lactsuiread(lportui['acts'])
 	cobjs = pytkui.lobjsuiread(lportui['objs'])
@@ -126,10 +130,19 @@ def frame_play_full():
 	cfuncs = pytkui.lfuncsuiread(lportui['funcs'])
 	cuniv = {'actions': cacts, 'objects': cobjs, 'logicals': clogix, 'functions': cfuncs}
 	animation = pyback.response_textplay (animurl, headers, cuniv, storytext)
-	serialized = p3dfunc.serialize (universe = cuniv, animation = animation)
+	cline = pyback.getchanged (laststory, storytext, change)
+	serialized = p3dfunc.serialize (universe = cuniv, animation = animation, deserial = cline)
+	with open('portfolio/media/serial.js', "w") as lujs: json.dump(serialized, lujs)
+	laststory = storytext
+	return {'universe': cuniv, 'storytext': storytext, 'animation': animation, 'line': cline}
+
+def frame_play_full():
+	storyanim = getstoryanim (change = 0)
+	os.system('ppython p3dpreview.py')
 
 def frame_play_edit():
-	return 1
+	storyanim = getstoryanim (change = 1)
+	os.system('ppython p3dpreview.py')
 
 btn_story_story = ttk.Button(frame_story, text="Exec", command=frame_story_story).grid(column=0, row=35)
 btn_story_edit = ttk.Button(frame_story, text="Exec", command=frame_story_edit).grid(column=46, row=36)
