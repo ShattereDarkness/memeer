@@ -58,8 +58,8 @@ def newmodel (scene):
 		modid = len(loadlist)-1
 	return modid
 
-with open('portfolio/media/serial.js') as lujs: serealized = json.load(lujs)
-serial, frindex = serealized['serial'], serealized['frindex']
+with open('portfolio/rushes/serial.js') as lujs: serealized = json.load(lujs)
+serial, frindex, inprod, imgdest = serealized['serial'], serealized['frindex'], serealized['inprod'], serealized['imgdest']
 props = WindowProperties( )
 props.setTitle("For Preview")
 ShowBase()
@@ -87,7 +87,7 @@ def defaultTask(task):
 
 loadlist.append({'file': 'camera', 'model': base.camera, 'post': [0, -120, 10,0, 0, 0, 1, 1, 1]})
 taskMgr.add(defaultTask, "defaultTask")
-namePrefix = "portfolio/media/temp/pngs"
+namePrefix = serealized['imgdest']
 base.win.requestProperties( props )
 base.movie(namePrefix=namePrefix, duration=1000, fps=24, format='png')
 base.run()

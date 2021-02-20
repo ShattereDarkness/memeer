@@ -119,7 +119,6 @@ def showastory (fname, portf_dir_str):
 	fromf = Path(portf_dir_str) / 'stories' / fname
 	return fromf.read_text()
 
-
 def response_textplay (animurl, headers, cuniverse, mystory):
 	#animation = [{'line': 0, 'mmaps': {'0': [{'wt': 1, 'gmodel': 1, 'smodel': 0}], '2': [{'wt': 1, 'gmodel': 10, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [0, 0, 0, 0, 0, 0, 1, 1, 1], 'sttmts': [], 'frames': []}, 'fname': 'objectlay', 'ftag': 'text'}, {'line': 1, 'mmaps': {'0': [{'wt': 1, 'gmodel': 10, 'smodel': 0}], '1': [{'wt': 1, 'gmodel': 2, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [], 'sttmts': ['"hello youong frinds"'], 'frames': [36, -1]}, 'fname': 'objectlay', 'ftag': 'singl'}, {'line': 2, 'mmaps': {'0': [{'wt': 1, 'gmodel': 10, 'smodel': 0}], '1': [{'wt': 1, 'gmodel': 2, 'smodel': 0}]}, 'specs': {'locupto': [0, 0, 0, 0, 0, 0, 4, 4, 4], 'locfrom': [0, 0, 0, 0, 0, 0, 1, 1, 1], 'locpos': [], 'sttmts': ['"welcome to this animmation on far flung cltures of India"'], 'frames': []}, 'fname': 'objectlay', 'ftag': 'singl'}, {'line': 3, 'mmaps': {'0': [{'wt': 1, 'gmodel': 10, 'smodel': 0}], '1': [{'wt': 1, 'gmodel': 2, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [], 'sttmts': ['"My name is Ahmad Balti and today, I will tell you about my Balti people"'], 'frames': [72, 144]}, 'fname': 'objectlay', 'ftag': 'singl'}, {'line': 4, 'mmaps': {'0': [{'wt': 1, 'gmodel': 18, 'smodel': 0}], '1': [{'wt': 1, 'gmodel': 5, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [], 'sttmts': ['"and that is true"'], 'frames': [72, 144]}, 'fname': 'actordoes', 'ftag': 'text'}]
 	#return animation
@@ -135,3 +134,66 @@ def getchanged (laststory, currstory, change):
 	for ix, lasttx in enumerate(lastarr):
 		if currarr[ix].strip() != lasttx.strip(): return ix
 	return ix
+
+def overwrites (imgdest, frindex, frlast, frixdel):
+	for ix in range(1, frlast-frixdel+1):
+		oimg = "pngs_"+"%04d"%(ix)+".png"
+		nimg = "pngs_"+"%04d"%(ix+frixdel)+".png"
+		os.remove(imgdest+nimg)
+		os.rename(imgdest+'/temp/'+oimg, imgdest+nimg)
+
+def savecoordas (fname, coordstxt, portf_dir_str):
+	portf_dir = Path(portf_dir_str)
+	if fname == '': return 1
+	if not fname.startswith('X_') and not fname.startswith('Y_') and not fname.startswith('Z_'):
+		fname = 'X_' + fname
+	if not fname.endswith('.txt'): fname = fname+'.txt'
+	saveas = portf_dir / 'coords' / fname
+	filestr = {'pixel': json.loads(coordstxt), 'coord': []}
+	for pt2d in filestr['pixel']:
+		filestr['coord'].append([(0.1125*(pt2d[0]-250)), (0.1125*(pt2d[1]-250))])
+	with open(saveas, "w") as lpts: json.dump(filestr, lpts)
+	return 1
+
+def readcoordof (fname, portf_dir_str):
+	fromf = Path(portf_dir_str) / 'coords' / fname
+	with open(fromf) as lpts: filestr = json.load(lpts)
+	return filestr['pixel']
+
+def showscoords (portf_dir_str):
+	retval = ''
+	portf_dir = Path(portf_dir_str) / 'coords'
+	for file in portf_dir.iterdir():
+		if not file.name.startswith('X_') and not file.name.startswith('Y_') and not file.name.startswith('Z_'): continue
+		if file.suffix != '.txt': continue
+		retval = retval + file.name + "\n"
+	return retval
+
+def save3dcoord (fname, portf_dir_str):
+	files = fname.split(',')
+	sourcef, addingf = 'portfolio/coords/'+files[0].strip(), 'portfolio/coords/'+files[1].strip()
+	srcnm, addnm = files[0].strip()[:2], files[1].strip()[:2]
+	print(sourcef, addingf, srcnm, addnm)
+	if srcnm not in ['X_', 'Y_', 'Z_'] or addnm not in ['X_', 'Y_', 'Z_']: return 2
+	with open(sourcef) as lpts: srcdata = json.load(lpts)
+	with open(addingf) as lpts: adddata = json.load(lpts)
+	print("AAA", srcdata, adddata)
+	if srcnm == addnm:
+		srcdata['pixel'].extend(adddata['pixel'])
+		srcdata['coord'].extend(adddata['coord'])
+		with open(sourcef, "w") as lpts: json.dump(srcdata, lpts)
+		return 1
+	f3dlist = []
+	for sx, pt3d in enumerate(srcdata['coord']):
+		if sx < len(adddata['coord']):
+			if srcnm == 'X_': f3dlist.append([adddata['coord'][sx][0], srcdata['coord'][sx][0], srcdata['coord'][sx][1]])
+			if srcnm == 'Y_': f3dlist.append([srcdata['coord'][sx][0], adddata['coord'][sx][0], srcdata['coord'][sx][1]])
+			if srcnm == 'Z_': f3dlist.append([srcdata['coord'][sx][0], srcdata['coord'][sx][0], adddata['coord'][sx][0]])
+		else:
+			if srcnm == 'X_': f3dlist.append([0, srcdata['coord'][sx][0], srcdata['coord'][sx][1]])
+			if srcnm == 'Y_': f3dlist.append([srcdata['coord'][sx][0], 0, srcdata['coord'][sx][1]])
+			if srcnm == 'Z_': f3dlist.append([srcdata['coord'][sx][0], srcdata['coord'][sx][0], 0])
+	f3dfile = 'portfolio/coords/3d__' + files[0].strip()[2:][:4] + "__" + files[1].strip()[2:][:4] + '.txt'
+	print(f3dfile)
+	with open(f3dfile, "w") as lpts: json.dump(f3dlist, lpts)
+	return 1

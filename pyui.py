@@ -1,7 +1,5 @@
-mystory = """
-it is narrator @(0,0,0,0,0,0,1,1,1)
-
-narrator says "hello youong frinds" #36
+mystory1 = """
+narrator says "hello youong frinds" #1-#36
 
 narrator says "welcome to this animmation on far flung cltures of India" @(0,0,0,0,0,0,1,1,1)-@(0,0,0,0,0,0,4,4,4)
 
@@ -9,6 +7,9 @@ narrator says "My name is Ahmad Balti and today, I will tell you about my Balti 
 
 lady walks "and that is true" #72-#144
 
+"""
+mystory = """
+it is narrator @(0,0,0,0,0,0,5,5,5) #1-#36
 """
 
 import tkinter
@@ -20,6 +21,7 @@ import json
 import requests
 import os
 import re
+import pprint
 
 import p3dfunc
 import pyback
@@ -32,8 +34,11 @@ import time
 headers = {'Content-type': 'application/json'}
 animurl = 'http://localhost:5000/getanim'
 stopauto = 0
-
+imgdest = 'portfolio/rushes/'
 laststory = ''
+rushes = {}
+csize = 500
+linepos = []
 
 #Make the root widget
 root = tkinter.Tk()
@@ -57,7 +62,7 @@ frame_logix = pytkui.addcnvframe (nb, "Logical Functions")
 frame_funcs = pytkui.addcnvframe (nb, "Panda3dUI Functions")
 conf_frames = {'conf': frame_conf, 'acts': frame_acts, 'objs': frame_objs, 'logix': frame_logix, 'funcs': frame_funcs}
 frame_story = pytkui.addstdframe (nb, "User Stories and play")
-lstoryui = pytkui.storyroomsetup (frame_story)
+lstoryui = pytkui.storyroomsetup (frame_story, csize = csize, linepos = linepos)
 lstoryui['storybox'].insert(1.0, mystory)
 
 def frame_acts_save ():
@@ -96,6 +101,9 @@ btn_conf_save = ttk.Button(frame_conf, text="\tSave the configuration\t", comman
 btn_conf_open = ttk.Button(frame_conf, text="Open Workdir", command=refresh_full_universe).grid(column=4, row=4)
 
 def frame_story_story():
+	def settext (text):
+		lstoryui['storybox'].delete('1.0', END)
+		lstoryui['storybox'].insert(1.0, text)
 	selection = lstoryui['storycmb'].get()
 	global laststory
 	if len (selection) < 2: print ("No execution")
@@ -106,22 +114,19 @@ def frame_story_story():
 	elif selection == 'Show Story Lists':
 		filelist = pyback.showstories (lconf['portf_dir'])
 		print (filelist)
-		lstoryui['storybox'].delete('1.0', END)
-		lstoryui['storybox'].insert(1.0, filelist)
+		settext(filelist)
 		laststory = ''
 	elif selection == 'Show Below Story':
 		fname = re.sub("\n", "", lstoryui['storyent'].get())
 		storytext = pyback.showastory (fname, lconf['portf_dir'])
-		lstoryui['storybox'].delete('1.0', END)
-		lstoryui['storybox'].insert(1.0, storytext)
+		settext(storytext)
 		laststory = ''
 	return 1
 
 def frame_story_edit():
 	return 1
 
-def getstoryanim (change = 0):
-	retval = {'universe': {}, 'storytext': '', 'animation': [], 'line': 0}
+def getstoryanim (change = 0, dest = ''):
 	global laststory
 	storytext = lstoryui['storybox'].get("1.0",END)
 	cacts = pytkui.lactsuiread(lportui['acts'])
@@ -132,55 +137,93 @@ def getstoryanim (change = 0):
 	animation = pyback.response_textplay (animurl, headers, cuniv, storytext)
 	cline = pyback.getchanged (laststory, storytext, change)
 	serialized = p3dfunc.serialize (universe = cuniv, animation = animation, deserial = cline)
-	with open('portfolio/media/serial.js', "w") as lujs: json.dump(serialized, lujs)
+	serialized['inprod'] = '0'
+	serialized['imgdest'] = imgdest + dest + 'pngs'
+	with open(imgdest + 'serial.js', "w") as lujs: json.dump(serialized, lujs)
 	laststory = storytext
-	return {'universe': cuniv, 'storytext': storytext, 'animation': animation, 'line': cline}
+	return serialized
 
 def frame_play_full():
-	storyanim = getstoryanim (change = 0)
+	storyanim = getstoryanim (change = 0, dest = '')
 	os.system('ppython p3dpreview.py')
+	global rushes
+	for keys in ['frindex', 'frlast', 'frixdel']: rushes[keys] = storyanim[keys]
+	print ("Panda3d Execution completed")
 
 def frame_play_edit():
-	storyanim = getstoryanim (change = 1)
+	storyanim = getstoryanim (change = 1, dest = 'temp/')
 	os.system('ppython p3dpreview.py')
+	print ("Panda3d Execution completed")
+	global rushes
+	for keys in ['frindex', 'frlast', 'frixdel']: rushes[keys] = storyanim[keys]
+	pyback.overwrites (imgdest, storyanim['frindex'], storyanim['frlast'], storyanim['frixdel'])
+
+def frame_play_pngs():
+	fromfr = int(lstoryui['froment'].get())
+	tillfr = int(lstoryui['tillent'].get())
+	ffpsfr = int(lstoryui['ffpsent'].get())
+	global rushes
+	print(rushes)
+	if 'frindex' not in rushes or 'frlast' not in rushes or 'frixdel' not in rushes: return 1
+	if fromfr < 1 or fromfr > rushes['frlast']: return 1
+	if tillfr < 1 or tillfr > rushes['frlast']:
+		lstoryui['tillent'].insert(0, str(rushes['frlast']))
+		tillfr = rushes['frlast']
+	lstoryui['canvas'].delete("all")
+	for px in range(fromfr, tillfr):
+		imgpng = imgdest+'pngs_'+"%04d"%(px)+".png"
+		print(imgpng)
+		image = Image.open(imgpng)
+		image = image.resize((640, 480), Image.ANTIALIAS)
+		root.myimg = myimg = ImageTk.PhotoImage(image)
+		lstoryui['canvas'].create_image((0,0), image=myimg, anchor='nw')
+		lstoryui['canvas'].update()
+		time.sleep(1/ffpsfr)
+
+def frame_stop_pngs():
+	frameat = int(lstoryui['frmatent'].get())
+	global rushes
+	if 'frindex' not in rushes or 'frlast' not in rushes or 'frixdel' not in rushes: return 1
+	if frameat < 1 or frameat > rushes['frlast']: return 1
+	lstoryui['canvas'].delete("all")
+	imgpng = imgdest+'pngs_'+"%04d"%(int(frameat))+".png"
+	image = Image.open(imgpng)
+	image = image.resize((640, 480), Image.ANTIALIAS)
+	root.myimg = myimg = ImageTk.PhotoImage(image)
+	lstoryui['canvas'].create_image((0,0), image=myimg, anchor='nw')
+	lstoryui['canvas'].update()
+
+def frame_point_exec():
+	def settext (text):
+		lstoryui['coordbox'].delete('1.0', END)
+		lstoryui['coordbox'].insert(1.0, text)
+	selection = lstoryui['coordcmb'].get()
+	if selection == 'Save coords as':
+		fname = lstoryui['coordent'].get()
+		coordstxt = lstoryui['coordbox'].get("1.0",END)
+		pyback.savecoordas (fname, coordstxt, lconf['portf_dir'])
+	elif selection == 'Load/Trace Below coords':
+		fname = lstoryui['coordent'].get()
+		coords = pyback.readcoordof (fname, lconf['portf_dir'])
+		for ix in range(0, len(coords)-1):
+			lstoryui['canvas'].create_line((coords[ix][0], coords[ix][1], coords[ix+1][0], coords[ix+1][1]))
+			settext(pprint.pformat(coords, indent=2))
+	elif selection == 'Show coords Lists':
+		filelist = pyback.showscoords (lconf['portf_dir'])
+		settext(filelist)
+	elif selection == 'Merge coords with':
+		xcoords = lstoryui['coordbox'].get("1.0",END)
+		fname = lstoryui['coordent'].get()
+		pyback.save3dcoord (fname, lconf['portf_dir'])
+	print(linepos)
 
 btn_story_story = ttk.Button(frame_story, text="Exec", command=frame_story_story).grid(column=0, row=35)
-btn_story_edit = ttk.Button(frame_story, text="Exec", command=frame_story_edit).grid(column=46, row=36)
+btn_story_edit = ttk.Button(frame_story, text="Exec", command=frame_point_exec).grid(column=46, row=36)
 btn_play_full = ttk.Button(frame_story, text="Play from start", command=frame_play_full).grid(column=32, row=33)
 btn_play_edit = ttk.Button(frame_story, text="Play from edit", command=frame_play_edit).grid(column=35, row=33)
-btn_frame_play = ttk.Button(frame_story, text="Play frames", command=frame_play_edit).grid(column=32, row=34)
-btn_frame_stop = ttk.Button(frame_story, text="Stop/ at frame", command=frame_play_edit).grid(column=32, row=35)
+btn_frame_play = ttk.Button(frame_story, text="Play frames", command=frame_play_pngs).grid(column=32, row=34)
+btn_frame_stop = ttk.Button(frame_story, text="Stop/ at frame", command=frame_stop_pngs).grid(column=32, row=35)
 btn_frame_save = ttk.Button(frame_story, text="Save movie", command=frame_play_edit).grid(column=35, row=35)
-
-def autoplayfunc(pnglst):
-	print("Thread starting")
-	canvas.delete("all")
-	global stopauto
-	for png in pnglst:
-		image = Image.open(png)
-		image = image.resize((350, 250), Image.ANTIALIAS)
-		myimg = ImageTk.PhotoImage(image)
-		canvas.create_image(10, 10, image=myimg, anchor='nw')
-		if stopauto == 1:
-			stopauto = 0
-			exit()
-		time.sleep(1)
-
-def playall ():
-	mystory={"mystory": 'it is Outsideview "Primordial thing in here: beauty, lots of it" #8 @(0,0,0,0,0,0,1,1,1)'}
-	#mystory={"mystory": storybox.get("1.0", "end")}
-	print (mystory)
-	mystory=json.dumps(mystory)
-	response = requests.post(animurl, headers=headers, data=mystory)
-	animation = json.loads(response.text)
-	serealize = p3dfunc.serealize(animation)
-	p3dinput = {'title': 'Preview mode', 'serealize': serealize}
-	with open("C:\ProgramData\Memeer\data.py", "w") as outfile: json.dump(p3dinput, outfile)
-	os.system('ppython production.py')
-	with open('C:\ProgramData\Memeer\data.py') as infile: p3dinput = json.load(infile)
-	pnglst = p3dinput['pnglst']
-	x = threading.Thread(target=autoplayfunc, args=(pnglst,)).start()
-	return 1
 
 nb.enable_traversal()
 root.mainloop()
