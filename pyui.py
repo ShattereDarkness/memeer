@@ -27,12 +27,15 @@ import p3dfunc
 import pyback
 import pytkui
 from PIL import ImageTk, Image
+from tkinter import messagebox 
+from tkinter.messagebox import showinfo
 
 import threading
 import time
 
 headers = {'Content-type': 'application/json'}
-animurl = 'http://localhost:5000/getanim'
+#animurl = 'http://localhost:5000/getanim'
+animurl = 'http://35.229.114.180:8001/getanim'
 stopauto = 0
 imgdest = 'portfolio/rushes/'
 laststory = ''
@@ -181,6 +184,9 @@ def frame_play_pngs():
 		time.sleep(1/ffpsfr)
 
 def frame_stop_pngs():
+	# showinfo("Window", "Hello World!")
+	# xx=messagebox.askquestion("askquestion", "Are you sure?")
+	# print (xx)
 	frameat = int(lstoryui['frmatent'].get())
 	global rushes
 	if 'frindex' not in rushes or 'frlast' not in rushes or 'frixdel' not in rushes: return 1
