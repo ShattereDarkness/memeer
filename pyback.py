@@ -197,3 +197,7 @@ def save3dcoord (fname, portf_dir_str):
 	print(f3dfile)
 	with open(f3dfile, "w") as lpts: json.dump(f3dlist, lpts)
 	return 1
+
+def logit (logtext, input):
+	if isinstance(input, str):
+		logtext.insert('end', "Application logging------------------------------------\n")

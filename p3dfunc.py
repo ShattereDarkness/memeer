@@ -57,7 +57,7 @@ def serialize (universe = {}, animation = [], deserial = 0):
 		if sindex > xindex: xindex = sindex
 	retval[xindex+1].append({'basic': {'p3dfunc': 'exitall'}})
 	retval = deserialize (serialized = retval, dsframe = dsframe, dsline = deserial)
-	return {'serial': retval, 'frindex': dsframe}
+	return {'serial': retval, 'frindex': dsframe, 'frlast': xindex, 'frixdel': 9999-len(retval)}
 
 def mergeposition (base = [], addit = []):
 	retval = [0, 0, 0, 0, 0, 0, 1, 1, 1]

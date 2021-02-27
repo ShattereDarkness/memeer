@@ -5,6 +5,8 @@ from tkinter import ttk
 from tksheet import Sheet
 import pyback
 import tkinter.scrolledtext as scrolledtext
+from tkinter import BOTH, END, LEFT
+import pprint
 
 def addstdframe (root, framedesc, row=0, col=0):
 	nframe = tkinter.Frame(root)
@@ -59,11 +61,13 @@ def lconfuisetup (lconf, univ, root, lportui, retry=1):
 	if 'namedetail' in univ and retry == 1: lportui['desc'] = newentry (framep=root, width=90, col=3, row=5, text=univ['namedetail'])
 	else: ttk.Label(root, text='Name Description').grid(column=2, row=5)
 
-def storyroomsetup (lstory, csize=500):
+def storyroomsetup (lstory, csize=500, linepos = []):
 	def savePosn(event):
 		global lastx, lasty
 		lastx, lasty = event.x, event.y
-		print (lastx, lasty)
+		coordbox.delete('1.0', END)
+		coordbox.insert(1.0, pprint.pformat(linepos, indent=2))
+		linepos.append([lastx, lasty])
 	def addLine(event):
 		canvas.create_line((lastx, lasty, event.x, event.y))
 		savePosn(event)
@@ -82,10 +86,10 @@ def storyroomsetup (lstory, csize=500):
 	canvas.grid(column=31, row=0, sticky='n', columnspan=10)
 	canvas.bind("<Button-1>", savePosn)
 	canvas.bind("<B1-Motion>", addLine)
-	frmatent = newentry (framep=lstory, width=4, col=33, row=35, text='-1')
-	froment = newentry (framep=lstory, width=4, col=34, row=34, text='0', lbltext='From')
-	tillent = newentry (framep=lstory, width=4, col=36, row=34, text='-1', lbltext='Till')
-	ffpsent = newentry (framep=lstory, width=4, col=38, row=34, text='1', lbltext='FPS')
+	frmatent = newentry (framep=lstory, width=4, col=33, row=35, text='11')
+	froment = newentry (framep=lstory, width=4, col=34, row=34, text='10', lbltext='From')
+	tillent = newentry (framep=lstory, width=4, col=36, row=34, text='20', lbltext='Till')
+	ffpsent = newentry (framep=lstory, width=4, col=38, row=34, text='24', lbltext='FPS')
 	coordbox = scrolledtext.ScrolledText(lstory, undo=True, width=17, height=30)
 	coordbox.grid(column=42, row=0, sticky='n', columnspan=16)
 	coordcmb = loadCombobox (root=lstory, lovalues=('Save coords as','Load/Trace Below coords','Show coords Lists','Merge coords with'), col=44, row=34, colspan = 15)

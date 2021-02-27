@@ -29,19 +29,20 @@ import pytkui
 from PIL import ImageTk, Image
 from tkinter import messagebox 
 from tkinter.messagebox import showinfo
+import tkinter.scrolledtext as scrolledtext
 
 import threading
 import time
 
-headers = {'Content-type': 'application/json'}
-#animurl = 'http://localhost:5000/getanim'
-animurl = 'http://35.229.114.180:8001/getanim'
-stopauto = 0
-imgdest = 'portfolio/rushes/'
-laststory = ''
-rushes = {}
-csize = 500
-linepos = []
+gappvars = {}
+gappvars['headers'] = {'Content-type': 'application/json'}
+gappvars['animurl'] = 'http://localhost:5000/getanim'
+gappvars['imgdest'] = 'portfolio/rushes/'
+gappvars['laststory'] = ''
+gappvars['rushes'] = {}
+gappvars['linepos'] = []
+gappvars['logtext'] = []
+#gappvars['animurl'] = 'http://35.229.114.180:8001/getanim'
 
 #Make the root widget
 root = tkinter.Tk()
@@ -65,7 +66,7 @@ frame_logix = pytkui.addcnvframe (nb, "Logical Functions")
 frame_funcs = pytkui.addcnvframe (nb, "Panda3dUI Functions")
 conf_frames = {'conf': frame_conf, 'acts': frame_acts, 'objs': frame_objs, 'logix': frame_logix, 'funcs': frame_funcs}
 frame_story = pytkui.addstdframe (nb, "User Stories and play")
-lstoryui = pytkui.storyroomsetup (frame_story, csize = csize, linepos = linepos)
+lstoryui = pytkui.storyroomsetup (frame_story, csize = 500, linepos = gappvars['linepos'])
 lstoryui['storybox'].insert(1.0, mystory)
 
 def frame_acts_save ():
@@ -102,13 +103,17 @@ def refresh_full_universe():
 
 btn_conf_save = ttk.Button(frame_conf, text="\tSave the configuration\t", command=frame_conf_save).grid(column=1, row=6, columnspan=3)
 btn_conf_open = ttk.Button(frame_conf, text="Open Workdir", command=refresh_full_universe).grid(column=4, row=4)
+gappvars['logtext'] = scrolledtext.ScrolledText(frame_conf, undo=True, width=115, height=29, bg="grey")
+gappvars['logtext'].bind('<1>', lambda event: gappvars['logtext'].focus_set())
+gappvars['logtext'].grid(column=1, row=8, sticky='n', columnspan=6)
+pyback.logit (gappvars['logtext'], "Application logging------------------------------------\n")
 
 def frame_story_story():
 	def settext (text):
 		lstoryui['storybox'].delete('1.0', END)
 		lstoryui['storybox'].insert(1.0, text)
 	selection = lstoryui['storycmb'].get()
-	global laststory
+	global gappvars
 	if len (selection) < 2: print ("No execution")
 	elif selection == 'Save Story as ...':
 		fname = lstoryui['storyent'].get()
@@ -118,63 +123,63 @@ def frame_story_story():
 		filelist = pyback.showstories (lconf['portf_dir'])
 		print (filelist)
 		settext(filelist)
-		laststory = ''
+		gappvars['laststory'] = ''
 	elif selection == 'Show Below Story':
 		fname = re.sub("\n", "", lstoryui['storyent'].get())
 		storytext = pyback.showastory (fname, lconf['portf_dir'])
 		settext(storytext)
-		laststory = ''
+		gappvars['laststory'] = ''
 	return 1
 
 def frame_story_edit():
 	return 1
 
 def getstoryanim (change = 0, dest = ''):
-	global laststory
+	global gappvars
 	storytext = lstoryui['storybox'].get("1.0",END)
 	cacts = pytkui.lactsuiread(lportui['acts'])
 	cobjs = pytkui.lobjsuiread(lportui['objs'])
 	clogix = pytkui.llogixuiread(lportui['logix'])
 	cfuncs = pytkui.lfuncsuiread(lportui['funcs'])
 	cuniv = {'actions': cacts, 'objects': cobjs, 'logicals': clogix, 'functions': cfuncs}
-	animation = pyback.response_textplay (animurl, headers, cuniv, storytext)
-	cline = pyback.getchanged (laststory, storytext, change)
+	animation = pyback.response_textplay (gappvars['animurl'], gappvars['headers'], cuniv, storytext)
+	cline = pyback.getchanged (gappvars['laststory'], storytext, change)
 	serialized = p3dfunc.serialize (universe = cuniv, animation = animation, deserial = cline)
 	serialized['inprod'] = '0'
-	serialized['imgdest'] = imgdest + dest + 'pngs'
-	with open(imgdest + 'serial.js', "w") as lujs: json.dump(serialized, lujs)
-	laststory = storytext
+	serialized['imgdest'] = gappvars['imgdest'] + dest + 'pngs'
+	with open(gappvars['imgdest'] + 'serial.js', "w") as lujs: json.dump(serialized, lujs)
+	gappvars['laststory'] = storytext
 	return serialized
 
 def frame_play_full():
 	storyanim = getstoryanim (change = 0, dest = '')
 	os.system('ppython p3dpreview.py')
-	global rushes
-	for keys in ['frindex', 'frlast', 'frixdel']: rushes[keys] = storyanim[keys]
+	global gappvars
+	for keys in ['frindex', 'frlast', 'frixdel']: gappvars['rushes'][keys] = storyanim[keys]
 	print ("Panda3d Execution completed")
 
 def frame_play_edit():
 	storyanim = getstoryanim (change = 1, dest = 'temp/')
 	os.system('ppython p3dpreview.py')
 	print ("Panda3d Execution completed")
-	global rushes
-	for keys in ['frindex', 'frlast', 'frixdel']: rushes[keys] = storyanim[keys]
-	pyback.overwrites (imgdest, storyanim['frindex'], storyanim['frlast'], storyanim['frixdel'])
+	global gappvars
+	for keys in ['frindex', 'frlast', 'frixdel']: gappvars['rushes'][keys] = storyanim[keys]
+	pyback.overwrites (gappvars['imgdest'], storyanim['frindex'], storyanim['frlast'], storyanim['frixdel'])
 
 def frame_play_pngs():
 	fromfr = int(lstoryui['froment'].get())
 	tillfr = int(lstoryui['tillent'].get())
 	ffpsfr = int(lstoryui['ffpsent'].get())
-	global rushes
-	print(rushes)
-	if 'frindex' not in rushes or 'frlast' not in rushes or 'frixdel' not in rushes: return 1
-	if fromfr < 1 or fromfr > rushes['frlast']: return 1
-	if tillfr < 1 or tillfr > rushes['frlast']:
-		lstoryui['tillent'].insert(0, str(rushes['frlast']))
-		tillfr = rushes['frlast']
+	global gappvars
+	print(gappvars['rushes'])
+	if 'frindex' not in gappvars['rushes'] or 'frlast' not in gappvars['rushes'] or 'frixdel' not in gappvars['rushes']: return 1
+	if fromfr < 1 or fromfr > gappvars['rushes']['frlast']: return 1
+	if tillfr < 1 or tillfr > gappvars['rushes']['frlast']:
+		lstoryui['tillent'].insert(0, str(gappvars['rushes']['frlast']))
+		tillfr = gappvars['rushes']['frlast']
 	lstoryui['canvas'].delete("all")
 	for px in range(fromfr, tillfr):
-		imgpng = imgdest+'pngs_'+"%04d"%(px)+".png"
+		imgpng = gappvars['imgdest']+'pngs_'+"%04d"%(px)+".png"
 		print(imgpng)
 		image = Image.open(imgpng)
 		image = image.resize((640, 480), Image.ANTIALIAS)
@@ -188,11 +193,11 @@ def frame_stop_pngs():
 	# xx=messagebox.askquestion("askquestion", "Are you sure?")
 	# print (xx)
 	frameat = int(lstoryui['frmatent'].get())
-	global rushes
-	if 'frindex' not in rushes or 'frlast' not in rushes or 'frixdel' not in rushes: return 1
-	if frameat < 1 or frameat > rushes['frlast']: return 1
+	global gappvars
+	if 'frindex' not in gappvars['rushes'] or 'frlast' not in gappvars['rushes'] or 'frixdel' not in gappvars['rushes']: return 1
+	if frameat < 1 or frameat > gappvars['rushes']['frlast']: return 1
 	lstoryui['canvas'].delete("all")
-	imgpng = imgdest+'pngs_'+"%04d"%(int(frameat))+".png"
+	imgpng = gappvars['imgdest']+'pngs_'+"%04d"%(int(frameat))+".png"
 	image = Image.open(imgpng)
 	image = image.resize((640, 480), Image.ANTIALIAS)
 	root.myimg = myimg = ImageTk.PhotoImage(image)
@@ -221,7 +226,7 @@ def frame_point_exec():
 		xcoords = lstoryui['coordbox'].get("1.0",END)
 		fname = lstoryui['coordent'].get()
 		pyback.save3dcoord (fname, lconf['portf_dir'])
-	print(linepos)
+	print(gappvars['linepos'])
 
 btn_story_story = ttk.Button(frame_story, text="Exec", command=frame_story_story).grid(column=0, row=35)
 btn_story_edit = ttk.Button(frame_story, text="Exec", command=frame_point_exec).grid(column=46, row=36)
