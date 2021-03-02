@@ -47,12 +47,14 @@ def savethedata(lportui):
 def getUniverseData (user, portf_dir_str):
 	portf_dir = Path(portf_dir_str)
 	universe = portf_dir / 'universe.js'
+	
 	# Start reading basic setup at directory
 	with universe.open('r') as univjs: univ = json.load(univjs)
 	if 'namedetail' not in univ or univ['namedetail'] == '':
 		univ['namedetail'] = 'Basic environment for create at '+portf_dir_str+' for user '+user
 	model_dir = portf_dir / 'model'
 	actor_dir = portf_dir / 'actor'
+	media_dir = portf_dir / 'media'
 	# Start checking for models and actions
 	if 'actions' not in univ: univ['actions'] = []
 	if 'objects' not in univ: univ['objects'] = []
@@ -60,6 +62,26 @@ def getUniverseData (user, portf_dir_str):
 	for func in ['move', 'locate', 'say']:
 		if len(list(filter(lambda x : 'func' in x and x['func'] == func, univ['actions']))) == 0:
 			univ['actions'].append({'jjrb': ['slow', 'quick'], 'syns': [func], 'func': func})
+	## Conver media files into models
+	def setup_mediamodel ():
+		print("crrent working at", os.getcwd())
+		os.chdir("portfolio/model/")
+		for file in media_dir.iterdir():
+			print("Checking for ", file)
+			mfile = file.stem + '.egg'
+			if (model_dir / mfile).exists(): continue
+			print("Starting for ", mfile)
+			if file.suffix in ['.png', '.jpg']:
+				cmdstr = "egg-texture-cards -o " + file.stem + ".egg ../media/" + file.stem + file.suffix
+				os.system(cmdstr)
+			if file.suffix in ['.gif', '.mp4']:
+				os.mkdir('../media/' + file.stem)
+				cmdstr = "ffmpeg -i ../media/" + file.stem + file.suffix + " -vf fps=24 -pix_fmt pal8 ../media/" + file.stem + "/series%4d.png"
+				print ("Executong ", cmdstr)
+				os.system(cmdstr)
+				cmdstr = "egg-texture-cards -o " + file.stem + ".egg ../media/" + file.stem + "/series*.png"
+				os.system(cmdstr)
+		os.chdir("../../")
 	## Check for camera and pronouns
 	def setup_object (objname):
 		for object in univ['objects']:
@@ -83,6 +105,7 @@ def getUniverseData (user, portf_dir_str):
 				univ['actions'].append({'jjrb': ['slow', 'quick'], 'syns': [], 'func': actname})
 		univ['objects'].append(newobj)
 	# Check for each model now
+	setup_mediamodel ()
 	setup_object ('camera')
 	setup_object ('__blank__')
 	for model in model_dir.glob('*.egg'): setup_object (model.stem)
