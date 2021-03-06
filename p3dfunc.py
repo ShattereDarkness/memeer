@@ -1,6 +1,12 @@
 import math
 import pprint
+import re
+import os
+import os.path
+import json
+import copy
 
+basedir = ''
 def deserialize (serialized = [], dsframe = 0, dsline = 0):
 	if dsframe == 0: return serialized
 	print ("Will check for frames and lines: ", dsframe, dsline)
@@ -23,8 +29,10 @@ def deserialize (serialized = [], dsframe = 0, dsline = 0):
 	retval = [insert0] + serialized[dsframe:]
 	return retval
 
-def serialize (universe = {}, animation = [], deserial = 0):
+def serialize (universe = {}, animation = [], deserial = 0, portfolio = ''):
 	retval=[]
+	global basedir
+	basedir = portfolio
 	for x in range(0, 9999): retval.append([])
 	xindex = sindex = 0
 	def mergedata (sindex, series, lineid):
@@ -89,8 +97,44 @@ def setscreentext (specs = {}, fcount=1):
 		frid = sx * ratio
 		if len(retval) < frid:
 			for fx in range (len(retval), frid): retval.append('')
-		retval.append(ltext + specs['sttmts'][sx])
+		retval.append(specs['sttmts'][sx])
 		ltext = ltext + specs['sttmts'][sx] + "\n"
+	return retval
+
+def setlistedpost (universe, gmodel, specs, fcount, wtfunc):
+	basepos = modfpos = modlpos = gmodel['xyz'] + gmodel['hpr'] + gmodel['lbh']
+	retval = [basepos]
+	def readposfile (filenm, frames = fcount):
+		if not re.match(".+\.txt$", filenm): filenm = filenm + '.txt'
+		print ("filenm", filenm)
+		if not os.path.isfile(basedir+'/coords/'+filenm): return retval
+		print ("file found")
+		with open(basedir+'/coords/'+filenm) as lujs: allpos = json.load(lujs)
+		#print("allpos", allpos)
+		return allpos['coord']
+	coords = readposfile (specs['locfile'], frames = fcount)
+	#print ("coords", coords)
+	for frid in range(0, fcount+1):
+		itemix = math.ceil(len(coords)*frid/fcount) if frid < fcount else len(coords)-1
+		#print("frid, itemix", frid, itemix)
+		modpos = copy.deepcopy(basepos)
+		#print("modpos", modpos)
+		#print("coords", coords[itemix])
+		if re.match("X_", specs['locfile']):
+			modpos[1] = modpos[1]+coords[itemix][0]
+			modpos[2] = modpos[2]+coords[itemix][1]
+		if re.match("Y_", specs['locfile']):
+			modpos[0] = modpos[0]+coords[itemix][0]
+			modpos[2] = modpos[2]-coords[itemix][1]
+		if re.match("Z_", specs['locfile']):
+			modpos[0] = modpos[0]+coords[itemix][0]
+			modpos[1] = modpos[1]+coords[itemix][1]
+		if re.match("3d__", specs['locfile']):
+			modpos[0] = modpos[0]+coords[itemix][0]
+			modpos[1] = modpos[1]+coords[itemix][1]
+			modpos[2] = modpos[2]+coords[itemix][2]
+		#print("updated modpos", modpos)
+		retval.append(modpos)
 	return retval
 
 def setmodelpost (universe, gmodel, specs, fcount, wtfunc):
@@ -111,6 +155,22 @@ def setmodelpost (universe, gmodel, specs, fcount, wtfunc):
 	retval.append(modlpos)
 	return retval
 
+def objectmov (universe = {}, sindex = 0, tag = 'text', specs = {}, model = {}):
+	defaults = {'length': 120}
+	retval = {'func': 'pass', 'file': '', 'post': [], 'sttmts': specs['sttmts']}
+	obj = {}
+	if tag == 'text': obj = model['0']
+	if obj == {}: return retval
+	gmodel = universe['objects'][obj[0]['gmodel']]
+	smodel = obj[0]['smodel']
+	frames = setframelen (sindex = sindex, specs = specs, conflen = defaults['length'])
+	sttmt = setscreentext (specs = specs, fcount = frames[1]-frames[0])
+	if specs['locfile'] != '':
+		posts = setlistedpost (universe, gmodel, specs, frames[1]-frames[0], 'default')
+	else:
+		posts = setmodelpost (universe, gmodel, specs, frames[1]-frames[0], 'default')
+	return ({'model': basedir+'/model/'+gmodel['model'][smodel]['file'], 'frames': frames, 'posts': posts, 'sttmt': sttmt})
+
 def objectlay (universe = {}, sindex = 0, tag = 'text', specs = {}, model = {}):
 	defaults = {'length': 120}
 	retval = {'func': 'pass', 'file': '', 'post': [], 'sttmts': specs['sttmts']}
@@ -123,20 +183,20 @@ def objectlay (universe = {}, sindex = 0, tag = 'text', specs = {}, model = {}):
 	frames = setframelen (sindex = sindex, specs = specs, conflen = defaults['length'])
 	sttmt = setscreentext (specs = specs, fcount = frames[1]-frames[0])
 	posts = setmodelpost (universe, gmodel, specs, frames[1]-frames[0], 'default')
-	return ({'model': 'portfolio/model/'+gmodel['model'][smodel]['file'], 'frames': frames, 'posts': posts, 'sttmt': sttmt})
+	return ({'model': basedir+'/model/'+gmodel['model'][smodel]['file'], 'frames': frames, 'posts': posts, 'sttmt': sttmt})
 
 def getactorfile (universe, gmodel, smodel, action):
 	retval = {}
 	basef = gmodel['model'][0]['file']
-	mfile = 'portfolio/actor/'+gmodel['model'][smodel]['file']
+	mfile = basedir+'/actor/'+gmodel['model'][smodel]['file']
 	acts = {}
 	actf = {'speed': 1, 'fstart': 0, 'flast': 1}
 	for actf in gmodel['acts']:
 		actn, actdet = list(actf.items())[0][0], list(actf.items())[0][1]
-		acts[actn] = 'portfolio/actor/action/'+basef + "__" + actn
+		acts[actn] = basedir+'/actor/action/'+basef + "__" + actn
 		if actn != action: continue
-		actf = {'action': action,'speed': actdet['speed'], 'fstart': actdet['fstart'], 'flast': actdet['flast']}
-	return {'mfile': mfile, 'acts': acts, 'actf': actf}
+		pactf = {'action': action,'speed': actdet['speed'], 'fstart': actdet['fstart'], 'flast': actdet['flast']}
+	return {'mfile': mfile, 'acts': acts, 'actf': pactf}
 
 def setactorpose (actfnc, fcount):
 	retval = []
@@ -160,8 +220,11 @@ def actordoes (universe = {}, sindex = 0, tag = 'text', specs = {}, model = {}):
 	if obj == {}: return retval
 	gmodel = universe['objects'][obj[0]['gmodel']]
 	smodel = obj[0]['smodel']
+	print(model	)
 	action = universe['actions'][act[0]['gmodel']]['func']
+	print('action', action)
 	actor = getactorfile (universe, gmodel, smodel, action)
+	print (actor)
 	frames = setframelen (sindex = sindex, specs = specs, conflen = actor['actf']['flast']-actor['actf']['fstart'])
 	sttmt = setscreentext (specs = specs, fcount = frames[1]-frames[0])
 	posts = setmodelpost (universe, gmodel, specs, frames[1]-frames[0], 'default')

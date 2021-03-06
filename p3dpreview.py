@@ -64,10 +64,10 @@ props = WindowProperties( )
 props.setTitle("For Preview")
 ShowBase()
 base.disableMouse()
-camera.setPos(0, -120, 10)
+camera.setPos(0, -120, 0)
 camera.setHpr(0, 0, 0)
-statements = OnscreenText(text=" ", pos=(-1.2, 0.9), scale=0.08, align=0, wordwrap=40)
-textbasics = OnscreenText(text=" ", pos=(-1.2, -0.9), scale=0.08, align=0, wordwrap=40)
+statements = OnscreenText(text=" ", pos=(-1.2, 0.9), scale=0.08, align=0, wordwrap=30)
+textbasics = OnscreenText(text=" ", pos=(-1.2, -0.95), scale=0.08, align=0, wordwrap=30)
 
 def defaultTask(task):
 	#print('Current frame: '+str(task.frame))

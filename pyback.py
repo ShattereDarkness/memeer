@@ -4,21 +4,21 @@ import json
 import re
 
 import requests
-univfile = 'portfolio/universe.js'
 conffile = 'localuser.js'
 
 def port_conf_save (uielems, lconf, univ):
 	lconf['user_idnt'] = uielems['user'].get()
 	lconf['secrettxt'] = uielems['pkey'].get()
 	lconf['portf_dir'] = uielems['wdir'].get()
+	univfile = lconf['portf_dir'] + 'universe.js'
 	putlocaluser (lconf)
 	univ['namedetail'] = uielems['desc'].get()
-	putUniverseJS (univ)
+	putUniverseJS (univ, univfile)
 
-def saveuniv(what, citemls):
-	nuniv = getUniverseJS ()
+def saveuniv(what, citemls, univfile):
+	nuniv = getUniverseJS (univfile)
 	nuniv[what] = citemls
-	putUniverseJS (nuniv)
+	putUniverseJS (nuniv, univfile)
 
 def getlocaluser ():
 	global conffile
@@ -30,13 +30,11 @@ def putlocaluser (lconf):
 	with open(conffile, "w") as lujs: json.dump(lconf, lujs)
 	return 1
 
-def getUniverseJS ():
-	global univfile
+def getUniverseJS (univfile):
 	with open(univfile) as lujs: univ = json.load(lujs)
 	return univ
 
-def putUniverseJS (univ):
-	global univfile
+def putUniverseJS (univ, univfile):
 	with open(univfile, "w") as lujs: json.dump(univ, lujs)
 	return 1
 
@@ -49,12 +47,25 @@ def getUniverseData (user, portf_dir_str):
 	universe = portf_dir / 'universe.js'
 	
 	# Start reading basic setup at directory
+	if not universe.is_file():
+		with open(universe, "w") as lujs: json.dump({'initialized': 'from pyback frunction'}, lujs)
 	with universe.open('r') as univjs: univ = json.load(univjs)
 	if 'namedetail' not in univ or univ['namedetail'] == '':
 		univ['namedetail'] = 'Basic environment for create at '+portf_dir_str+' for user '+user
 	model_dir = portf_dir / 'model'
+	if not model_dir.is_dir(): model_dir.mkdir()
 	actor_dir = portf_dir / 'actor'
+	if not actor_dir.is_dir():
+		actor_dir.mkdir()
+		action_dir = actor_dir / 'action'
+		action_dir.mkdir()
 	media_dir = portf_dir / 'media'
+	if not media_dir.is_dir(): media_dir.mkdir()
+	if not (portf_dir / 'stories').is_dir(): (portf_dir / 'stories').mkdir()
+	if not (portf_dir / 'coords').is_dir(): (portf_dir / 'coords').mkdir()
+	if not (portf_dir / 'rushes').is_dir():
+		(portf_dir / 'rushes').mkdir()
+		(portf_dir / 'rushes' / 'temp').mkdir()
 	# Start checking for models and actions
 	if 'actions' not in univ: univ['actions'] = []
 	if 'objects' not in univ: univ['objects'] = []
@@ -64,10 +75,8 @@ def getUniverseData (user, portf_dir_str):
 			univ['actions'].append({'jjrb': ['slow', 'quick'], 'syns': [func], 'func': func})
 	## Conver media files into models
 	def setup_mediamodel ():
-		print("crrent working at", os.getcwd())
-		os.chdir("portfolio/model/")
+		os.chdir(portf_dir_str+"/model/")
 		for file in media_dir.iterdir():
-			print("Checking for ", file)
 			mfile = file.stem + '.egg'
 			if (model_dir / mfile).exists(): continue
 			print("Starting for ", mfile)
@@ -77,9 +86,8 @@ def getUniverseData (user, portf_dir_str):
 			if file.suffix in ['.gif', '.mp4']:
 				os.mkdir('../media/' + file.stem)
 				cmdstr = "ffmpeg -i ../media/" + file.stem + file.suffix + " -vf fps=24 -pix_fmt pal8 ../media/" + file.stem + "/series%4d.png"
-				print ("Executong ", cmdstr)
 				os.system(cmdstr)
-				cmdstr = "egg-texture-cards -o " + file.stem + ".egg ../media/" + file.stem + "/series*.png"
+				cmdstr = "egg-texture-cards -o " + file.stem + ".egg -fps 24 ../media/" + file.stem + "/series*.png"
 				os.system(cmdstr)
 		os.chdir("../../")
 	## Check for camera and pronouns

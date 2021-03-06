@@ -1,15 +1,4 @@
-mystory1 = """
-narrator says "hello youong frinds" #1-#36
-
-narrator says "welcome to this animmation on far flung cltures of India" @(0,0,0,0,0,0,1,1,1)-@(0,0,0,0,0,0,4,4,4)
-
-narrator says "My name is Ahmad Balti and today, I will tell you about my Balti people" #72-#144
-
-lady walks "and that is true" #72-#144
-
-"""
 mystory = """
-it is narrator @(0,0,0,0,0,0,5,5,5) #1-#36
 """
 
 import tkinter
@@ -42,6 +31,7 @@ gappvars['laststory'] = ''
 gappvars['rushes'] = {}
 gappvars['linepos'] = []
 gappvars['logtext'] = []
+linux_ffmpeg = "ffmpeg -pattern_type glob -i '*.png' -c:v libx264 -r 20 -pix_fmt yuv420p out.mp4"
 #gappvars['animurl'] = 'http://35.229.114.180:8001/getanim'
 
 #Make the root widget
@@ -71,17 +61,17 @@ lstoryui['storybox'].insert(1.0, mystory)
 
 def frame_acts_save ():
 	cacts = pytkui.lactsuiread(lportui['acts'])
-	pyback.saveuniv('actions', cacts)
+	pyback.saveuniv('actions', cacts, lconf['portf_dir']+'/universe.js')
 
 def frame_objs_save ():
 	cobjs = pytkui.lobjsuiread(lportui['objs'])
 	print (cobjs)
-	pyback.saveuniv('objects', cobjs)
+	pyback.saveuniv('objects', cobjs, lconf['portf_dir']+'/universe.js')
 
 def frame_logix_save ():
 	print(lportui['funcs'])
 	clogix = pytkui.llogixuiread(lportui['logix'])
-	pyback.saveuniv('logicals', clogix)
+	pyback.saveuniv('logicals', clogix, lconf['portf_dir']+'/universe.js')
 
 def refresh_frame_buttons ():
 	frame_size = frame_acts.grid_size()
@@ -99,6 +89,8 @@ def frame_conf_save():
 
 def refresh_full_universe():
 	pytkui.refresh_universe(lportui, conf_frames, lconf)
+	global gappvars
+	gappvars['imgdest'] = lconf['portf_dir']+'/rushes/'
 	refresh_frame_buttons ()
 
 btn_conf_save = ttk.Button(frame_conf, text="\tSave the configuration\t", command=frame_conf_save).grid(column=1, row=6, columnspan=3)
@@ -134,9 +126,11 @@ def frame_story_story():
 def frame_story_edit():
 	return 1
 
-def getstoryanim (change = 0, dest = ''):
+def getstoryanim (change = 0, dest = '', inprod = 0):
 	global gappvars
 	storytext = lstoryui['storybox'].get("1.0",END)
+	from pathlib import Path
+	portf_dir = Path(lconf['portf_dir'])
 	cacts = pytkui.lactsuiread(lportui['acts'])
 	cobjs = pytkui.lobjsuiread(lportui['objs'])
 	clogix = pytkui.llogixuiread(lportui['logix'])
@@ -144,12 +138,20 @@ def getstoryanim (change = 0, dest = ''):
 	cuniv = {'actions': cacts, 'objects': cobjs, 'logicals': clogix, 'functions': cfuncs}
 	animation = pyback.response_textplay (gappvars['animurl'], gappvars['headers'], cuniv, storytext)
 	cline = pyback.getchanged (gappvars['laststory'], storytext, change)
-	serialized = p3dfunc.serialize (universe = cuniv, animation = animation, deserial = cline)
-	serialized['inprod'] = '0'
-	serialized['imgdest'] = gappvars['imgdest'] + dest + 'pngs'
+	serialized = p3dfunc.serialize (universe = cuniv, animation = animation, deserial = cline, portfolio = portf_dir.stem)
+	serialized['inprod'] = str(inprod)
+	if inprod == 1:	serialized['imgdest'] = gappvars['imgdest'] + 'pngs' + lstoryui['mprefix'].get()
+	else: serialized['imgdest'] = gappvars['imgdest'] + dest + 'pngs'
 	with open(gappvars['imgdest'] + 'serial.js', "w") as lujs: json.dump(serialized, lujs)
 	gappvars['laststory'] = storytext
 	return serialized
+
+def frame_play_prod ():
+	storyanim = getstoryanim (change = 0, dest = '', inprod = 1)
+	os.system('ppython p3dpreview.py')
+	global gappvars
+	for keys in ['frindex', 'frlast', 'frixdel']: gappvars['rushes'][keys] = storyanim[keys]
+	print ("Panda3d Execution completed")
 
 def frame_play_full():
 	storyanim = getstoryanim (change = 0, dest = '')
@@ -234,7 +236,7 @@ btn_play_full = ttk.Button(frame_story, text="Play from start", command=frame_pl
 btn_play_edit = ttk.Button(frame_story, text="Play from edit", command=frame_play_edit).grid(column=35, row=33)
 btn_frame_play = ttk.Button(frame_story, text="Play frames", command=frame_play_pngs).grid(column=32, row=34)
 btn_frame_stop = ttk.Button(frame_story, text="Stop/ at frame", command=frame_stop_pngs).grid(column=32, row=35)
-btn_frame_save = ttk.Button(frame_story, text="Save movie", command=frame_play_edit).grid(column=35, row=35)
+btn_frame_save = ttk.Button(frame_story, text="Save movie (Suffix)", command=frame_play_prod).grid(column=35, row=35)
 
 nb.enable_traversal()
 root.mainloop()

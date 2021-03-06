@@ -90,12 +90,14 @@ def storyroomsetup (lstory, csize=500, linepos = []):
 	froment = newentry (framep=lstory, width=4, col=34, row=34, text='10', lbltext='From')
 	tillent = newentry (framep=lstory, width=4, col=36, row=34, text='20', lbltext='Till')
 	ffpsent = newentry (framep=lstory, width=4, col=38, row=34, text='24', lbltext='FPS')
+	mprefix = newentry (framep=lstory, width=4, col=36, row=35, text='')
 	coordbox = scrolledtext.ScrolledText(lstory, undo=True, width=17, height=30)
 	coordbox.grid(column=42, row=0, sticky='n', columnspan=16)
 	coordcmb = loadCombobox (root=lstory, lovalues=('Save coords as','Load/Trace Below coords','Show coords Lists','Merge coords with'), col=44, row=34, colspan = 15)
 	coordent = newentry (framep=lstory, width=24, col=44, row=35, text='', colspan=18)
 	lstoryui = {'storybox': storybox, 'storycmb': storycmb, 'storyent': storyent, 'canvas': canvas,
-				'frmatent': frmatent, 'froment': froment, 'tillent': tillent, 'ffpsent': ffpsent, 'coordbox': coordbox, 'coordcmb': coordcmb, 'coordent': coordent}
+				'frmatent': frmatent, 'froment': froment, 'tillent': tillent, 'ffpsent': ffpsent, 'mprefix': mprefix,
+				'coordbox': coordbox, 'coordcmb': coordcmb, 'coordent': coordent}
 	return lstoryui
 
 def _get_syns_jjrb (attrs = [], holder = {}, rownum=1, framep = {}, source = {}):
@@ -129,6 +131,7 @@ def lactsuiread (lactsui):
 		lact = {}
 		if 'func' in act: lact['func'] = act['func']
 		else: lact['acts'] = act['acts']
+		print (act)
 		lact['syns'] = splittext (text = act['syns'].get())
 		lact['jjrb'] = splittext (text = act['jjrb'].get())
 		retval.append(lact)
