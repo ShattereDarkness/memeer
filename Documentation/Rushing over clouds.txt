@@ -1,0 +1,8 @@
+"Youtbe link: https://www.youtube.com/watch?v=YQ5qXx4KBtY"
+it is mountain #1-#250 @(0,1,0,0,0,0,90,60,150)
+leftSUV moved away @f(Y_drive1) #1-#50
+it is leftSUV @(0,1,90,0,0,0,1,1,1) #50-51
+frontSUV moved away @f(Y_drive2) #51-#100
+it is frontSUV @(0,1,90,0,0,0,20,10,10) #100-101
+rightSUV moved away @f(Y_drive3) #141-#190
+SUVfrontbig moved away @f(Y_drive4) #221-#225 
