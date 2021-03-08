@@ -58,7 +58,7 @@ def newmodel (scene):
 		modid = len(loadlist)-1
 	return modid
 
-with open('portfolio/rushes/serial.js') as lujs: serealized = json.load(lujs)
+with open('serial.js') as lujs: serealized = json.load(lujs)
 serial, frindex, inprod, imgdest = serealized['serial'], serealized['frindex'], serealized['inprod'], serealized['imgdest']
 props = WindowProperties( )
 props.setTitle("For Preview")
@@ -85,9 +85,10 @@ def defaultTask(task):
 		if 'disable' in scene['addon']: disablemodel (scene['basic']['lineid'], statements)
 	return Task.cont
 
-loadlist.append({'file': 'camera', 'model': base.camera, 'post': [0, -120, 10,0, 0, 0, 1, 1, 1]})
+loadlist.append({'file': 'camera', 'model': base.camera, 'post': [0, -120, 0,0, 0, 0, 1, 1, 1]})
 taskMgr.add(defaultTask, "defaultTask")
 namePrefix = serealized['imgdest']
+print("namePrefix", namePrefix)
 base.win.requestProperties( props )
 base.movie(namePrefix=namePrefix, duration=1000, fps=24, format='png')
 base.run()

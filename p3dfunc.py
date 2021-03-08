@@ -125,7 +125,7 @@ def setlistedpost (universe, gmodel, specs, fcount, wtfunc):
 			modpos[2] = modpos[2]+coords[itemix][1]
 		if re.match("Y_", specs['locfile']):
 			modpos[0] = modpos[0]+coords[itemix][0]
-			modpos[2] = modpos[2]-coords[itemix][1]
+			modpos[2] = modpos[2]+coords[itemix][1]
 		if re.match("Z_", specs['locfile']):
 			modpos[0] = modpos[0]+coords[itemix][0]
 			modpos[1] = modpos[1]+coords[itemix][1]

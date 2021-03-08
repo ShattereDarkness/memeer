@@ -1,4 +1,11 @@
 mystory = """
+it is mountain #1-#250 @(0,1,0,0,0,0,90,60,150)
+leftSUV moved away @f(Y_drive1) #1-#50
+it is leftSUV @(0,1,90,0,0,0,1,1,1) #50-51
+frontSUV moved away @f(Y_drive2) #51-#100
+it is frontSUV @(0,1,90,0,0,0,20,10,10) #100-101
+rightSUV moved away @f(Y_drive3) #141-#190
+frontSUV moved away @(0,1,90,0,0,0,20,10,10) @f(Y_drive4) #221-#240 
 """
 
 import tkinter
@@ -26,7 +33,7 @@ import time
 gappvars = {}
 gappvars['headers'] = {'Content-type': 'application/json'}
 gappvars['animurl'] = 'http://localhost:5000/getanim'
-gappvars['imgdest'] = 'portfolio/rushes/'
+gappvars['imgdest'] = ''
 gappvars['laststory'] = ''
 gappvars['rushes'] = {}
 gappvars['linepos'] = []
@@ -44,6 +51,7 @@ nb = ttk.Notebook(root)
 nb.pack()
 
 lconf = pyback.getlocaluser()
+gappvars['imgdest'] = pyback.getbasedir(lconf['portf_dir'])+'/rushes/'
 lportui = {'conf': {}, 'acts': [], 'objs': [], 'logix': [], 'funcs': []}
 lstoryui = {}
 
@@ -56,7 +64,7 @@ frame_logix = pytkui.addcnvframe (nb, "Logical Functions")
 frame_funcs = pytkui.addcnvframe (nb, "Panda3dUI Functions")
 conf_frames = {'conf': frame_conf, 'acts': frame_acts, 'objs': frame_objs, 'logix': frame_logix, 'funcs': frame_funcs}
 frame_story = pytkui.addstdframe (nb, "User Stories and play")
-lstoryui = pytkui.storyroomsetup (frame_story, csize = 500, linepos = gappvars['linepos'])
+lstoryui = pytkui.storyroomsetup (frame_story, csize = 500, gappvars = gappvars)
 lstoryui['storybox'].insert(1.0, mystory)
 
 def frame_acts_save ():
@@ -90,7 +98,7 @@ def frame_conf_save():
 def refresh_full_universe():
 	pytkui.refresh_universe(lportui, conf_frames, lconf)
 	global gappvars
-	gappvars['imgdest'] = lconf['portf_dir']+'/rushes/'
+	gappvars['imgdest'] = pyback.getbasedir(lconf['portf_dir'])+'/rushes/'
 	refresh_frame_buttons ()
 
 btn_conf_save = ttk.Button(frame_conf, text="\tSave the configuration\t", command=frame_conf_save).grid(column=1, row=6, columnspan=3)
@@ -142,7 +150,7 @@ def getstoryanim (change = 0, dest = '', inprod = 0):
 	serialized['inprod'] = str(inprod)
 	if inprod == 1:	serialized['imgdest'] = gappvars['imgdest'] + 'pngs' + lstoryui['mprefix'].get()
 	else: serialized['imgdest'] = gappvars['imgdest'] + dest + 'pngs'
-	with open(gappvars['imgdest'] + 'serial.js', "w") as lujs: json.dump(serialized, lujs)
+	with open('serial.js', "w") as lujs: json.dump(serialized, lujs)
 	gappvars['laststory'] = storytext
 	return serialized
 
@@ -201,7 +209,7 @@ def frame_stop_pngs():
 	lstoryui['canvas'].delete("all")
 	imgpng = gappvars['imgdest']+'pngs_'+"%04d"%(int(frameat))+".png"
 	image = Image.open(imgpng)
-	image = image.resize((640, 480), Image.ANTIALIAS)
+	image = image.resize((500, 500), Image.ANTIALIAS)
 	root.myimg = myimg = ImageTk.PhotoImage(image)
 	lstoryui['canvas'].create_image((0,0), image=myimg, anchor='nw')
 	lstoryui['canvas'].update()
@@ -215,6 +223,8 @@ def frame_point_exec():
 		fname = lstoryui['coordent'].get()
 		coordstxt = lstoryui['coordbox'].get("1.0",END)
 		pyback.savecoordas (fname, coordstxt, lconf['portf_dir'])
+		gappvars['linepos'] = []
+		lstoryui['coordbox'].delete('1.0', END)
 	elif selection == 'Load/Trace Below coords':
 		fname = lstoryui['coordent'].get()
 		coords = pyback.readcoordof (fname, lconf['portf_dir'])

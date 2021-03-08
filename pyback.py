@@ -42,6 +42,10 @@ def savethedata(lportui):
 	print(lportui['desc'].get())
 	return 1
 
+def getbasedir(portf_dir):
+	portf_dir = Path(portf_dir)
+	return portf_dir.stem
+
 def getUniverseData (user, portf_dir_str):
 	portf_dir = Path(portf_dir_str)
 	universe = portf_dir / 'universe.js'
@@ -176,14 +180,14 @@ def overwrites (imgdest, frindex, frlast, frixdel):
 def savecoordas (fname, coordstxt, portf_dir_str):
 	portf_dir = Path(portf_dir_str)
 	if fname == '': return 1
-	if not fname.startswith('X_') and not fname.startswith('Y_') and not fname.startswith('Z_'):
-		fname = 'X_' + fname
+	if not fname.startswith('Y_'):
+		fname = 'Y_' + fname
 	if not fname.endswith('.txt'): fname = fname+'.txt'
 	saveas = portf_dir / 'coords' / fname
-	filestr = {'pixel': json.loads(coordstxt), 'coord': []}
-	for pt2d in filestr['pixel']:
-		filestr['coord'].append([(0.1125*(pt2d[0]-250)), (0.1125*(pt2d[1]-250))])
-	with open(saveas, "w") as lpts: json.dump(filestr, lpts)
+	filejs = {'pixel': json.loads(coordstxt), 'coord': []}
+	filejs['pixel'].append (filejs['pixel'][len(filejs['pixel'])-1])
+	with open(saveas, "w") as lpts: json.dump(filejs, lpts)
+	os.system('ppython p3dcoords.py ' + str(saveas))
 	return 1
 
 def readcoordof (fname, portf_dir_str):
