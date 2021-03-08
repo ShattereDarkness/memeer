@@ -103,7 +103,7 @@ def setscreentext (specs = {}, fcount=1):
 
 def setlistedpost (universe, gmodel, specs, fcount, wtfunc):
 	basepos = modfpos = modlpos = gmodel['xyz'] + gmodel['hpr'] + gmodel['lbh']
-	retval = [basepos]
+	retval = []
 	def readposfile (filenm, frames = fcount):
 		if not re.match(".+\.txt$", filenm): filenm = filenm + '.txt'
 		print ("filenm", filenm)
