@@ -133,6 +133,16 @@ def getUniverseData (user, portf_dir_str):
 	with universe.open('w') as univjs: json.dump(univ, univjs)
 	return univ
 
+def loadsynos (uwords, verbjs):
+	retval = []
+	for uword in uwords:
+		for fwords in verbjs:
+			if not uword in fwords: continue
+			retval.extend(fwords)
+		retval.append(uword)
+	retval=list(set(retval))
+	return retval
+
 def savestoryas (fname, storytxt, portf_dir_str):
 	portf_dir = Path(portf_dir_str)
 	if fname == '': return 1

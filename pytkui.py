@@ -7,6 +7,7 @@ import pyback
 import tkinter.scrolledtext as scrolledtext
 from tkinter import BOTH, END, LEFT
 import pprint
+from pathlib import Path
 
 def addstdframe (root, framedesc, row=0, col=0):
 	nframe = tkinter.Frame(root)
@@ -136,12 +137,15 @@ def splittext (text = '', asnum = 0, sep = ','):
 
 def lactsuiread (lactsui):
 	retval = []
+	synofile = Path("verbforms.js")
+	with open(synofile) as lujs: verbjs = json.load(lujs)
 	for act in lactsui:
 		lact = {}
 		if 'func' in act: lact['func'] = act['func']
 		else: lact['acts'] = act['acts']
 		print (act)
-		lact['syns'] = splittext (text = act['syns'].get())
+		verbsyns = splittext (text = act['syns'].get())
+		lact['syns'] = pyback.loadsynos(verbsyns, verbjs)
 		lact['jjrb'] = splittext (text = act['jjrb'].get())
 		retval.append(lact)
 	return retval
