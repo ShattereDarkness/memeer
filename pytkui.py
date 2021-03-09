@@ -146,6 +146,7 @@ def lactsuiread (lactsui):
 		print (act)
 		verbsyns = splittext (text = act['syns'].get())
 		lact['syns'] = pyback.loadsynos(verbsyns, verbjs)
+		act['syns'].insert(0, ", ".join(lact['syns']))
 		lact['jjrb'] = splittext (text = act['jjrb'].get())
 		retval.append(lact)
 	return retval
