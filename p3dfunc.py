@@ -40,7 +40,7 @@ def serialize (universe = {}, animation = [], deserial = 0, portfolio = ''):
 		if 'model' in series: tbasic = {'p3dfunc': 'loadmodel', 'file': series['model'], 'lineid': lineid}
 		elif 'actor' in series: tbasic = {'p3dfunc': 'loadactor', 'file': series['actor']['mfile'], 'lineid': lineid,
 											'acts': series['actor']['acts'], 'action': series['actor']['actf']['action']}
-		elif 'camera' in series: tbasic = {'p3dfunc': 'camera', 'lineid': lineid}
+		elif 'panda3d' in series: tbasic = {'p3dfunc': series['panda3d'], 'file': 'camera', 'lineid': lineid}
 		else: return sindex
 		findex, lindex = series['frames'][0], series['frames'][1]+1
 		for frid in range(series['frames'][0], series['frames'][1]+1):
@@ -102,7 +102,7 @@ def setscreentext (specs = {}, fcount=1):
 	return retval
 
 def setlistedpost (universe, gmodel, specs, fcount, wtfunc):
-	basepos = modfpos = modlpos = gmodel['xyz'] + gmodel['hpr'] + gmodel['lbh']
+	basepos = modfpos = modlpos = gmodel['xyz']# + gmodel['hpr'] + gmodel['lbh']
 	retval = []
 	def readposfile (filenm, frames = fcount):
 		if not re.match(".+\.txt$", filenm): filenm = filenm + '.txt'
@@ -212,11 +212,14 @@ def setactorpose (actfnc, fcount):
 	return retval
 
 def actordoes (universe = {}, sindex = 0, tag = 'text', specs = {}, model = {}):
-	retval = {'func': 'pass', 'file': '', 'post': [], 'sttmts': specs['sttmts']}
+	retval = {'func': 'pass', 'file': '', 'post': [], 'sttmt': specs['sttmts']}
 	obj = {}
 	if tag == 'text':
 		obj = model['0']
 		act = model['1']
+	elif tag == '3step':
+		obj = model['0']
+		act = model['2']
 	if obj == {}: return retval
 	gmodel = universe['objects'][obj[0]['gmodel']]
 	smodel = obj[0]['smodel']
@@ -227,6 +230,18 @@ def actordoes (universe = {}, sindex = 0, tag = 'text', specs = {}, model = {}):
 	print (actor)
 	frames = setframelen (sindex = sindex, specs = specs, conflen = actor['actf']['flast']-actor['actf']['fstart'])
 	sttmt = setscreentext (specs = specs, fcount = frames[1]-frames[0])
-	posts = setmodelpost (universe, gmodel, specs, frames[1]-frames[0], 'default')
+	if specs['locfile'] != '':
+		posts = setlistedpost (universe, gmodel, specs, frames[1]-frames[0], 'default')
+	else:
+		posts = setmodelpost (universe, gmodel, specs, frames[1]-frames[0], 'default')
+		#posts = setmodelpost (universe, gmodel, specs, frames[1]-frames[0], 'default')
+	print ("posts", posts)
 	poses = setactorpose (actfnc = actor['actf'], fcount = frames[1]-frames[0])
 	return ({'actor': actor, 'frames': frames, 'posts': posts, 'poses': poses, 'sttmt': sttmt})
+
+def camerafocus (universe = {}, sindex = 0, tag = 'text', specs = {}, model = {}):
+	retval = {'func': 'pass', 'file': '', 'post': [], 'sttmts': specs['sttmts']}
+	frames = setframelen (sindex = sindex, specs = specs, conflen = 1)
+	gmodel = {'file': 'camera', 'xyz': [0,0,0], 'hpr': [0,0,0], 'lbh': [1,1,1]}
+	posts = setmodelpost (universe, gmodel, specs, frames[1]-frames[0], 'default')
+	return ({'panda3d': 'camera', 'frames': frames, 'posts': posts, 'sttmt': []})

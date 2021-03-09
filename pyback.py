@@ -112,7 +112,7 @@ def getUniverseData (user, portf_dir_str):
 				basefile = action.stem
 				actname = re.sub(objname+'__', '', basefile)
 				if actname == basefile: continue
-				newobj['acts'].append({actname: {'jjrb': [], 'speed': 1, 'fstart': 0, 'flast': 1}})
+				newobj['acts'].append({actname: {'jjrb': [], 'speed': 1, 'fstart': 0, 'flast': 1, 'pdelta': 0}})
 				if len(list(filter(lambda x : 'actf' in x and x['actf'] == actname, univ['actions']))) > 0: continue
 				univ['actions'].append({'jjrb': ['slow', 'quick'], 'syns': [], 'func': actname})
 		univ['objects'].append(newobj)

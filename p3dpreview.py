@@ -41,14 +41,17 @@ def setscrtext (statements, text, lineid):
 	return 1
 
 def setmodelpost (modid, poshpr):
+	print(loadlist[modid]['model'])
+	print(poshpr)
 	loadlist[modid]['model'].setPos(float(poshpr[0]), float(poshpr[1]), float(poshpr[2]))
+	if len(poshpr) < 4: return 1
 	loadlist[modid]['model'].setHpr(float(poshpr[3]), float(poshpr[4]), float(poshpr[5]))
-	if modid > 0:
-		loadlist[modid]['model'].setScale(float(poshpr[6]), float(poshpr[7]), float(poshpr[8]))
+	if modid == 0 or len(poshpr) < 7: return 1
+	loadlist[modid]['model'].setScale(float(poshpr[6]), float(poshpr[7]), float(poshpr[8]))
 	return 1
 
 def newmodel (scene):
-	if scene['basic']['p3dfunc'] not in ['loadmodel', 'loadactor', 'camerapos']: return -1
+	if scene['basic']['p3dfunc'] not in ['loadmodel', 'loadactor', 'camera']: return -1
 	modid = checkformodel (scene['basic']['file'])
 	if modid == -1:
 		if scene['basic']['p3dfunc'] == 'loadactor': model = Actor(scene['basic']['file'], scene['basic']['acts'])
@@ -75,9 +78,11 @@ def defaultTask(task):
 	scenes = serial[task.frame]
 	#print (scenes)
 	for scene in  scenes:
+		print("scene", scene)
 		if scene['basic']['p3dfunc'] == 'exitall':
 			return exit(1)
 		modid = newmodel (scene)
+		print("modid", modid)
 		if 'post' in scene['addon']: setmodelpost (modid, scene['addon']['post'])
 		if 'sttmt' in scene['addon']: setscrtext (statements, scene['addon']['sttmt'], scene['basic']['lineid'])
 		if 'pose' in scene['addon'] and 'pose' in scene['addon']['pose']:
@@ -85,7 +90,7 @@ def defaultTask(task):
 		if 'disable' in scene['addon']: disablemodel (scene['basic']['lineid'], statements)
 	return Task.cont
 
-loadlist.append({'file': 'camera', 'model': base.camera, 'post': [0, -120, 0,0, 0, 0, 1, 1, 1]})
+loadlist.append({'file': 'camera', 'model': base.camera, 'post': [0, -120, 0, 0, 0, 0, 1, 1, 1]})
 taskMgr.add(defaultTask, "defaultTask")
 namePrefix = serealized['imgdest']
 print("namePrefix", namePrefix)

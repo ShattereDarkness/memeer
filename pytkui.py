@@ -143,9 +143,9 @@ def lactsuiread (lactsui):
 		lact = {}
 		if 'func' in act: lact['func'] = act['func']
 		else: lact['acts'] = act['acts']
-		print (act)
 		verbsyns = splittext (text = act['syns'].get())
 		lact['syns'] = pyback.loadsynos(verbsyns, verbjs)
+		act['syns'].delete(0, END)
 		act['syns'].insert(0, ", ".join(lact['syns']))
 		lact['jjrb'] = splittext (text = act['jjrb'].get())
 		retval.append(lact)

@@ -1,11 +1,16 @@
 mystory = """
-it is mountain #1-#250 @(0,1,0,0,0,0,90,60,150)
-leftSUV moved away @f(Y_drive1) #1-#50
-it is leftSUV @(0,1,90,0,0,0,1,1,1) #50-51
-frontSUV moved away @f(Y_drive2) #51-#100
-it is frontSUV @(0,1,90,0,0,0,20,10,10) #100-101
-rightSUV moved away @f(Y_drive3) #141-#190
-frontSUV moved away @(0,1,90,0,0,0,20,10,10) @f(Y_drive4) #221-#240 
+it is apartment @(0,1,0,0,0,0,60,6,90) #1-#240
+camera looks #1-#30 @(0.9,-60,23.3,0,0,0,1,1,1)
+lady is running #1-#30 @(6.2,0,23.4,180,0,0,1,1,1)-@(0.9,0,23.7,180,0,0,1,1,1)
+camera looks #31-#90 @(0.9,-60,23.3,0,0,0,1,1,1)-@(-9.2,-60,4.4,0,0,0,1,1,1)
+lady is running #31-#60 @f(Y_jump1)
+lady is running #61-#90 @(-9.2,0,4.4,180,0,0,1,1,1)-@(-18,0,4.7,180,0,0,1,1,1)
+camera looks #121-#180 @(-9.2,-60,4.4,0,0,0,1,1,1)-@(-0.7,-60,-16.7,0,0,0,1,1,1)
+lady is running #91-#120 @(-18,0,4.7,0,0,0,1,1,1)-@(-9.2,0,4.4,0,0,0,1,1,1)
+lady is running #121-#150 @f(Y_jump2)
+lady is running #151-#180 @(-0.7,0,-16.7,0,0,0,1,1,1)-@(7.8,0,-16.7,0,0,0,1,1,1)
+camera looks #190-#210 @(-0.7,-60,-16.7,0,0,0,1,1,1)-@(0,-120,0,0,0,0,1,1,1)
+lady is running #181-#184 @(7.8,0,-16.7,0,0,0,1,1,1)-@(8.8,2,-15,0,0,0,1,1,1)
 """
 
 import tkinter
@@ -38,7 +43,7 @@ gappvars['laststory'] = ''
 gappvars['rushes'] = {}
 gappvars['linepos'] = []
 gappvars['logtext'] = []
-linux_ffmpeg = "ffmpeg -pattern_type glob -i '*.png' -c:v libx264 -r 20 -pix_fmt yuv420p out.mp4"
+linux_ffmpeg = 'ffmpeg -pattern_type glob -i "*.png" -c:v libx264 -y -filter:v "setpts=2*PTS"  -pix_fmt yuv420p out.mp4'
 #gappvars['animurl'] = 'http://35.229.114.180:8001/getanim'
 
 #Make the root widget
@@ -73,11 +78,9 @@ def frame_acts_save ():
 
 def frame_objs_save ():
 	cobjs = pytkui.lobjsuiread(lportui['objs'])
-	print (cobjs)
 	pyback.saveuniv('objects', cobjs, lconf['portf_dir']+'/universe.js')
 
 def frame_logix_save ():
-	print(lportui['funcs'])
 	clogix = pytkui.llogixuiread(lportui['logix'])
 	pyback.saveuniv('logicals', clogix, lconf['portf_dir']+'/universe.js')
 
