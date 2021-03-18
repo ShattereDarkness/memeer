@@ -57,7 +57,10 @@ def serialize (universe = {}, animation = [], deserial = 0, portfolio = ''):
 	dsframe = 0
 	for ano, anime in enumerate(animation):
 		print ("anime is:\n", anime)
-		series = globals()[anime['fname']] (universe = universe, sindex = sindex, tag = anime['ftag'], specs = anime['specs'], model = anime['mmaps'])
+		series = globals()[anime['fname']] (\
+			universe = universe, sindex = sindex, tag = anime['ftag'], \
+			specs = anime['specs'], bspecs = anime['bspecs'], model = anime['mmaps']\
+		)
 		print ("series is:\n", series)
 		if deserial > 0 and anime['line'] > deserial and dsframe == 0:
 			dsframe = series['frames'][0]
@@ -73,15 +76,29 @@ def mergeposition (base = [], addit = []):
 	for idx in range(6, 9): retval[idx] = base[idx] * addit[idx]
 	return retval
 
-def setframelen (sindex = 0, specs = {}, conflen = 120):
+def setframelen (sindex = 0, specs = {}, bspecs = {}, conflen = 120):
 	fstart, flast = sindex, sindex+conflen
-	if len(specs['frames']) == 2:
-		if specs['frames'][1] != -1:
-			fstart = specs['frames'][0]
-			flast = specs['frames'][1]
-		else:
-			fstart = specs['frames'][0]
-			flast = specs['frames'][0] + conflen
+	if len(bspecs['frames']) == 2 and bspecs['frames'][1] != -1:
+		fstart = bspecs['frames'][0]
+		flast = bspecs['frames'][1]
+		return [fstart, flast]
+	elif len(bspecs['frames']) == 2 and bspecs['frames'][1] == -1:
+		if len(specs['frames']) == 2 and specs['frames'][1] != -1:
+			fstart = bspecs['frames'][0] + specs['frames'][0]
+			flast = bspecs['frames'][0] + specs['frames'][1]
+			return [fstart, flast]
+		elif len(specs['frames']) == 2 and specs['frames'][1] == -1:
+			fstart = bspecs['frames'][0] + specs['frames'][0]
+			flast = bspecs['frames'][0] + conflen
+			return [fstart, flast]
+	if len(specs['frames']) == 2 and specs['frames'][1] != -1:
+		fstart = specs['frames'][0]
+		flast = specs['frames'][1]
+		return [fstart, flast]
+	else:
+		fstart = specs['frames'][0]
+		flast = specs['frames'][0] + conflen
+		return [fstart, flast]
 	return [fstart, flast]
 
 def setscreentext (specs = {}, fcount=1):
@@ -101,61 +118,28 @@ def setscreentext (specs = {}, fcount=1):
 		ltext = ltext + specs['sttmts'][sx] + "\n"
 	return retval
 
-def setlistedpost (universe, gmodel, specs, fcount, wtfunc):
-	basepos = modfpos = modlpos = gmodel['xyz']# + gmodel['hpr'] + gmodel['lbh']
-	retval = []
-	def readposfile (filenm, frames = fcount):
-		if not re.match(".+\.txt$", filenm): filenm = filenm + '.txt'
-		print ("filenm", filenm)
-		if not os.path.isfile(basedir+'/coords/'+filenm): return retval
-		print ("file found")
-		with open(basedir+'/coords/'+filenm) as lujs: allpos = json.load(lujs)
-		#print("allpos", allpos)
-		return allpos['coord']
-	coords = readposfile (specs['locfile'], frames = fcount)
-	#print ("coords", coords)
-	for frid in range(0, fcount+1):
-		itemix = math.ceil(len(coords)*frid/fcount) if frid < fcount else len(coords)-1
-		#print("frid, itemix", frid, itemix)
-		modpos = copy.deepcopy(basepos)
-		#print("modpos", modpos)
-		#print("coords", coords[itemix])
-		if re.match("X_", specs['locfile']):
-			modpos[1] = modpos[1]+coords[itemix][0]
-			modpos[2] = modpos[2]+coords[itemix][1]
-		if re.match("Y_", specs['locfile']):
-			modpos[0] = modpos[0]+coords[itemix][0]
-			modpos[2] = modpos[2]+coords[itemix][1]
-		if re.match("Z_", specs['locfile']):
-			modpos[0] = modpos[0]+coords[itemix][0]
-			modpos[1] = modpos[1]+coords[itemix][1]
-		if re.match("3d__", specs['locfile']):
-			modpos[0] = modpos[0]+coords[itemix][0]
-			modpos[1] = modpos[1]+coords[itemix][1]
-			modpos[2] = modpos[2]+coords[itemix][2]
-		#print("updated modpos", modpos)
-		retval.append(modpos)
-	return retval
-
-def setmodelpost (universe, gmodel, specs, fcount, wtfunc):
+def setmodelpost (universe, gmodel, specs, fcount, wtfunc, bspecs):
 	basepos = modfpos = modlpos = gmodel['xyz'] + gmodel['hpr'] + gmodel['lbh']
-	if len(specs['locpos']) != 0:
-		modfpos = modlpos = mergeposition (base = basepos, addit = specs['locpos'])
-	if len(specs['locfrom']) == 0 and len(specs['locupto']) == 0:
+	blocfrom = []
+	locrange = {}
+	if (len(bspecs['locfrom']) > 0 and len(bspecs['locupto']) > 0) or bspecs['locfile'] != '':
+		if ('locfrom' in specs and 'locupto' in specs): blocfrom = specs['locfrom']
+		elif 'locpos' in specs: blocfrom = specs['locpos']
+		if bspecs['locfile'] != '': locrange = {'locfile': bspecs['locfile']}
+		else: locrange = {'locfrom': bspecs['locfrom'], 'locupto': bspecs['locupto']}
+	elif (len(specs['locfrom']) > 0 and len(specs['locupto']) > 0) or specs['locfile'] != '':
+		if (len(bspecs['locpos']) > 0: blocfrom = bspecs['locpos']
+		if specs['locfile'] != '': locrange = {'locfile': bspecs['locfile']}
+		else: locrange = {'locfrom': specs['locfrom'], 'locupto': specs['locupto']}
+	elif (len(specs['locpos']) > 0 and (len(bspecs['locpos']) > 0)):
+		modfpos = mergeposition (base = basepos, addit = specs['locpos'])
+		modfpos = modlpos = mergeposition (base = modfpos, addit = bspecs['locpos'])
 		return [modfpos]
-	modfpos = mergeposition (base = basepos, addit = specs['locfrom'])
-	modlpos = mergeposition (base = basepos, addit = specs['locupto'])
-	retval = [modfpos]
-	wtlist = range (1, fcount)
-	for frid in wtlist:
-		modpos = []
-		for pix in range(0, 9):
-			modpos.append(modfpos[pix] + ((modlpos[pix] - modfpos[pix])*(frid)/(fcount+1)))
-		retval.append(modpos)
-	retval.append(modlpos)
+	blocfrom = mergeposition (base = basepos, addit = blocfrom)
+	retval = coordinates.generatedefposts (fcount, blocfrom, locrange)
 	return retval
 
-def objectmov (universe = {}, sindex = 0, tag = 'text', specs = {}, model = {}):
+def objectmov (universe = {}, sindex = 0, tag = 'text', specs = {}, bspecs = {}, model = {}):
 	defaults = {'length': 120}
 	retval = {'func': 'pass', 'file': '', 'post': [], 'sttmts': specs['sttmts']}
 	obj = {}
@@ -163,26 +147,24 @@ def objectmov (universe = {}, sindex = 0, tag = 'text', specs = {}, model = {}):
 	if obj == {}: return retval
 	gmodel = universe['objects'][obj[0]['gmodel']]
 	smodel = obj[0]['smodel']
-	frames = setframelen (sindex = sindex, specs = specs, conflen = defaults['length'])
+	frames = setframelen (sindex = sindex, specs = specs, bspecs = bspecs, conflen = defaults['length'])
 	sttmt = setscreentext (specs = specs, fcount = frames[1]-frames[0])
-	if specs['locfile'] != '':
-		posts = setlistedpost (universe, gmodel, specs, frames[1]-frames[0], 'default')
-	else:
-		posts = setmodelpost (universe, gmodel, specs, frames[1]-frames[0], 'default')
+	posts = setmodelpost (universe, gmodel, specs, bspecs, frames[1]-frames[0], 'default')
 	return ({'model': basedir+'/model/'+gmodel['model'][smodel]['file'], 'frames': frames, 'posts': posts, 'sttmt': sttmt})
 
-def objectlay (universe = {}, sindex = 0, tag = 'text', specs = {}, model = {}):
+def objectlay (universe = {}, sindex = 0, tag = 'text', specs = {}, bspecs = {}, model = {}):
 	defaults = {'length': 120}
 	retval = {'func': 'pass', 'file': '', 'post': [], 'sttmts': specs['sttmts']}
 	obj = {}
 	if tag == 'text': obj = model['2']
 	if tag == 'singl': obj = model['0']
+	if tag == 'locat': obj = model['1']
 	if obj == {}: return retval
 	gmodel = universe['objects'][obj[0]['gmodel']]
 	smodel = obj[0]['smodel']
-	frames = setframelen (sindex = sindex, specs = specs, conflen = defaults['length'])
+	frames = setframelen (sindex = sindex, specs = specs, bspecs = bspecs, conflen = defaults['length'])
 	sttmt = setscreentext (specs = specs, fcount = frames[1]-frames[0])
-	posts = setmodelpost (universe, gmodel, specs, frames[1]-frames[0], 'default')
+	posts = setmodelpost (universe, gmodel, specs, bspecs, frames[1]-frames[0], 'default')
 	return ({'model': basedir+'/model/'+gmodel['model'][smodel]['file'], 'frames': frames, 'posts': posts, 'sttmt': sttmt})
 
 def getactorfile (universe, gmodel, smodel, action):
@@ -211,7 +193,7 @@ def setactorpose (actfnc, fcount):
 		if ix == fcount: return retval
 	return retval
 
-def actordoes (universe = {}, sindex = 0, tag = 'text', specs = {}, model = {}):
+def actordoes (universe = {}, sindex = 0, tag = 'text', specs = {}, bspecs = {}, model = {}):
 	retval = {'func': 'pass', 'file': '', 'post': [], 'sttmt': specs['sttmts']}
 	obj = {}
 	if tag == 'text':
@@ -228,20 +210,16 @@ def actordoes (universe = {}, sindex = 0, tag = 'text', specs = {}, model = {}):
 	print('action', action)
 	actor = getactorfile (universe, gmodel, smodel, action)
 	print (actor)
-	frames = setframelen (sindex = sindex, specs = specs, conflen = actor['actf']['flast']-actor['actf']['fstart'])
+	frames = setframelen (sindex = sindex, specs = specs, bspecs = bspecs, conflen = actor['actf']['flast']-actor['actf']['fstart'])
 	sttmt = setscreentext (specs = specs, fcount = frames[1]-frames[0])
-	if specs['locfile'] != '':
-		posts = setlistedpost (universe, gmodel, specs, frames[1]-frames[0], 'default')
-	else:
-		posts = setmodelpost (universe, gmodel, specs, frames[1]-frames[0], 'default')
-		#posts = setmodelpost (universe, gmodel, specs, frames[1]-frames[0], 'default')
+	posts = setmodelpost (universe, gmodel, specs, bspecs, frames[1]-frames[0], 'default')
 	print ("posts", posts)
 	poses = setactorpose (actfnc = actor['actf'], fcount = frames[1]-frames[0])
 	return ({'actor': actor, 'frames': frames, 'posts': posts, 'poses': poses, 'sttmt': sttmt})
 
-def camerafocus (universe = {}, sindex = 0, tag = 'text', specs = {}, model = {}):
+def camerafocus (universe = {}, sindex = 0, tag = 'text', specs = {}, bspecs = {}, model = {}):
 	retval = {'func': 'pass', 'file': '', 'post': [], 'sttmts': specs['sttmts']}
-	frames = setframelen (sindex = sindex, specs = specs, conflen = 1)
+	frames = setframelen (sindex = sindex, specs = specs, bspecs = bspecs, conflen = 1)
 	gmodel = {'file': 'camera', 'xyz': [0,0,0], 'hpr': [0,0,0], 'lbh': [1,1,1]}
-	posts = setmodelpost (universe, gmodel, specs, frames[1]-frames[0], 'default')
+	posts = setmodelpost (universe, gmodel, specs, bspecs, frames[1]-frames[0], 'default')
 	return ({'panda3d': 'camera', 'frames': frames, 'posts': posts, 'sttmt': []})

@@ -126,7 +126,7 @@ def getUniverseData (user, portf_dir_str):
 	if 'logicals' not in univ: univ['logicals'] = []
 	if 'functions' not in univ: univ['functions'] = {}
 	if 'camerafocus' not in univ['functions']: univ['functions']['camerafocus'] = [{'tag': 'text', 'texts': ['camera looks']}]
-	if 'objectlay' not in univ['functions']: univ['functions']['objectlay'] = [{'tag': 'text', "texts": ["it is pic"]}, {'tag': "singl", "texts": ["tree stand", "car parked", "pic say", "stool lay"]}]
+	if 'objectlay' not in univ['functions']: univ['functions']['objectlay'] = [{'tag': 'text', "texts": ["it is pic"]}, {'tag': "singl", "texts": ["tree stand", "car parked", "pic say", "stool lay"]}, {"tag": "locat","texts": ["locate pic"]}]
 	if 'actordoes' not in univ['functions']: univ['functions']['actordoes'] = [{"tag": "text","texts": ["lady walk"]}]
 	if 'objectmov' not in univ['functions']: univ['functions']['objectmov'] = [{'tag': 'text', 'texts': ['car move']}, {'tag': 'wrate', 'texts': ['table thrown slowly']}]
 	# update the values in universe

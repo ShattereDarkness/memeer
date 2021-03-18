@@ -31,7 +31,7 @@ class YourClass(ShowBase):
 			base.camLens.extrude(mpos, nearPoint, farPoint)
 			if self.plane.intersectsLine(pos3d,	render.getRelativePoint(camera, nearPoint),	render.getRelativePoint(camera, farPoint)):
 				print ("Mouse ray intersects ground plane at ", mpos, pos3d)
-			coords.append([pos3d[0], pos3d[2]])
+			coords.append([pos3d[0], pos3d[1], pos3d[2]])
 		coordls['coord'] = coords
 		with open(filename, "w") as lujs: json.dump(coordls, lujs)
 		exit()
