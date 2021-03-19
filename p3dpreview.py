@@ -22,8 +22,9 @@ def checkformodel (modfile):
 		if model['file'] == modfile: return mno
 	return -1
 
-def setactorpose (modid, action, poseid):
-	loadlist[modid]['model'].pose (action, poseid)
+def setactorpose (modid, action, bpart, poseid):
+	if bpart == '': loadlist[modid]['model'].pose (action, poseid)
+	else: loadlist[modid]['model'].pose (action, poseid, partName=bpart)
 	return 1
 
 def disablemodel (lineid, statements):
@@ -54,7 +55,11 @@ def newmodel (scene):
 	if scene['basic']['p3dfunc'] not in ['loadmodel', 'loadactor', 'camera']: return -1
 	modid = checkformodel (scene['basic']['file'])
 	if modid == -1:
-		if scene['basic']['p3dfunc'] == 'loadactor': model = Actor(scene['basic']['file'], scene['basic']['acts'])
+		if scene['basic']['p3dfunc'] == 'loadactor':
+			model = Actor(scene['basic']['file'], scene['basic']['acts'])
+			model.makeSubpart("legs", ["LHipJoint", "RHipJoint"])
+			model.makeSubpart("hand", ["LeftShoulder", "RightShoulder"])
+			model.makeSubpart("head", ["Neck"], ["LHipJoint", "RHipJoint"])
 		else: model = loader.loadModel(scene['basic']['file'])
 		model.reparentTo(render)
 		loadlist.append({'file': scene['basic']['file'], 'model': model, 'post': [0,0,0,0,0,0,1,1,1], 'sttmt': []})
@@ -86,7 +91,7 @@ def defaultTask(task):
 		if 'post' in scene['addon']: setmodelpost (modid, scene['addon']['post'])
 		if 'sttmt' in scene['addon']: setscrtext (statements, scene['addon']['sttmt'], scene['basic']['lineid'])
 		if 'pose' in scene['addon'] and 'pose' in scene['addon']['pose']:
-			setactorpose (modid, scene['basic']['action'], scene['addon']['pose']['pose'])
+			setactorpose (modid, scene['basic']['action'], scene['basic']['bpart'], scene['addon']['pose']['pose'])
 		if 'disable' in scene['addon']: disablemodel (scene['basic']['lineid'], statements)
 	return Task.cont
 

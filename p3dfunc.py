@@ -40,7 +40,7 @@ def serialize (universe = {}, animation = [], deserial = 0, portfolio = ''):
 		tbasic = {}
 		if 'model' in series: tbasic = {'p3dfunc': 'loadmodel', 'file': series['model'], 'lineid': lineid}
 		elif 'actor' in series: tbasic = {'p3dfunc': 'loadactor', 'file': series['actor']['mfile'], 'lineid': lineid,
-											'acts': series['actor']['acts'], 'action': series['actor']['actf']['action']}
+											'acts': series['actor']['acts'], 'action': series['actor']['actf']['action'], 'bpart': series['bpart']}
 		elif 'panda3d' in series: tbasic = {'p3dfunc': series['panda3d'], 'file': 'camera', 'lineid': lineid}
 		else: return sindex
 		findex, lindex = series['frames'][0], series['frames'][1]+1
@@ -194,13 +194,18 @@ def setactorpose (actfnc, fcount):
 def actordoes (universe = {}, sindex = 0, tag = 'text', specs = {}, bspecs = {}, model = {}):
 	retval = {'func': 'pass', 'file': '', 'post': [], 'sttmt': specs['sttmts']}
 	obj = {}
+	bpart = ''
 	if tag == 'text':
 		obj = model['0']
 		act = model['1']
 	elif tag == '3step':
-		obj = model['0']
-		act = model['2']
+		bpart = model['0']
+		obj = model['2']
+		act = model['3']
 	if obj == {}: return retval
+	print("bpart", bpart)
+	if bpart != '':
+		bpart = universe['objects'][bpart[0]['gmodel']]['jjrb'][0] if len(universe['objects'][bpart[0]['gmodel']]['jjrb']) > 0 else ''
 	gmodel = universe['objects'][obj[0]['gmodel']]
 	smodel = obj[0]['smodel']
 	print(model	)
@@ -213,7 +218,7 @@ def actordoes (universe = {}, sindex = 0, tag = 'text', specs = {}, bspecs = {},
 	posts = setmodelpost (universe, gmodel, specs, bspecs, frames[1]-frames[0], 'default')
 	print ("posts", posts)
 	poses = setactorpose (actfnc = actor['actf'], fcount = frames[1]-frames[0])
-	return ({'actor': actor, 'frames': frames, 'posts': posts, 'poses': poses, 'sttmt': sttmt})
+	return ({'actor': actor, 'frames': frames, 'posts': posts, 'poses': poses, 'sttmt': sttmt, 'bpart': bpart})
 
 def camerafocus (universe = {}, sindex = 0, tag = 'text', specs = {}, bspecs = {}, model = {}):
 	retval = {'func': 'pass', 'file': '', 'post': [], 'sttmts': specs['sttmts']}
