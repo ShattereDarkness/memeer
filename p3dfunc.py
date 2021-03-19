@@ -90,7 +90,7 @@ def setframelen (sindex = 0, specs = {}, bspecs = {}, conflen = 120):
 		fstart = specs['frames'][0]
 		flast = specs['frames'][1]
 		return [fstart, flast]
-	else:
+	elif len(specs['frames']) == 2 and specs['frames'][1] == -1:
 		fstart = specs['frames'][0]
 		flast = specs['frames'][0] + conflen
 		return [fstart, flast]

@@ -48,7 +48,7 @@ def generatedefposts (fcount, blocfrom, locrange, basedir):
 			modpos[1] = modpos[1]+coords[item][1]
 			modpos[2] = modpos[2]+coords[item][2]
 			retval.append(modpos)
-	else:
+	elif locrange != {}:
 		modfpos = mergeposition(base = blocfrom, addit = locrange['locfrom'])
 		modlpos = mergeposition(base = blocfrom, addit = locrange['locupto'])
 		retval = [modfpos]
@@ -59,6 +59,7 @@ def generatedefposts (fcount, blocfrom, locrange, basedir):
 				modpos.append(modfpos[pix] + ((modlpos[pix] - modfpos[pix])*(ix)/fcount))
 			retval.append(modpos)
 		retval.append(modlpos)
+	else: return [blocfrom]
 	return retval
 
 def _oldfunctions ():
