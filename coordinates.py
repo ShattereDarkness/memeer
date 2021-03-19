@@ -46,11 +46,11 @@ def generatedefposts (fcount, blocfrom, locrange, basedir):
 			modpos = copy.deepcopy(blocfrom)
 			modpos[0] = modpos[0]+coords[item][0]
 			modpos[1] = modpos[1]+coords[item][1]
-			modpos[2] = modpos[2]+coords[item][1]
+			modpos[2] = modpos[2]+coords[item][2]
 			retval.append(modpos)
 	else:
-		modfpos = locrange['locfrom']
-		modlpos = locrange['locupto']
+		modfpos = mergeposition(base = blocfrom, addit = locrange['locfrom'])
+		modlpos = mergeposition(base = blocfrom, addit = locrange['locupto'])
 		retval = [modfpos]
 		itemls = range (1, fcount)
 		for ix in itemls:

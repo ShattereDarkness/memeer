@@ -115,6 +115,7 @@ def setscreentext (specs = {}, fcount=1):
 
 def setmodelpost (universe, gmodel, specs, bspecs, fcount, wtfunc):
 	basepos = modfpos = modlpos = gmodel['xyz'] + gmodel['hpr'] + gmodel['lbh']
+	print('modlpos', modlpos)
 	blocfrom = []
 	locrange = {}
 	print('specs, bspecs', specs, bspecs)
@@ -131,8 +132,8 @@ def setmodelpost (universe, gmodel, specs, bspecs, fcount, wtfunc):
 		modfpos = coordinates.mergeposition (base = basepos, addit = specs['locpos'])
 		modfpos = modlpos = coordinates.mergeposition (base = modfpos, addit = bspecs['locpos'])
 		return [modfpos]
-	print('fcount, blocfrom, locrange', fcount, blocfrom, locrange)
 	blocfrom = coordinates.mergeposition (base = basepos, addit = blocfrom)
+	print('fcount, blocfrom, locrange', fcount, blocfrom, locrange)
 	retval = coordinates.generatedefposts (fcount, blocfrom, locrange, basedir)
 	return retval
 
