@@ -226,9 +226,9 @@ def llogixuisetup (logix, root, llogxui):
 	for logid, logic in enumerate(logix+[{'basic': '', 'addon': []}]):
 		ttk.Label(root, text='-'*100).grid(column=0, row=rownum, columnspan=2, sticky='nw')
 		llogcui = {'logid': logid}
-		llogcui['basic'] = newentry (framep=root, width=60, col=1, row=rownum+1, colspan=8, text=logic['basic'], lbltext='Current condition')
+		llogcui['basic'] = newentry (framep=root, width=120, col=1, row=rownum+1, colspan=8, text=logic['basic'], lbltext='Current condition')
 		ttk.Label(root, text='Extra steps').grid(column=0, row=rownum+2, sticky='nw')
-		indexbox = scrolledtext.ScrolledText(root, undo=True, width=60, height=5)
+		indexbox = scrolledtext.ScrolledText(root, undo=True, width=90, height=5)
 		indexbox.grid(column=1, row=rownum+2, columnspan=5)
 		indexbox.insert(1.0, "\n".join(logic['addon']))
 		llogcui['addon'] = indexbox

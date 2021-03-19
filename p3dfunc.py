@@ -5,6 +5,7 @@ import os
 import os.path
 import json
 import copy
+import coordinates
 
 basedir = ''
 def deserialize (serialized = [], dsframe = 0, dsline = 0):
@@ -70,12 +71,6 @@ def serialize (universe = {}, animation = [], deserial = 0, portfolio = ''):
 	retval = deserialize (serialized = retval, dsframe = dsframe, dsline = deserial)
 	return {'serial': retval, 'frindex': dsframe, 'frlast': xindex, 'frixdel': 9999-len(retval)}
 
-def mergeposition (base = [], addit = []):
-	retval = [0, 0, 0, 0, 0, 0, 1, 1, 1]
-	for idx in range(0, 6): retval[idx] = base[idx] + addit[idx]
-	for idx in range(6, 9): retval[idx] = base[idx] * addit[idx]
-	return retval
-
 def setframelen (sindex = 0, specs = {}, bspecs = {}, conflen = 120):
 	fstart, flast = sindex, sindex+conflen
 	if len(bspecs['frames']) == 2 and bspecs['frames'][1] != -1:
@@ -118,25 +113,27 @@ def setscreentext (specs = {}, fcount=1):
 		ltext = ltext + specs['sttmts'][sx] + "\n"
 	return retval
 
-def setmodelpost (universe, gmodel, specs, fcount, wtfunc, bspecs):
+def setmodelpost (universe, gmodel, specs, bspecs, fcount, wtfunc):
 	basepos = modfpos = modlpos = gmodel['xyz'] + gmodel['hpr'] + gmodel['lbh']
 	blocfrom = []
 	locrange = {}
+	print('specs, bspecs', specs, bspecs)
 	if (len(bspecs['locfrom']) > 0 and len(bspecs['locupto']) > 0) or bspecs['locfile'] != '':
 		if ('locfrom' in specs and 'locupto' in specs): blocfrom = specs['locfrom']
 		elif 'locpos' in specs: blocfrom = specs['locpos']
 		if bspecs['locfile'] != '': locrange = {'locfile': bspecs['locfile']}
 		else: locrange = {'locfrom': bspecs['locfrom'], 'locupto': bspecs['locupto']}
 	elif (len(specs['locfrom']) > 0 and len(specs['locupto']) > 0) or specs['locfile'] != '':
-		if (len(bspecs['locpos']) > 0: blocfrom = bspecs['locpos']
-		if specs['locfile'] != '': locrange = {'locfile': bspecs['locfile']}
+		if (len(bspecs['locpos']) > 0): blocfrom = bspecs['locpos']
+		if specs['locfile'] != '': locrange = {'locfile': specs['locfile']}
 		else: locrange = {'locfrom': specs['locfrom'], 'locupto': specs['locupto']}
-	elif (len(specs['locpos']) > 0 and (len(bspecs['locpos']) > 0)):
-		modfpos = mergeposition (base = basepos, addit = specs['locpos'])
-		modfpos = modlpos = mergeposition (base = modfpos, addit = bspecs['locpos'])
+	elif (len(specs['locpos']) > 0 or (len(bspecs['locpos']) > 0)):
+		modfpos = coordinates.mergeposition (base = basepos, addit = specs['locpos'])
+		modfpos = modlpos = coordinates.mergeposition (base = modfpos, addit = bspecs['locpos'])
 		return [modfpos]
-	blocfrom = mergeposition (base = basepos, addit = blocfrom)
-	retval = coordinates.generatedefposts (fcount, blocfrom, locrange)
+	print('fcount, blocfrom, locrange', fcount, blocfrom, locrange)
+	blocfrom = coordinates.mergeposition (base = basepos, addit = blocfrom)
+	retval = coordinates.generatedefposts (fcount, blocfrom, locrange, basedir)
 	return retval
 
 def objectmov (universe = {}, sindex = 0, tag = 'text', specs = {}, bspecs = {}, model = {}):

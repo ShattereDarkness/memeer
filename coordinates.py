@@ -6,9 +6,20 @@ import os.path
 import json
 import copy
 
-def readposfile (filenm):
+def mergeposition (base = [], addit = []):
+	retval = [0, 0, 0, 0, 0, 0, 1, 1, 1]
+	if len(addit) < 3: return base
+	for idx in range(0, 3): retval[idx] = base[idx] + addit[idx]
+	if len(addit) < 6: return retval
+	for idx in range(3, 6): retval[idx] = base[idx] + addit[idx]
+	if len(addit) < 9: return retval
+	for idx in range(6, 9): retval[idx] = base[idx] * addit[idx]
+	return retval
+
+def readposfile (filenm, basedir):
+	print("filenm, basedir", filenm, basedir)
 	if not re.match(".+\.txt$", filenm): filenm = filenm + '.txt'
-	if not os.path.isfile(basedir+'/coords/'+filenm): return retval
+	if not os.path.isfile(basedir+'/coords/'+filenm): return []
 	print (filenm, "file found")
 	with open(basedir+'/coords/'+filenm) as lujs: allpos = json.load(lujs)
 	return allpos['coord']
@@ -20,12 +31,14 @@ def fixinitemlist (lfrom = 1, linto = 1):
 		retval.append(int(fix))
 	return retval
 
-def generatedefposts (fcount, blocfrom, locrange):
+def generatedefposts (fcount, blocfrom, locrange, basedir):
 	retval = []
+	if len(blocfrom) == 0: blocfrom = [0,0,0,0,0,0,1,1,1]
 	if 'locfile' in locrange:
-		coords = readposfile (locrange['locfile'])
-		itemls = fixinitemlist (lfrom = len(coords), linto = fcount)
+		coords = readposfile (locrange['locfile'], basedir)
+		itemls = fixinitemlist (lfrom = len(coords)-1, linto = fcount)
 		lastix = -1
+		print("itemls, coords",  itemls, coords)
 		for ix, item in enumerate(itemls):
 			if lastix == ix:
 				retval.append([])
@@ -33,7 +46,7 @@ def generatedefposts (fcount, blocfrom, locrange):
 			modpos = copy.deepcopy(blocfrom)
 			modpos[0] = modpos[0]+coords[item][0]
 			modpos[1] = modpos[1]+coords[item][1]
-			modpos[2] = modpos[2]+coords[item][2]
+			modpos[2] = modpos[2]+coords[item][1]
 			retval.append(modpos)
 	else:
 		modfpos = locrange['locfrom']
