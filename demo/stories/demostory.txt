@@ -1,0 +1,2 @@
+it is earth @(0,2,7,0,0,0,75,50,50)
+SUV moved away @f(Y_driveaway) #1-#120

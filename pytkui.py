@@ -7,221 +7,257 @@ import pyback
 import tkinter.scrolledtext as scrolledtext
 from tkinter import BOTH, END, LEFT
 import pprint
+from tkinter import messagebox 
 from pathlib import Path
+import yaml
 
-def addstdframe (root, framedesc, row=0, col=0):
-	nframe = tkinter.Frame(root)
+def addstdframe (root, framedesc, width=900, height=600):
+	nframe = tkinter.Frame(root, width=width, height=600)
 	root.add(nframe, text=framedesc)
 	return nframe
 
 def addcnvframe (root, framedesc):
 	def myfunction(event):
 		mcanvas.configure(scrollregion=mcanvas.bbox("all"), width=900, height=600)
-
-	mframe = addstdframe(root, framedesc)
-	mcanvas=tkinter.Canvas(mframe)
-	nframe = tkinter.Frame(mcanvas)
+	def on_mousewheel(event):
+		if (event.num == 5 or event.delta < -100): count = 1 
+		if (event.num == 4 or event.delta > 100) : count = -1 
+		try: count
+		except NameError: count = None
+		if count is None: print(event)
+		mcanvas.yview_scroll(count, "units")
+	mframe = addstdframe(root, framedesc, width=900, height=600)
+	mcanvas=tkinter.Canvas(mframe, width=900, height=600)
+	nframe = tkinter.Frame(mcanvas, width=900, height=600)
 	myscrollbar=tkinter.Scrollbar(mframe, orient="vertical", command=mcanvas.yview)
 	mcanvas.configure(yscrollcommand=myscrollbar.set)
 	myscrollbar.pack(side="right", fill="y")
 	mcanvas.pack (side="left")
 	mcanvas.create_window ((0,0), window=nframe, anchor='nw')
 	nframe.bind("<Configure>",myfunction)
+	nframe.bind('<MouseWheel>', on_mousewheel)
 	return nframe
 
-def newentry (framep='', width=0, col=0, row=0, colspan=1, text='', lbltext = '', sticky='nw'):
-	if lbltext != '':
-		ttk.Label(framep, text=lbltext).grid(column=col-1, row=row)
-	entry_text_entry = ttk.Entry(framep, width=width)
-	entry_text_entry.grid(column=col, row=row, sticky=sticky, columnspan=colspan)
-	entry_text_entry.insert(0, text)
-	return entry_text_entry
+def on_canvas_mousewheel(event, lvl=2):
+	grandparent = event.widget.master.master if lvl==2 else event.widget.master.master.master
+	if (event.num == 5 or event.delta < -100): count = 1 
+	if (event.num == 4 or event.delta > 100) : count = -1 
+	try: count
+	except NameError: count = None
+	if count is None: print(event)
+	grandparent.yview_scroll(count, "units")
 
-def refresh_universe(lportui, conf_frames, lconf):
-	if 'desc' in lportui['conf']:
-		print (lportui['conf'])
-		lportui['conf']['desc'].destroy()
+def scrllabel (framep = {}, text = '<MISSING>', column=1, row=1, columnspan=1, sticky='nw', scroll = 1):
+	newlbl = ttk.Label(framep, text=text)
+	newlbl.grid(column=column, row=row, columnspan=columnspan, sticky=sticky)
+	if scroll == 1: newlbl.bind('<MouseWheel>', lambda eff: on_canvas_mousewheel (eff, lvl=2))
+	return newlbl
+
+def newentry (framep='', width=0, col=0, row=0, colspan=1, text='', lbltext = '', sticky='nw', retlbl = 0):
+	if lbltext != '': label = scrllabel (framep = framep, text = lbltext, column=col-1, row=row, sticky='ne')
+	entry_text= ttk.Entry(framep, width=width)
+	entry_text.grid(column=col, row=row, sticky=sticky, columnspan=colspan)
+	entry_text.bind('<MouseWheel>', lambda eff: on_canvas_mousewheel (eff, lvl=2))
+	entry_text.insert(0, text)
+	if retlbl != 0: return {"label": label, "entry": entry_text}
+	return entry_text
+	
+
+def newscrolltext (framep = {}, text = '', column=0, row=0, width=10, height=5, columnspan = 0, rowspan = 0):
+	scrolltext = scrolledtext.ScrolledText(framep, undo=True, width=60, height=5)
+	scrolltext.grid(column=1, row=row, columnspan=columnspan, rowspan = rowspan)
+	scrolltext.bind('<MouseWheel>', lambda eff: on_canvas_mousewheel (eff, lvl=3))
+	scrolltext.insert(1.0, text)
+	return scrolltext
+
+def modifyentry (entry_elem = {}, text = '<MISSING>', start = 0):
+	entry_elem.delete(start, END)
+	entry_elem.insert(start, text)
+
+def refresh_universe(uielem = {}, conf_frames = {}, appsetup = {}):
+	print("uielem", uielem)
+	print("conf_frames", conf_frames)
+	print("appsetup", appsetup)
 	for code, frames in conf_frames.items():
 		if code == 'conf': continue
 		for tkitemls in frames.winfo_children():
-			## We delete only items within canvas frame and not canvas frame itself
 			tkitemls.destroy()
-	univ = pyback.getUniverseData (lconf['user_idnt'], lconf['portf_dir'])
-	lconfuisetup (lconf, univ, conf_frames['conf'], lportui['conf'])
-	lactsuisetup (univ['actions'], conf_frames['acts'], lportui['acts'])
-	lobjsuisetup (univ['objects'], conf_frames['objs'], lportui['objs'])
-	llogixuisetup (univ['logicals'], conf_frames['logix'], lportui['logix'])
-	lfuncsuisetup (univ['functions'], conf_frames['funcs'], lportui['funcs'])
+	univ = pyback.getUniverseData (user = uielem['conf']['auser'].get(), folder = uielem['conf']['folder'].get(), appset = appsetup)
+	modifyentry(entry_elem = uielem['conf']['detail'], text = appsetup['project']['detail'])
+	modifyentry(entry_elem = uielem['conf']['winsize'], text = appsetup['project']['winsize'])
+	modifyentry(entry_elem = uielem['conf']['fps'], text = appsetup['project']['fps'])
+	uielem['conf']['preview'].state(['selected'])
+	appuisetup (appset = appsetup, root = conf_frames['conf'], uiset = uielem['conf'])
+	actsuisetup (root = conf_frames['acts'], uiset = uielem['acts'], actions = univ['actions'])
+	objsuisetup (root = conf_frames['objs'], uiset = uielem['objs'], objects = univ['objects'])
+	logixuisetup (root = conf_frames['logix'], uiset = uielem['logix'], logix = univ['logicals'])
+	print(uielem['acts'])
 	return univ
 
-def lconfuisetup (lconf, univ, root, lportui, retry=1):
-	ttk.Label(root, text="\t\t\t").grid(column=2, row=1)
-	lportui['user'] = newentry (framep=root, width=90, col=3, row=2, text=lconf['user_idnt'], lbltext = 'User Identity')
-	lportui['pkey'] = newentry (framep=root, width=90, col=3, row=3, text=lconf['secrettxt'], lbltext = 'Secret Passkey')
-	lportui['wdir'] = newentry (framep=root, width=90, col=3, row=4, text=lconf['portf_dir'], lbltext = 'Working Directory')
-	if 'namedetail' in univ and retry == 1: lportui['desc'] = newentry (framep=root, width=90, col=3, row=5, text=univ['namedetail'])
-	else: ttk.Label(root, text='Name Description').grid(column=2, row=5)
+def newchkbox (root = {}, text = '<MISSING>', value = 0, column=0, row=0):
+	chkbox_ui = ttk.Checkbutton(root, text=text)
+	chkbox_ui.state(['!alternate'])
+	chkbox_ui.state(['selected']) if value == 1 else chkbox_ui.state(['!alternate'])
+	chkbox_ui.grid(column=column, row=row)
+	return chkbox_ui
 
-def storyroomsetup (lstory, csize=500, gappvars = {}):
+def appuisetup (appset = {}, root = {}, uiset = {}, retry=1):
+	ttk.Label(root, text="\t\t\t").grid(column=2, row=1)
+	uiset['auser'] = newentry (framep=root, width=90, col=3, row=2, text=appset['user_idnt'], lbltext = 'User Identity')
+	uiset['apkey'] = newentry (framep=root, width=90, col=3, row=3, text=appset['secrettxt'], lbltext = 'Secret Passkey')
+	uiset['folder'] = newentry (framep=root, width=90, col=3, row=4, text=appset['project']['folder'], lbltext = 'Project Folder')
+	uiset['detail'] = newentry (framep=root, width=90, col=3, row=5, text=appset['project']['detail'], lbltext = 'Project Description')
+	uiset['winsize'] = newentry (framep=root, width=10, col=3, row=6, text=appset['project']['winsize'], lbltext = 'Screen resolution')
+	uiset['fps'] = newentry (framep=root, width=2, col=3, row=7, text=appset['project']['fps'], lbltext = 'Frame Rate')
+	uiset['preview'] = newchkbox (root = root, text = 'In Preview mode (not production ready)', value = appset['project']['preview'], column=3, row=11)
+	uiset['expand'] = newchkbox (root = root, text = 'Expansion for Verb Synonyms', value = appset['project']['expand'], column=2, row=11)
+
+def storyroomsetup (lstory, projvars = {}, boarditems = {}, session = {}):
+	csize = 500
 	def savePosn(event):
 		global lastx, lasty
 		lastx, lasty = event.x, event.y
 		coordbox.delete('1.0', END)
-		#global linepos
-		coordbox.insert(1.0, pprint.pformat(gappvars['linepos'], indent=2))
-		gappvars['linepos'].append([lastx, lasty])
+		coordbox.insert(1.0, pprint.pformat(session['coords'], indent=2))
+		session['coords'].append([lastx, lasty])
 	def deletePosn(event):
-		print("Deeleting")
 		canvas.delete("all")
 		coordbox.delete('1.0', END)
-		gappvars['linepos'] = []
+		session['coords'] = []
 	def addLine(event):
 		canvas_id = canvas.create_line((lastx, lasty, event.x, event.y))
-		print("canvas_id = ",canvas_id)
 		savePosn(event)
-	def loadCombobox (root = {}, lovalues = (), col=0, row=0, colspan = 1, ):
+	def loadCombobox (root = {}, lovalues = (), col=0, row=0, colspan = 1):
 		countryvar = tkinter.StringVar()
 		country = ttk.Combobox(root, textvariable=countryvar)
 		country.grid(column=col, row=row, sticky='n', columnspan=colspan)
 		country['values'] = lovalues
 		country.state(["readonly"])
 		return country
-	print(gappvars['linepos'])
-	storybox = scrolledtext.ScrolledText(lstory, undo=True, width=30, height=35)
-	storybox.grid(column=0, row=0, sticky='n', rowspan=35, columnspan=30)
-	storycmb = loadCombobox (root = lstory, lovalues = ('Save Story as ...', 'Show Below Story', 'Show Story Lists'), col=4, row=35, colspan = 25)
-	storyent = newentry (framep=lstory, width=30, col=0, row=36, text='', colspan=30)
-	canvas = tkinter.Canvas(lstory, width=csize, height=csize, background='gray75')
-	canvas.grid(column=31, row=0, sticky='n', columnspan=10)
+	storybox = scrolledtext.ScrolledText(lstory, undo=True, width=51, height=31)
+	storybox.grid(column=0, row=0, sticky='n')
+	coordbox = scrolledtext.ScrolledText(lstory, undo=True, width=51, height=6)
+	coordbox.grid(column=0, row=1, sticky='n', rowspan=3)
+	canvas = tkinter.Canvas(lstory, width=500, height=500, background='gray75')
+	canvas.grid(column=1, row=0, columnspan=5)
 	canvas.bind("<Button-1>", savePosn)
 	canvas.bind("<Button-3>", deletePosn)
 	canvas.bind("<B1-Motion>", addLine)
-	frmatent = newentry (framep=lstory, width=4, col=33, row=35, text='11')
-	froment = newentry (framep=lstory, width=4, col=34, row=34, text='10', lbltext='From')
-	tillent = newentry (framep=lstory, width=4, col=36, row=34, text='20', lbltext='Till')
-	ffpsent = newentry (framep=lstory, width=4, col=38, row=34, text='24', lbltext='FPS')
-	mprefix = newentry (framep=lstory, width=4, col=36, row=35, text='')
-	coordbox = scrolledtext.ScrolledText(lstory, undo=True, width=17, height=30)
-	coordbox.grid(column=42, row=0, sticky='n', columnspan=16)
-	coordcmb = loadCombobox (root=lstory, lovalues=('Save coords as','Load/Trace Below coords','Show coords Lists','Merge coords with'), col=44, row=34, colspan = 15)
-	coordent = newentry (framep=lstory, width=24, col=44, row=35, text='', colspan=18)
-	lstoryui = {'storybox': storybox, 'storycmb': storycmb, 'storyent': storyent, 'canvas': canvas, 'linepos': gappvars['linepos'],
-				'frmatent': frmatent, 'froment': froment, 'tillent': tillent, 'ffpsent': ffpsent, 'mprefix': mprefix,
-				'coordbox': coordbox, 'coordcmb': coordcmb, 'coordent': coordent}
+	def updatelvl (event):
+		sel = list(listboxl1.curselection())[0]
+		lvl1key = listboxl1.get(sel)
+		listboxl2.delete(0, END)
+		for ix, lb11vals in enumerate(list(boarditems[sel].values())[0]):
+			listboxl2.insert(ix, list(lb11vals.keys())[0])
+	listboxl1 = tkinter.Listbox(lstory, height = 5, width = 15, activestyle = 'dotbox', exportselection=0)
+	listboxl1.grid(column=1, row=1, sticky='nw', rowspan=2)
+	listboxl1.bind("<<ListboxSelect>>", updatelvl)
+	for ix, lb11vals in enumerate(boarditems): listboxl1.insert(ix, list(lb11vals.keys())[0])
+	def loadparams (event):
+		sel1 = list(listboxl1.curselection())[0]
+		sel2 = list(listboxl2.curselection())[0]
+		print("Sel1 sel2", sel1, sel2)
+		params = list(list(boarditems[sel1].values())[0][sel2].values())[0]
+		print("params", params)
+		for ix in range(0, 3):
+			param_ent[ix]['label'].grid_remove()
+			param_ent[ix]['entry'].grid_remove()
+			modifyentry(entry_elem = param_ent[ix]['entry'], text = "")
+		for ix in range(0, 3):
+			if len(params) <= ix: continue
+			param_ent[ix]['label'].grid()
+			param_ent[ix]['entry'].grid()
+			param_ent[ix]['label'].config(text = params[ix])
+		return 1
+	listboxl2 = tkinter.Listbox(lstory, height = 5, width = 20, activestyle = 'dotbox', exportselection=0)
+	listboxl2.grid(column=2, row=1, sticky='nw', rowspan=2)
+	listboxl2.bind("<<ListboxSelect>>", loadparams)
+	param_ent = []
+	for ix in range(0, 3):
+		paramix = newentry (framep=lstory, width=10, col=5, row=ix+1, text='10', lbltext='Not needed', retlbl = 1)
+		param_ent.append(paramix)
+	lstoryui = {'storybox': storybox, 'canvas': canvas, 'coordbox': coordbox, 'lbox1': listboxl1, 'lbox2': listboxl2, 'param_ent': param_ent}
 	return lstoryui
 
-def _get_syns_jjrb (attrs = [], holder = {}, rownum=1, framep = {}, source = {}):
-	if 'syns' in attrs or 'jjrb' in attrs:
-		if 'syns' in source: holder['syns'] = newentry (framep=framep, width=40, col=1, row=rownum, colspan=2, text=', '.join(source['syns']), lbltext='Synonyms')
-		if 'jjrb' in source: holder['jjrb'] = newentry (framep=framep, width=40, col=4, row=rownum, colspan=2, text=', '.join(source['jjrb']), lbltext='Modifier')
-		rownum = rownum + 1
-	if 'xyz' in attrs and 'hpr' in attrs and 'lbh' in attrs:
-		holder['xyz'] = newentry (framep=framep, width=10, col=1, row=rownum, text=', '.join(map(str, source['xyz'])), lbltext='Coordinates')
-		holder['hpr'] = newentry (framep=framep, width=10, col=3, row=rownum, text=', '.join(map(str, source['hpr'])), lbltext='Orientation')
-		holder['lbh'] = newentry (framep=framep, width=10, col=5, row=rownum, text=', '.join(map(str, source['lbh'])), lbltext='Base Sizing')
-		rownum = rownum + 1
-	if 'speed' in attrs and 'fstart' in attrs and 'flast' in attrs:
-		holder['speed'] = newentry (framep=framep, width=10, col=1, row=rownum, text=source['speed'], lbltext='Action FPS')
-		holder['fstart'] = newentry (framep=framep, width=10, col=3, row=rownum, text=source['fstart'], lbltext='First Frame')
-		holder['flast'] = newentry (framep=framep, width=10, col=5, row=rownum, text=source['flast'], lbltext='Last Frame')
-		rownum = rownum + 1
-	return rownum
-
-def splittext (text = '', asnum = 0, sep = ','):
-	retval = []
-	for nstr in text.split(sep):
-		if nstr == '': continue
-		if asnum == 1: retval.append(float(nstr))
-		else: retval.append(nstr.strip())
-	return retval
-
-def lactsuiread (lactsui):
+def actsuiread (uiset = [], expand = 1):
 	retval = []
 	synofile = Path("verbforms.js")
 	with open(synofile) as lujs: verbjs = json.load(lujs)
-	for act in lactsui:
-		lact = {}
-		if 'func' in act: lact['func'] = act['func']
-		else: lact['acts'] = act['acts']
-		verbsyns = splittext (text = act['syns'].get())
-		lact['syns'] = pyback.loadsynos(verbsyns, verbjs)
-		act['syns'].delete(0, END)
-		act['syns'].insert(0, ", ".join(lact['syns']))
-		lact['jjrb'] = splittext (text = act['jjrb'].get())
+	for acta in uiset:
+		print("acta" ,acta)
+		lact = {'func': acta['func']}
+		verbsyns = pyback.splittext (text = acta['syns'].get())
+		lact['syns'] = pyback.loadsynos(verbsyns, verbjs, expand)
+		modifyentry(entry_elem = acta['syns'], text = ", ".join(lact['syns']))
+		lact['jjrb'] = pyback.splittext (text = acta['jjrb'].get())
 		retval.append(lact)
+	print(retval)
 	return retval
 
-def lactsuisetup (actions, root, lactsui):
-	rownum = 0
+def actsuisetup (root = {}, uiset = [], actions = []):
+	ttk.Label(root, text='Functions: "move", "locate", "vanish" are common for all').grid(column=0, row=0, columnspan=3, sticky='nw')
+	ttk.Label(root, text='Suffix "+" for default expasion, "-" to never expand').grid(column=0, row=1, columnspan=3, sticky='nw')
+	rownum = 2
 	for actid, action in enumerate(actions):
-		ttk.Label(root, text='-'*100).grid(column=0, row=rownum, columnspan=2, sticky='nw')
+		scrllabel (framep = root, text = '-'*100, column=0, row=rownum, columnspan=2, sticky='nw')
 		lactui = {'actid': actid}
 		if 'func' not in action: continue
 		lactui['func'] = action['func']
-		ttk.Label(root, text="Function Name: "+action['func']).grid(column=0, row=rownum, sticky='nw')
-		rownum = _get_syns_jjrb (attrs = ['syns', 'jjrb'], holder = lactui, rownum=rownum+2, framep = root, source = action)
-		lactsui.append(lactui)
+		scrllabel (framep = root, text = "Function Name: "+action['func'], column=0, row=rownum, sticky='nw')
+		lactui['syns'] = newentry (framep=root, width=40, col=1, row=rownum+1, colspan=1, text=', '.join(action['syns']), lbltext='Synonyms')
+		lactui['jjrb'] = newentry (framep=root, width=40, col=3, row=rownum+1, colspan=1, text=', '.join(action['jjrb']), lbltext='Modifiers')
+		rownum = rownum + 2
+		uiset.append(lactui)
 
-def lobjsuiread (lobjsui):
+def objsuiread (uiset = []):
 	retval = []
-	for obj in lobjsui:
-		lobj = {'model': [], 'acts': []}
-		lobj['syns'] = splittext (text = obj['syns'].get())
-		lobj['jjrb'] = splittext (text = obj['jjrb'].get())
-		lobj['move'] = splittext (text = obj['move'].get())
-		lobj['xyz'] = splittext (text = obj['xyz'].get(), asnum = 1)
-		lobj['hpr'] = splittext (text = obj['hpr'].get(), asnum = 1)
-		lobj['lbh'] = splittext (text = obj['lbh'].get(), asnum = 1)
-		for mfile in obj['mfile']:
-			mfdetjjrb = splittext (text = mfile['jjrb'].get())
-			mfdet = {'file': mfile['file'].get(), 'jjrb': mfdetjjrb}
-			lobj['jjrb'].extend(mfdetjjrb)
-			lobj['model'].append(mfdet)
-		for macts in obj['action']:
-			mfdet = {'speed': int(macts['speed'].get()), 'fstart': int(macts['fstart'].get()), 'flast': int(macts['flast'].get())}
-			mfdet['jjrb'] = splittext (text = macts['jjrb'].get())
-			lobj['acts'].append({macts['afid']: mfdet})
+	for obj in uiset:
+		lobj = {'file': obj['file'], 'acts': {}}
+		lobj['syns'] = pyback.splittext (text = obj['syns'].get())
+		lobj['jjrb'] = pyback.splittext (text = obj['jjrb'].get())
+		lobj['move'] = pyback.splittext (text = obj['move'].get())
+		for macts in obj['acts']:
+			print("obj['acts']", obj['acts'])
+			mfdet = {'fstart': int(macts['fstart'].get()), 'flast': int(macts['flast'].get())}
+			lobj['acts'][macts['afile']] = mfdet
+		lobj['joint'] = obj['joint'].get()
 		retval.append(lobj)
 	return retval
 
-def lobjsuisetup (objects, root, lobjsui):
+def objsuisetup (root = {}, uiset = [], objects = []):
+	print(objects)
 	rownum = 0
 	for modid, model in enumerate(objects):
-		ttk.Label(root, text='-'*100).grid(column=0, row=rownum, columnspan=2, sticky='nw')
-		objname = ', '.join(map(lambda x: x['file'], model['model']))
-		lobjui = {'file': objname, 'modid': modid}
-		ttk.Label(root, text='Model list: '+objname).grid(column=0, row=rownum, columnspan=2, sticky='nw')
-		lobjui['move'] = newentry (framep=root, width=40, col=1, row=rownum+1, colspan=2, text=', '.join(model['move']), lbltext='Movement')
-		rownum = rownum+2
-		rownum = _get_syns_jjrb (attrs = ['syns', 'jjrb', 'xyz', 'hpr', 'lbh'], holder = lobjui, rownum=rownum, framep = root, source = model)
-		lobjui['mfile'] = []
-		for mfid, mfile in enumerate(model['model']):
-			lobjfui = {'mfid': mfid}
-			lobjfui['file'] = newentry (framep=root, width=40, col=1, row=rownum, colspan=2, text=mfile['file'], lbltext='Model File')
-			lobjfui['jjrb'] = newentry (framep=root, width=40, col=4, row=rownum, colspan=2, text=', '.join(mfile['jjrb']), lbltext='Modifier')
-			lobjui['mfile'].append(lobjfui)
-			rownum = rownum+2
-		lobjui['action'] = []
-		for afildet in model['acts']:
-			afile, actdet = list(afildet.items())[0]
-			lobjfui = {'afid': afile}
-			ttk.Label(root, text=objname+', Action file: '+afile).grid(column=0, row=rownum)
-			rownum = _get_syns_jjrb (attrs = ['jjrb', 'speed', 'fstart', 'flast'], holder = lobjfui, rownum=rownum, framep = root, source = actdet)
-			lobjui['action'].append(lobjfui)
-			rownum = rownum + 5
-		lobjsui.append(lobjui)
+		scrllabel (framep = root, text = '-'*120, column=0, row=rownum, columnspan=3, sticky='nw')
+		objdets = model['file'] + " (animations: " + ', '.join(list(model['acts'].keys())) + ")"
+		lobjui = {'file': model['file'], 'modid': modid, 'acts': []}
+		scrllabel (framep = root, text = 'Model list: '+objdets, column=0, row=rownum, columnspan=3, sticky='nw')
+		lobjui['syns'] = newentry (framep=root, width=40, col=1, row=rownum+1, colspan=1, text=', '.join(model['syns']), lbltext='Synonyms')
+		lobjui['jjrb'] = newentry (framep=root, width=40, col=3, row=rownum+1, colspan=1, text=', '.join(model['jjrb']), lbltext='Modifiers')
+		lobjui['move'] = newentry (framep=root, width=40, col=1, row=rownum+2, colspan=1, text=', '.join(model['move']), lbltext='Movement')
+		lobjui['joint'] = newentry (framep=root, width=40, col=3, row=rownum+2, colspan=1, text=model['joint'], lbltext='Joint Group')
+		rownum = rownum + 3
+		for afile, actdet in model['acts'].items():
+			lobjfui = {'afile': afile}
+			scrllabel (framep = root, text = 'Model '+model['file']+', Action file: '+afile, column=0, row=rownum, sticky='ne')
+			lobjfui['fstart'] = newentry (framep=root, width=10, col=3, row=rownum, text=actdet['fstart'], lbltext='Play between frames', sticky='nw')
+			lobjfui['flast'] = newentry (framep=root, width=10, col=3, row=rownum, text=actdet['flast'], sticky='ne')
+			lobjui['acts'].append(lobjfui)
+			rownum = rownum + 1
+		uiset.append(lobjui)
 
-def llogixuiread (llogixui):
+def logixuiread (llogixui):
 	retval = []
 	for llist in llogixui:
 		logic = {}
-		logic['basic'] = llist['basic'].get()
+		if llist['basic'].get() == '': continue
+		logic['basic'] = pyback.storyparse(llist['basic'].get())[0]
 		if logic['basic'] == '': continue
-		logic['addon'] = splittext (text = llist['addon'].get('1.0', tkinter.END), sep = "\n")
+		logic['addon'] = pyback.storyparse(llist['addon'].get('1.0', tkinter.END))
 		retval.append(logic)
 	return retval
 
-def llogixuisetup (logix, root, llogxui):
+def logixuisetup (root = {}, uiset = [], logix = []):
 	rownum = 0
 	for logid, logic in enumerate(logix+[{'basic': '', 'addon': []}]):
 		ttk.Label(root, text='-'*100).grid(column=0, row=rownum, columnspan=2, sticky='nw')
@@ -231,29 +267,7 @@ def llogixuisetup (logix, root, llogxui):
 		indexbox = scrolledtext.ScrolledText(root, undo=True, width=90, height=5)
 		indexbox.grid(column=1, row=rownum+2, columnspan=5)
 		indexbox.insert(1.0, "\n".join(logic['addon']))
+		indexbox.bind('<MouseWheel>', on_canvas_mousewheel)
 		llogcui['addon'] = indexbox
 		rownum=rownum+3
-		llogxui.append(llogcui)
-
-def lfuncsuiread (lfuncsui):
-	retval = {}
-	for llist in lfuncsui:
-		retval[llist['fname']] = []
-		for tags in llist['tags']:
-			retval[llist['fname']].append({'tag': tags['tagn'], 'texts': splittext (text = tags['ttext'].get())})
-	return retval
-
-def lfuncsuisetup (funcs, root, lfuncsui):
-	rownum = 0
-	for fname, funcdet in funcs.items():
-		ttk.Label(root, text='-'*100).grid(column=0, row=rownum, columnspan=2, sticky='nw')
-		lfuncui = {'fname': fname}
-		ttk.Label(root, text='Function Name: '+fname).grid(column=0, row=rownum+1, columnspan=2, sticky='nw')
-		lfuncui['tags'] = []
-		rownum=rownum+2
-		for ftid, ftext in enumerate(funcdet):
-			lfunctui = newentry (framep=root, width=90, col=1, row=rownum, colspan=6, text=', '.join(ftext['texts']), lbltext=ftext['tag'])
-			lfuncui['tags'].append({'tagn':ftext['tag'], 'ttext': lfunctui})
-			rownum=rownum+1
-		lfuncsui.append(lfuncui)
-		rownum=rownum+1
+		uiset.append(llogcui)

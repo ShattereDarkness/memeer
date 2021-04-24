@@ -1,5 +1,4 @@
-mystory = """
-it is apartment @(0,1,0,0,0,0,60,6,90) #1-#240
+mystory = """it is apartment @(0,1,0,0,0,0,60,6,90) #1-#240
 camera looks #1
 lady is running #1
 """
@@ -27,49 +26,70 @@ import threading
 import time
 
 gappvars = {}
-gappvars['headers'] = {'Content-type': 'application/json'}
-gappvars['animurl'] = 'http://localhost:5000/getanim'
+#gappvars['animurl'] = 'http://localhost:5000/getanim'
 gappvars['imgdest'] = ''
 gappvars['laststory'] = ''
 gappvars['rushes'] = {}
 gappvars['linepos'] = []
 gappvars['logtext'] = []
-linux_ffmpeg = 'ffmpeg -pattern_type glob -i "*.png" -c:v libx264 -y -filter:v "setpts=2*PTS"  -pix_fmt yuv420p out.mp4'
+projvars = {}
+projvars['animurl'] = 'http://localhost:5000/getanim'
+session = {'coords': []}
+#linux_ffmpeg = 'ffmpeg -pattern_type glob -i "*.png" -c:v libx264 -y -filter:v "setpts=2*PTS"  -pix_fmt yuv420p out.mp4'
 #gappvars['animurl'] = 'http://35.229.114.180:8001/getanim'
 
 #Make the root widget
 root = tkinter.Tk()
 root.geometry("950x650")
+root.resizable(0,0)
 root.iconphoto(False, tkinter.PhotoImage(file='icon.png'))
 root.title("Meme'er")
+
+boarditems = [
+	{"Current rush": [{"Play story": ["FPS", "ScreenWidth", "ScreenHeight"]}, {"Export video": ["Draft (Yes/No)"]}, {"Play frames": ["From frame#", "Upto frame#", "FPS"]}]},
+	{"Story": [{"Save story": ["Name"]}, {"Open story": ["Name"]}, {"List stories": ["*NAME LIKE*"]}, {"Export story": ["Name"]}]},
+	{"Co-ord": [{"Save coords": ["Name"]}, {"Open coords": ["Name"]}, {"List coords": ["*NAME LIKE*"]}, {"Merge coords": ["Primary", "Secondary", "Plane"]}]},
+	{"Video": [{"Save Video": ["Name"]}, {"Play video": ["Name", "FPS"]}, {"List videos": ["*NAME LIKE*"]}, {"Merge videos": ["First Video", "Last Video"]}]},
+	{"Audio": [{"List audio": ["Name"]}]},
+	{"Objects": [{"Example texts": ["*NAME LIKE*"]}]}
+]
 
 nb = ttk.Notebook(root)
 nb.pack()
 
-lconf = pyback.getlocaluser()
-gappvars['imgdest'] = pyback.getbasedir(lconf['portf_dir'])+'/rushes/'
-lportui = {'conf': {}, 'acts': [], 'objs': [], 'logix': [], 'funcs': []}
+frame_conf = pytkui.addstdframe (nb, "Application Setup")
+appsetup = pyback.getappsetup()
+projvars = appsetup['project']
+print(appsetup)
+uielem = {'conf': {}, 'acts': [], 'objs': [], 'logix': [], 'funcs': []}
+pytkui.appuisetup (appset = appsetup, root =  frame_conf, uiset = uielem['conf'])
 lstoryui = {}
 
-frame_conf = pytkui.addstdframe (nb, "User Local Configuration")
-pytkui.lconfuisetup (lconf, {}, frame_conf, lportui['conf'])
+def key_press(event):
+	if event.char in ['0', '1', '2', '3', '4', '5']: nb.select(int(event.char))
+	if event.char in ['x', 'X']:
+		nb.select(5)
+		frame_story_story()
+root.bind('<Alt_L><Key>', key_press)
 
-frame_acts = pytkui.addcnvframe (nb, "Portfolio Actions")
-frame_objs = pytkui.addcnvframe (nb, "Portfolio Objects")
-frame_logix = pytkui.addcnvframe (nb, "Logical Functions")
-frame_funcs = pytkui.addcnvframe (nb, "Panda3dUI Functions")
+frame_acts = pytkui.addcnvframe (nb, "Defined Actions")
+frame_objs = pytkui.addcnvframe (nb, "Defined Objects")
+frame_logix = pytkui.addcnvframe (nb, "Logical Statements")
+frame_funcs = pytkui.addcnvframe (nb, "Miscellaneous Tasks")
 conf_frames = {'conf': frame_conf, 'acts': frame_acts, 'objs': frame_objs, 'logix': frame_logix, 'funcs': frame_funcs}
 frame_story = pytkui.addstdframe (nb, "User Stories and play")
-lstoryui = pytkui.storyroomsetup (frame_story, csize = 500, gappvars = gappvars)
+
+lstoryui = pytkui.storyroomsetup (frame_story, projvars = projvars, boarditems = boarditems, session = session)
 lstoryui['storybox'].insert(1.0, mystory)
 
 def frame_acts_save ():
-	cacts = pytkui.lactsuiread(lportui['acts'])
-	pyback.saveuniv('actions', cacts, lconf['portf_dir']+'/universe.js')
+	cacts = pytkui.actsuiread(uiset = uielem['acts'], expand = projvars['expand'])
+	pyback.saveuniv(which = 'actions', what = cacts, where = projvars['folder']+'/universe.js')
 
 def frame_objs_save ():
-	cobjs = pytkui.lobjsuiread(lportui['objs'])
-	pyback.saveuniv('objects', cobjs, lconf['portf_dir']+'/universe.js')
+	cobjs = pytkui.objsuiread(uiset = uielem['objs'])
+	print(cobjs)
+	pyback.saveuniv(which = 'objects', what = cobjs, where = projvars['folder']+'/universe.js')
 
 def frame_logix_save ():
 	clogix = pytkui.llogixuiread(lportui['logix'])
@@ -77,29 +97,38 @@ def frame_logix_save ():
 
 def refresh_frame_buttons ():
 	frame_size = frame_acts.grid_size()
-	btn_acts_save = ttk.Button(frame_acts, text="\tSave Action configuration\t", command=frame_acts_save).grid(column=4, row=frame_size[1])
+	btn_acts_save = ttk.Button(frame_acts, text="\tSave Action configuration\t", command=frame_acts_save).grid(column=3, row=frame_size[1], sticky='ne')
 	frame_size = frame_objs.grid_size()
-	btn_objs_save = ttk.Button(frame_objs, text="\tSave Object configuration\t", command=frame_objs_save).grid(column=4, row=frame_size[1])
+	btn_objs_save = ttk.Button(frame_objs, text="\tSave Object configuration\t", command=frame_objs_save).grid(column=3, row=frame_size[1], sticky='ne')
 	frame_size = frame_logix.grid_size()
-	btn_logix_save = ttk.Button(frame_logix, text="\tSave Logical configuration\t", command=frame_logix_save).grid(column=1, row=frame_size[1])
+	btn_logix_save = ttk.Button(frame_logix, text="\tSave Logical configuration\t", command=frame_logix_save).grid(column=3, row=frame_size[1], sticky='ne')
 
-univ = pytkui.refresh_universe(lportui, conf_frames, lconf)
+univ = pytkui.refresh_universe(uielem = uielem, conf_frames = conf_frames, appsetup = appsetup)
 refresh_frame_buttons ()
 
 def frame_conf_save():
 	pyback.port_conf_save (lportui['conf'], lconf, univ)
 
 def refresh_full_universe():
-	pytkui.refresh_universe(lportui, conf_frames, lconf)
+	lportui['acts'] = lportui['objs'] = lportui['logix'] = lportui['funcs'] = []
+	if pyback.checkProject (folder = uielem['conf']['folder'].get()) == 1:
+		UREP = messagebox.askquestion("Create New Project", "The project folder does not exists and would be created.\nAre you sure?")
+		if UREP == 'no': return 0
+		else: pyback.createProject (uielem['conf']['folder'].get())
+	pytkui.refresh_universe(uielem = uielem, conf_frames = conf_frames, appsetup = appsetup)
+	appsetup = pyback.getappsetup()
+	projvars = appsetup['project']
 	global gappvars
 	gappvars['imgdest'] = pyback.getbasedir(lconf['portf_dir'])+'/rushes/'
 	refresh_frame_buttons ()
 
-btn_conf_save = ttk.Button(frame_conf, text="\tSave the configuration\t", command=frame_conf_save).grid(column=1, row=6, columnspan=3)
-btn_conf_open = ttk.Button(frame_conf, text="Open Workdir", command=refresh_full_universe).grid(column=4, row=4)
-gappvars['logtext'] = scrolledtext.ScrolledText(frame_conf, undo=True, width=115, height=29, bg="grey")
+btn_conf_save = ttk.Button(frame_conf, text="Save the configuration\n[Project level info]", command=frame_conf_save)
+btn_conf_save.grid(sticky = 'w', column=4, row=5, rowspan = 3)
+btn_conf_open = ttk.Button(frame_conf, text="     Open Workdir          ", command=refresh_full_universe)
+btn_conf_open.grid(sticky = 'w', column=4, row=4)
+gappvars['logtext'] = scrolledtext.ScrolledText(frame_conf, undo=True, width=115, height=25, bg="grey")
 gappvars['logtext'].bind('<1>', lambda event: gappvars['logtext'].focus_set())
-gappvars['logtext'].grid(column=1, row=8, sticky='n', columnspan=6)
+gappvars['logtext'].grid(column=1, row=12, sticky='n', columnspan=6)
 pyback.logit (gappvars['logtext'], "Application logging------------------------------------\n")
 
 def frame_story_story():
@@ -138,7 +167,7 @@ def getstoryanim (change = 0, dest = '', inprod = 0):
 	clogix = pytkui.llogixuiread(lportui['logix'])
 	cfuncs = pytkui.lfuncsuiread(lportui['funcs'])
 	cuniv = {'actions': cacts, 'objects': cobjs, 'logicals': clogix, 'functions': cfuncs}
-	animation = pyback.response_textplay (gappvars['animurl'], gappvars['headers'], cuniv, storytext)
+	animation = pyback.response_textplay (gappvars['animurl'], {'Content-type': 'application/json'}, cuniv, storytext)
 	cline = pyback.getchanged (gappvars['laststory'], storytext, change)
 	serialized = p3dfunc.serialize (universe = cuniv, animation = animation, deserial = cline, portfolio = portf_dir.stem)
 	serialized['inprod'] = str(inprod)
@@ -193,9 +222,6 @@ def frame_play_pngs():
 		time.sleep(1/ffpsfr)
 
 def frame_stop_pngs():
-	# showinfo("Window", "Hello World!")
-	# xx=messagebox.askquestion("askquestion", "Are you sure?")
-	# print (xx)
 	frameat = int(lstoryui['frmatent'].get())
 	global gappvars
 	if 'frindex' not in gappvars['rushes'] or 'frlast' not in gappvars['rushes'] or 'frixdel' not in gappvars['rushes']: return 1
@@ -234,13 +260,39 @@ def frame_point_exec():
 		pyback.save3dcoord (fname, lconf['portf_dir'])
 	print(gappvars['linepos'])
 
-btn_story_story = ttk.Button(frame_story, text="Exec", command=frame_story_story).grid(column=0, row=35)
-btn_story_edit = ttk.Button(frame_story, text="Exec", command=frame_point_exec).grid(column=46, row=36)
-btn_play_full = ttk.Button(frame_story, text="Play from start", command=frame_play_full).grid(column=32, row=33)
-btn_play_edit = ttk.Button(frame_story, text="Play from edit", command=frame_play_edit).grid(column=35, row=33)
-btn_frame_play = ttk.Button(frame_story, text="Play frames", command=frame_play_pngs).grid(column=32, row=34)
-btn_frame_stop = ttk.Button(frame_story, text="Stop/ at frame", command=frame_stop_pngs).grid(column=32, row=35)
-btn_frame_save = ttk.Button(frame_story, text="Save movie (Suffix)", command=frame_play_prod).grid(column=35, row=35)
+def frame_story_cmd ():
+	option1 = lstoryui['lbox1'].get(list(lstoryui['lbox1'].curselection())[0])
+	option2 = lstoryui['lbox2'].get(list(lstoryui['lbox2'].curselection())[0])
+	entparams = []
+	for entry in lstoryui['param_ent']:
+		entparams.append(entry['entry'].get())
+	storytext = lstoryui['storybox'].get("1.0",END)
+	coordstxt = lstoryui['coordbox'].get("1.0",END)
+	cacts = pytkui.actsuiread(uiset = uielem['acts'], expand = projvars['expand'])
+	cobjs = pytkui.objsuiread(uiset = uielem['objs'])
+	clogix = pytkui.logixuiread(uielem['logix'])
+	universe = {"actions": cacts, "objects": cobjs, "logicals": clogix}
+	print("sel1, sel2, entparams", option1, option2, entparams)
+	print("projvars", projvars)
+	retv = 0
+	if option1 == "Current rush" and option2 == "Play story": retv = pyback.exec_play_story (entparams, appsetup = appsetup, universe = universe, story = storytext)
+	if option1 == "Current rush" and option2 == "Play frames": retv = pyback.exec_save_story (entparams[0], projvars = projvars)
+	if option1 == "Story" and option2 == "Save story": retv = pyback.exec_save_story (entparams[0], projvars = projvars)
+	if option1 == "Story" and option2 == "Open story": retv = pyback.exec_open_story (entparams[0], projvars = projvars)
+	if option1 == "Story" and option2 == "List story": retv = pyback.exec_list_story (entparams[0], projvars = projvars)
+	if option1 == "Story" and option2 == "Export story": retv = pyback.exec_expo_story (entparams[0], projvars = projvars)
+	if option1 == "Co-ord" and option2 == "Save coords": retv = pyback.exec_save_coords (entparams[0], projvars = projvars)
+	if option1 == "Co-ord" and option2 == "Open coords": retv = pyback.exec_save_coords (entparams[0], projvars = projvars)
+	if option1 == "Co-ord" and option2 == "List coords": retv = pyback.exec_save_coords (entparams[0], projvars = projvars)
+	if option1 == "Co-ord" and option2 == "Merge coords": retv = pyback.exec_save_coords (entparams[0], projvars = projvars)
+	if option1 == "Video" and option2 == "Save Video": retv = pyback.exec_save_story (entparams)
+	if option1 == "Video" and option2 == "Play video": retv = pyback.exec_save_story (entparams)
+	if option1 == "Video" and option2 == "List videos": retv = pyback.exec_save_story (entparams)
+	if option1 == "Video" and option2 == "Merge videos": retv = pyback.exec_save_story (entparams)
+	if option1 == "Audio" and option2 == "List audio": retv = pyback.exec_save_story (entparams)
+	if option1 == "Objects" and option2 == "Example texts": retv = pyback.exec_save_story (entparams)
+
+btn_story_story = ttk.Button(frame_story, text="Execute the command (Selected Options)", command=frame_story_cmd).grid(column=1, row=3, columnspan=5, sticky="w")
 
 nb.enable_traversal()
 root.mainloop()

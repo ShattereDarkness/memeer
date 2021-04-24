@@ -1,27 +1,40 @@
-import tkinter
-import tkinter.filedialog
-from tkinter import ttk
-from tkinter import BOTH, END, LEFT
+# Python3 program to get selected
+# value(s) from tkinter listbox
 
-from PIL import ImageTk, Image
-from tkinter import messagebox 
-from tkinter.messagebox import showinfo
+# Import tkinter
+from tkinter import *
 
-root = tkinter.Tk()
-root.geometry("600x400")
-root.iconphoto(False, tkinter.PhotoImage(file='icon.png'))
-root.title("Meme'er")
+# Create the root window
+root = Tk()
+root.geometry('180x200')
 
-for c in range(0,100):
-	ttk.Label(root, text='.').grid(column=c, row=0)
-for r in range(0,50):
-	ttk.Label(root, text='.').grid(column=0, row=r)
+# Create a listbox
+listbox = Listbox(root, width=40, height=10, activestyle = 'dotbox')
 
-ttk.Label(root, text='first').grid(column=10, row=10, columnspan=5, rowspan=4)
+# Inserting the listbox items
+listbox.insert(1, "Data Structure")
+listbox.insert(2, "Algorithm")
+listbox.insert(3, "Data Science")
+listbox.insert(4, "Machine Learning")
+listbox.insert(5, "Blockchain")
 
-entry_text_entry = ttk.Entry(root, width=10)
-entry_text_entry.grid(column=51, row=10, columnspan=60, rowspan=4)
+# Function for printing the
+# selected listbox value(s)
+def selected_item():
+	
+	# Traverse the tuple returned by
+	# curselection method and print
+	# correspoding value(s) in the listbox
+	for i in listbox.curselection():
+		print(listbox.get(i))
 
+# Create a button widget and
+# map the command parameter to
+# selected_item function
+btn = Button(root, text='Print Selected', command=selected_item)
 
+# Placing the button and listbox
+btn.pack(side='bottom')
+listbox.pack()
 
 root.mainloop()
