@@ -189,7 +189,7 @@ def actsuiread (uiset = [], expand = 1):
 		verbsyns = pyback.splittext (text = acta['syns'].get())
 		lact['syns'] = pyback.loadsynos(verbsyns, verbjs, expand)
 		modifyentry(entry_elem = acta['syns'], text = ", ".join(lact['syns']))
-		lact['jjrb'] = pyback.splittext (text = acta['jjrb'].get())
+		#lact['jjrb'] = pyback.splittext (text = acta['jjrb'].get())
 		retval.append(lact)
 	print(retval)
 	return retval
@@ -204,13 +204,16 @@ def actsuisetup (root = {}, uiset = [], actions = []):
 		if 'func' not in action: continue
 		lactui['func'] = action['func']
 		scrllabel (framep = root, text = "Function Name: "+action['func'], column=0, row=rownum, sticky='nw')
-		lactui['syns'] = newentry (framep=root, width=40, col=1, row=rownum+1, colspan=1, text=', '.join(action['syns']), lbltext='Synonyms')
-		lactui['jjrb'] = newentry (framep=root, width=40, col=3, row=rownum+1, colspan=1, text=', '.join(action['jjrb']), lbltext='Modifiers')
+		lactui['syns'] = newentry (framep=root, width=60, col=2, row=rownum, colspan=1, text=', '.join(action['syns']), lbltext='Synonyms')
+		#lactui['jjrb'] = newentry (framep=root, width=40, col=3, row=rownum+1, colspan=1, text=', '.join(action['jjrb']), lbltext='Modifiers')
 		rownum = rownum + 2
 		uiset.append(lactui)
 
 def objsuiread (uiset = []):
 	retval = []
+	retval.append({'file': 'camera', 'acts': {}, 'syns': ['camera'], 'jjrb': [], 'move': ['move', 'locate', 'looks'], 'joint': ''})
+	retval.append({'file': 'line', 'acts': {}, 'syns': ['line'], 'jjrb': [], 'move': ['draw'], 'joint': ''})
+	retval.append({'file': 'subtext', 'acts': {}, 'syns': ['subtitle', 'text'], 'jjrb': [], 'move': ['draw'], 'joint': ''})
 	for obj in uiset:
 		lobj = {'file': obj['file'], 'acts': {}}
 		lobj['syns'] = pyback.splittext (text = obj['syns'].get())

@@ -135,7 +135,7 @@ def getUniverseData (user = '', folder =  '', appset = {}):
 		retval['model']['rem'] = retval['model']['rem'] + 1
 	for mfile in model_dir.glob('*.egg'):
 		if len(list(filter(lambda x : x['file'] == mfile.stem, univ['objects']))) > 0: continue
-		univ['objects'].append({'syns': [mfile.stem], 'move': ['move', 'locate', 'vanish'], 'jjrb': [], 'acts': {}, 'joint': '', \
+		univ['objects'].append({'syns': [mfile.stem], 'move': ['move', 'locate', 'l'], 'jjrb': [], 'acts': {}, 'joint': '', \
 							'file': mfile.stem, 'jjrb': []})
 		retval['model']['add'] = retval['model']['add'] + 1
 	univ['objects'] = list(filter(lambda x : 'saved' not in x or x['saved'] == 1, univ['objects']))
@@ -184,53 +184,14 @@ def loadsynos (uwords, verbjs, expand):
 	retval=list(set(retval))
 	return retval
 
-def storyparse (story, gall = 0):
-	retval = []
-	def getspecifics (text):
-		retval = [text, {'locupto': [], 'locfrom': [], 'locpos': [], 'locfile': '', 'sttmts': [], 'frames': []}]
-		tofrom=re.match(".+\@\((.+?)\)\-\@\((.+?)\)", retval[0])
-		if tofrom and len(tofrom.groups()) == 2:
-			retval[1]['locfrom'] = list(map(float, tofrom.groups()[0].split(",")))
-			retval[1]['locupto'] = list(map(float, tofrom.groups()[1].split(",")))
-			retval[0] = re.sub("\@\((.+?)\)\-\@\((.+?)\)", "", retval[0])
-		atloc = re.match(".+\@\((.+?)\)", retval[0])
-		if atloc:
-			retval[1]['locpos'] = list(map(float, atloc.groups()[0].split(",")))
-			retval[0] = re.sub("\@\((.+?)\)", "", retval[0])
-		posfile = re.match(".+\@f\((.+?)\)", retval[0])
-		if posfile:
-			retval[1]['locfile'] = posfile.groups()[0]
-			retval[0] = re.sub("\@f\((.+?)\)", "", retval[0])
-		sttmts = re.findall('(".+?")', retval[0])
-		if sttmts:
-			retval[1]['sttmts'] = sttmts
-			if len(sttmts) == 1: retval[0] = re.sub('(".+?")', "", retval[0])
-			else: retval[0] = re.sub('(".+?")', ' statement ', retval[0])
-		frames = re.findall('#(\d+)\-#(\d+)', retval[0])
-		if frames:
-			retval[1]['frames'] = list(map(int, frames[0]))
-			retval[0] = re.sub('#(\d+)\-#(\d+)', '', retval[0])
-		frames = re.findall('#(\d+)', retval[0])
-		if frames and len(retval[1]['frames']) == 0:
-			retval[1]['frames'] = [int(frames[0]), -1]
-			retval[0] = re.sub('#(\d+)', '', retval[0])
-		retval[0] = re.sub(" +", " ", retval[0])
-		retval[0] = retval[0].strip()
-		return retval
-	for sline in story.split("\n"):
-		if gall == 0 and sline == '': continue
-		specs = getspecifics (sline)
-		retval.append(specs)
-	return retval
-
 def exec_play_story (entparams = [], appsetup = {}, universe = {}, story = ''):
 	if len(entparams) < 1: animfps = appsetup['winsize']
 	if len(entparams) < 3:
 		winsize = winsize.replace('X', 'x')
 		scrwide = list(map(int, winsize.split('x')))[0]
 		scrhigh = list(map(int, winsize.split('x')))[1]
-	serialized = response_textplay (appsetup['meemerurl'], {'Content-type': 'application/json'}, universe, storyparse(story, gall = 1))
-	cline = pyback.getchanged (gappvars['laststory'], storytext, change)
+	commandlets = response_textplay (appsetup['meemerurl'], {'Content-type': 'application/json'}, universe, p3dfunc.storyparse(story, gall = 1))
+	serialized = p3dfunc.serialized (commandlets, universe = universe)
 	os.system('ppython p3dpreview.py')
 	appsetup['laststory'] = storytext
 	appsetup['lastanime'] = pyback.framedesc (serialized)

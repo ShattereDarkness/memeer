@@ -46,10 +46,10 @@ root.iconphoto(False, tkinter.PhotoImage(file='icon.png'))
 root.title("Meme'er")
 
 boarditems = [
-	{"Current rush": [{"Play story": ["FPS", "ScreenWidth", "ScreenHeight"]}, {"Export video": ["Draft (Yes/No)"]}, {"Play frames": ["From frame#", "Upto frame#", "FPS"]}]},
+	{"Current rush": [{"Play story": ["FPS", "ScreenWidth", "ScreenHeight"]}, {"Play from frame": ["From frame#"]}, {"Export video": ["Draft (Yes/No)"]}, {"Replay frames": ["From frame#", "Upto frame#", "FPS"]}]},
 	{"Story": [{"Save story": ["Name"]}, {"Open story": ["Name"]}, {"List stories": ["*NAME LIKE*"]}, {"Export story": ["Name"]}]},
 	{"Co-ord": [{"Save coords": ["Name"]}, {"Open coords": ["Name"]}, {"List coords": ["*NAME LIKE*"]}, {"Merge coords": ["Primary", "Secondary", "Plane"]}]},
-	{"Video": [{"Save Video": ["Name"]}, {"Play video": ["Name", "FPS"]}, {"List videos": ["*NAME LIKE*"]}, {"Merge videos": ["First Video", "Last Video"]}]},
+	{"Video": [{"Play video": ["Name", "FPS"]}, {"List videos": ["*NAME LIKE*"]}, {"Merge videos": ["First Video", "Last Video"]}]},
 	{"Audio": [{"List audio": ["Name"]}]},
 	{"Objects": [{"Example texts": ["*NAME LIKE*"]}]}
 ]
@@ -97,7 +97,7 @@ def frame_logix_save ():
 
 def refresh_frame_buttons ():
 	frame_size = frame_acts.grid_size()
-	btn_acts_save = ttk.Button(frame_acts, text="\tSave Action configuration\t", command=frame_acts_save).grid(column=3, row=frame_size[1], sticky='ne')
+	btn_acts_save = ttk.Button(frame_acts, text="\tSave Action configuration\t", command=frame_acts_save).grid(column=2, row=frame_size[1], sticky='ne')
 	frame_size = frame_objs.grid_size()
 	btn_objs_save = ttk.Button(frame_objs, text="\tSave Object configuration\t", command=frame_objs_save).grid(column=3, row=frame_size[1], sticky='ne')
 	frame_size = frame_logix.grid_size()
@@ -272,10 +272,10 @@ def frame_story_cmd ():
 	cobjs = pytkui.objsuiread(uiset = uielem['objs'])
 	clogix = pytkui.logixuiread(uielem['logix'])
 	universe = {"actions": cacts, "objects": cobjs, "logicals": clogix}
-	print("sel1, sel2, entparams", option1, option2, entparams)
-	print("projvars", projvars)
-	retv = 0
-	if option1 == "Current rush" and option2 == "Play story": retv = pyback.exec_play_story (entparams, appsetup = appsetup, universe = universe, story = storytext)
+	print("option1, option2, entparams", option1, option2, entparams)
+	print("appsetup", appsetup)
+	retv = -1
+	if option1 == "Current rush" and option2 == "Play story": retv = pyback.exec_play_story (entparams = entparams, appsetup = appsetup, universe = universe, story = storytext)
 	if option1 == "Current rush" and option2 == "Play frames": retv = pyback.exec_save_story (entparams[0], projvars = projvars)
 	if option1 == "Story" and option2 == "Save story": retv = pyback.exec_save_story (entparams[0], projvars = projvars)
 	if option1 == "Story" and option2 == "Open story": retv = pyback.exec_open_story (entparams[0], projvars = projvars)
