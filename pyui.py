@@ -1,7 +1,10 @@
-mystory = """it is apartment @(0,1,0,0,0,0,60,6,90) #1-#240
-camera looks #1
-lady is running #1
-"""
+mystory = """earth is named Mypicture @(0,2,7,0,0,0,75,50,50) #1-#120
+line is drawn @f(somelist1) #61-#120
+Mypicture vanishes #121-#150
+Ruchika is a lady
+Ruchika ran @(-21,0,0,0,0,0,1,1,1)-@(21,0,0,0,0,0,1,1,1) #61-#120
+front SUV moved away @f(Y_driveaway) #1-#60
+another front SUV @(-21,0,0,0,0,0,1,1,1)"""
 
 import tkinter
 import tkinter.filedialog
@@ -60,7 +63,6 @@ nb.pack()
 frame_conf = pytkui.addstdframe (nb, "Application Setup")
 appsetup = pyback.getappsetup()
 projvars = appsetup['project']
-print(appsetup)
 uielem = {'conf': {}, 'acts': [], 'objs': [], 'logix': [], 'funcs': []}
 pytkui.appuisetup (appset = appsetup, root =  frame_conf, uiset = uielem['conf'])
 lstoryui = {}
@@ -88,7 +90,6 @@ def frame_acts_save ():
 
 def frame_objs_save ():
 	cobjs = pytkui.objsuiread(uiset = uielem['objs'])
-	print(cobjs)
 	pyback.saveuniv(which = 'objects', what = cobjs, where = projvars['folder']+'/universe.js')
 
 def frame_logix_save ():
@@ -107,7 +108,7 @@ univ = pytkui.refresh_universe(uielem = uielem, conf_frames = conf_frames, appse
 refresh_frame_buttons ()
 
 def frame_conf_save():
-	pyback.port_conf_save (lportui['conf'], lconf, univ)
+	pytkui.port_conf_save (uielem['conf'], appsetup, univ)
 
 def refresh_full_universe():
 	lportui['acts'] = lportui['objs'] = lportui['logix'] = lportui['funcs'] = []
@@ -272,8 +273,10 @@ def frame_story_cmd ():
 	cobjs = pytkui.objsuiread(uiset = uielem['objs'])
 	clogix = pytkui.logixuiread(uielem['logix'])
 	universe = {"actions": cacts, "objects": cobjs, "logicals": clogix}
-	print("option1, option2, entparams", option1, option2, entparams)
+	print ("Submitting following for parsing:")
+	print("option1:", option1, "option2:", option2, "entparams:", entparams)
 	print("appsetup", appsetup)
+	print("universe", universe)
 	retv = -1
 	if option1 == "Current rush" and option2 == "Play story": retv = pyback.exec_play_story (entparams = entparams, appsetup = appsetup, universe = universe, story = storytext)
 	if option1 == "Current rush" and option2 == "Play frames": retv = pyback.exec_save_story (entparams[0], projvars = projvars)

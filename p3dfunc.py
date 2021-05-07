@@ -140,7 +140,7 @@ def object_does (universe = {},  params = {}, posdet = [], frames = [], rushobjl
 		fstart, flast = p3dmodel['acts'][params['func']]['fstart'], p3dmodel['acts'][params['func']]['flast']
 		retval[str(frames[0])][0]['stats'] = {'fstart': fstart, 'flast': flast, 'redux': 0}
 		for frid in range(frames[0], frames[1]+1):
-			retval[str(frid)].append({'what': 'posing', 'model': params['modid'], 'action': params['func'], 'poseid': frid})
+			retval[str(frid)].append({'what': 'poseobj', 'model': params['modid'], 'action': params['func'], 'poseid': frid})
 	return retval
 
 def storyparse (story):

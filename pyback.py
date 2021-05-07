@@ -3,18 +3,15 @@ from pathlib import Path
 import json
 import re
 import shutil
+import p3dfunc
 
 import requests
 appfile = 'appsetup.js'
 
-def port_conf_save (uielems, lconf, univ):
-	lconf['user_idnt'] = uielems['user'].get()
-	lconf['secrettxt'] = uielems['pkey'].get()
-	lconf['portf_dir'] = uielems['wdir'].get()
-	univfile = lconf['portf_dir'] + 'universe.js'
-	putlocaluser (lconf)
-	univ['namedetail'] = uielems['desc'].get()
-	putUniverseJS (univ, univfile)
+def port_conf_save (appsetup):
+	appfile = 'appsetup.js'
+	print ("writng", appsetup)
+	putUniverseJS (appsetup, appfile)
 
 def saveuniv(which = 'XXX', what = [], where = 'XXX'):
 	nuniv = getUniverseJS (where)
@@ -86,8 +83,9 @@ def create_mediamodel (folderstr = "model/", media_dir = Path('.'), model_dir = 
 	os.chdir(folderstr)
 	for file in media_dir.iterdir():
 		if file.suffix in ['.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.tif']:
-			exist = check2files (path1=Path('.'), path2=model_dir, fstem=file.stem, suffix1=file.suffix, suffix2='.egg')
-			if exist == 1: ##create egg
+			exist = check2files (path1=media_dir, path2=model_dir, fstem=file.stem, suffix1=file.suffix, suffix2='.egg')
+			if exist == 1:
+				print ("Creating model for file", file)
 				cmdstr = "egg-texture-cards -o " + file.stem + ".egg ../media/" + file.name
 				os.system(cmdstr)
 				retval['add'] = retval['add'] + 1
@@ -95,12 +93,19 @@ def create_mediamodel (folderstr = "model/", media_dir = Path('.'), model_dir = 
 				(model_dir / (file.stem+'.egg')).unlink()
 				retval['rem'] = retval['rem'] + 1
 		if file.suffix in ['.gif', '.mp4', '.mov', '.avi', '.wmv', '.webm']:
-			exist = check2files (path1=Path('.'), path2=model_dir, fstem=file.stem, suffix1=file.suffix, suffix2='.egg')
+			exist = check2files (path1=media_dir, path2=model_dir, fstem=file.stem, suffix1=file.suffix, suffix2='.egg')
 			if exist == 1:
+				#try:
 				os.mkdir('../media/' + file.stem)
-				cmdstr = "ffmpeg -i ../media/" + file.name + " -vf fps="+str(fps)+" "+ ffmopt +" ../media/" + file.stem + "/series%4d.png"
+				vfps = os.system("ffprobe -v 0 -of csv=p=0 -select_streams v:0 -show_entries stream=r_frame_rate media/" + file.name)
+				print ("vfps1", vfps)
+				vfps = round(vfps)
+				print ("vfps2", vfps)
+				cmdstr = "ffmpeg -i ../media/" + file.name + " -vf scale=320:-1 -vsync 0 ../media/" + file.stem + "/series%4d.png"
+				print ("cmdstr", cmdstr)
 				os.system(cmdstr)
-				cmdstr = "egg-texture-cards -o " + file.stem + ".egg -fps 24 ../media/" + file.stem + "/series*.png"
+				#except: print ("Video "+file.stem+" is already parsed and will be reused")
+				cmdstr = "egg-texture-cards -o " + file.stem + ".egg -fps "+str(vfps)+" ../media/" + file.stem + "/series*.png"
 				os.system(cmdstr)
 				retval['add'] = retval['add'] + 1
 			if exist == 2:
@@ -139,24 +144,20 @@ def getUniverseData (user = '', folder =  '', appset = {}):
 							'file': mfile.stem, 'jjrb': []})
 		retval['model']['add'] = retval['model']['add'] + 1
 	univ['objects'] = list(filter(lambda x : 'saved' not in x or x['saved'] == 1, univ['objects']))
-	print("univ['objects']", univ['objects'])
 	uactions = []
 	for afile in action_dir.glob('*.egg'):
 		actor, anime = afile.stem.split ('__', 1)
 		uactions.append(anime)
-		print("actor, anime", actor, anime)
 		if len(list(filter(lambda x : x['file'] == actor, univ['objects']))) == 0: continue
 		if len(list(filter(lambda x : x['func'] == anime, univ['actions']))) == 0:
 			univ['actions'].append({'jjrb': [], 'syns': [anime], 'func': anime, 'show': 1})
 			retval['actions']['add'] = retval['actions']['add'] + 1
 		mobject = list(filter(lambda x : x['file'] == actor, univ['objects']))[0]
-		print("mobject", mobject)
 		if anime not in mobject['acts']:
 			mobject['acts'][anime] = {"fstart": 1, "flast": -1}
 	if 'logicals' not in univ: univ['logicals'] = []
 	if 'functions' not in univ: univ['functions'] = {}
 	# update the values in universe
-	print(retval)
 	if retval['media']['add']+retval['media']['rem']+retval['model']['add']+retval['model']['rem']+retval['anims'] ==  0:
 		return univ
 	with universe.open('w') as univjs: json.dump(univ, univjs, indent=4)
@@ -173,10 +174,9 @@ def loadsynos (uwords, verbjs, expand):
 	retval = []
 	for uword in uwords:
 		if ((expand == 0 and not re.match(".+\+$", uword)) or (expand == 1 and re.match(".+-$", uword))):
-			print("uword", uword)
 			retval.append(uword)
 			continue
-		uword = uword[:-1]
+		if re.match(".+\+$", uword): uword = uword[:-1]
 		for fwords in verbjs:
 			if not uword in fwords: continue
 			retval.extend(fwords)
@@ -184,13 +184,42 @@ def loadsynos (uwords, verbjs, expand):
 	retval=list(set(retval))
 	return retval
 
+def updateuniverseforsend (universe = {}, appsetup = {}):
+	def removeextraverb (actions):
+		for action in actions:
+			nsyns = []
+			for syns in action['syns']:
+				verbs = syns.split(",")
+				for verb in verbs:
+					nverb = verb.strip()
+					if re.match(".+-$", nverb):
+						nverb = nverb[:-1]
+					nsyns.append(nverb)
+			action['syns'] = nsyns
+		return 1
+	def updatejoints (objects, joints = {}):
+		for model in objects:
+			if model['joint'] == '' or model['joint'] not in joints: continue
+			model['joint'] = joints[model['joint']]
+	removeextraverb (universe['actions'])
+	updatejoints (universe['objects'], joints = appsetup['joint'])
+	return 1
+
+def forceint (item):
+	retval = -1
+	try: retval = int(item)
+	except: retval = -1
+	return retval
+
 def exec_play_story (entparams = [], appsetup = {}, universe = {}, story = ''):
-	if len(entparams) < 1: animfps = appsetup['winsize']
-	if len(entparams) < 3:
-		winsize = winsize.replace('X', 'x')
+	fps = appsetup['project']['fps'] if forceint(entparams[0]) == -1 else forceint(entparams[0])
+	scrwide, scrhigh = forceint(entparams[1]), forceint(entparams[2])
+	if scrwide * scrhigh < 2:
+		winsize = appsetup['project']['winsize'].replace('X', 'x')
 		scrwide = list(map(int, winsize.split('x')))[0]
 		scrhigh = list(map(int, winsize.split('x')))[1]
-	commandlets = response_textplay (appsetup['meemerurl'], {'Content-type': 'application/json'}, universe, p3dfunc.storyparse(story, gall = 1))
+	updateuniverseforsend (universe = universe, appsetup = appsetup)
+	commandlets = response_textplay (appsetup['meemerurl'], {'Content-type': 'application/json'}, universe, p3dfunc.storyparse(story))
 	serialized = p3dfunc.serialized (commandlets, universe = universe)
 	os.system('ppython p3dpreview.py')
 	appsetup['laststory'] = storytext

@@ -4,6 +4,7 @@ import tkinter.filedialog
 from tkinter import ttk
 from tksheet import Sheet
 import pyback
+import p3dfunc
 import tkinter.scrolledtext as scrolledtext
 from tkinter import BOTH, END, LEFT
 import pprint
@@ -75,9 +76,6 @@ def modifyentry (entry_elem = {}, text = '<MISSING>', start = 0):
 	entry_elem.insert(start, text)
 
 def refresh_universe(uielem = {}, conf_frames = {}, appsetup = {}):
-	print("uielem", uielem)
-	print("conf_frames", conf_frames)
-	print("appsetup", appsetup)
 	for code, frames in conf_frames.items():
 		if code == 'conf': continue
 		for tkitemls in frames.winfo_children():
@@ -91,7 +89,6 @@ def refresh_universe(uielem = {}, conf_frames = {}, appsetup = {}):
 	actsuisetup (root = conf_frames['acts'], uiset = uielem['acts'], actions = univ['actions'])
 	objsuisetup (root = conf_frames['objs'], uiset = uielem['objs'], objects = univ['objects'])
 	logixuisetup (root = conf_frames['logix'], uiset = uielem['logix'], logix = univ['logicals'])
-	print(uielem['acts'])
 	return univ
 
 def newchkbox (root = {}, text = '<MISSING>', value = 0, column=0, row=0):
@@ -111,6 +108,17 @@ def appuisetup (appset = {}, root = {}, uiset = {}, retry=1):
 	uiset['fps'] = newentry (framep=root, width=2, col=3, row=7, text=appset['project']['fps'], lbltext = 'Frame Rate')
 	uiset['preview'] = newchkbox (root = root, text = 'In Preview mode (not production ready)', value = appset['project']['preview'], column=3, row=11)
 	uiset['expand'] = newchkbox (root = root, text = 'Expansion for Verb Synonyms', value = appset['project']['expand'], column=2, row=11)
+
+def port_conf_save (uielems, appsetup, univ):
+	appsetup['user_idnt'] = uielems['auser'].get()
+	appsetup['secrettxt'] = uielems['apkey'].get()
+	appsetup['project']['folder'] = uielems['folder'].get()
+	appsetup['project']['detail'] = uielems['detail'].get()
+	appsetup['project']['winsize'] = uielems['winsize'].get()
+	appsetup['project']['fps'] = uielems['fps'].get()
+	appsetup['project']['preview'] = 1 if uielems['preview'].instate(['selected']) else 0
+	appsetup['project']['expand'] = 1 if uielems['expand'].instate(['selected']) else 0
+	pyback.port_conf_save(appsetup)
 
 def storyroomsetup (lstory, projvars = {}, boarditems = {}, session = {}):
 	csize = 500
@@ -156,9 +164,7 @@ def storyroomsetup (lstory, projvars = {}, boarditems = {}, session = {}):
 	def loadparams (event):
 		sel1 = list(listboxl1.curselection())[0]
 		sel2 = list(listboxl2.curselection())[0]
-		print("Sel1 sel2", sel1, sel2)
 		params = list(list(boarditems[sel1].values())[0][sel2].values())[0]
-		print("params", params)
 		for ix in range(0, 3):
 			param_ent[ix]['label'].grid_remove()
 			param_ent[ix]['entry'].grid_remove()
@@ -184,14 +190,12 @@ def actsuiread (uiset = [], expand = 1):
 	synofile = Path("verbforms.js")
 	with open(synofile) as lujs: verbjs = json.load(lujs)
 	for acta in uiset:
-		print("acta" ,acta)
 		lact = {'func': acta['func']}
 		verbsyns = pyback.splittext (text = acta['syns'].get())
 		lact['syns'] = pyback.loadsynos(verbsyns, verbjs, expand)
 		modifyentry(entry_elem = acta['syns'], text = ", ".join(lact['syns']))
-		#lact['jjrb'] = pyback.splittext (text = acta['jjrb'].get())
+		lact['jjrb'] = pyback.splittext (text = acta['jjrb'].get())
 		retval.append(lact)
-	print(retval)
 	return retval
 
 def actsuisetup (root = {}, uiset = [], actions = []):
@@ -204,8 +208,8 @@ def actsuisetup (root = {}, uiset = [], actions = []):
 		if 'func' not in action: continue
 		lactui['func'] = action['func']
 		scrllabel (framep = root, text = "Function Name: "+action['func'], column=0, row=rownum, sticky='nw')
-		lactui['syns'] = newentry (framep=root, width=60, col=2, row=rownum, colspan=1, text=', '.join(action['syns']), lbltext='Synonyms')
-		#lactui['jjrb'] = newentry (framep=root, width=40, col=3, row=rownum+1, colspan=1, text=', '.join(action['jjrb']), lbltext='Modifiers')
+		lactui['syns'] = newentry (framep=root, width=40, col=1, row=rownum+1, colspan=1, text=', '.join(action['syns']), lbltext='Synonyms')
+		lactui['jjrb'] = newentry (framep=root, width=40, col=2, row=rownum+1, colspan=1, text=', '.join(action['jjrb']), lbltext='Modifiers')
 		rownum = rownum + 2
 		uiset.append(lactui)
 
@@ -220,7 +224,6 @@ def objsuiread (uiset = []):
 		lobj['jjrb'] = pyback.splittext (text = obj['jjrb'].get())
 		lobj['move'] = pyback.splittext (text = obj['move'].get())
 		for macts in obj['acts']:
-			print("obj['acts']", obj['acts'])
 			mfdet = {'fstart': int(macts['fstart'].get()), 'flast': int(macts['flast'].get())}
 			lobj['acts'][macts['afile']] = mfdet
 		lobj['joint'] = obj['joint'].get()
@@ -228,7 +231,6 @@ def objsuiread (uiset = []):
 	return retval
 
 def objsuisetup (root = {}, uiset = [], objects = []):
-	print(objects)
 	rownum = 0
 	for modid, model in enumerate(objects):
 		scrllabel (framep = root, text = '-'*120, column=0, row=rownum, columnspan=3, sticky='nw')
@@ -254,9 +256,9 @@ def logixuiread (llogixui):
 	for llist in llogixui:
 		logic = {}
 		if llist['basic'].get() == '': continue
-		logic['basic'] = pyback.storyparse(llist['basic'].get())[0]
+		logic['basic'] = p3dfunc.storyparse(llist['basic'].get())[0]
 		if logic['basic'] == '': continue
-		logic['addon'] = pyback.storyparse(llist['addon'].get('1.0', tkinter.END))
+		logic['addon'] = p3dfunc.storyparse(llist['addon'].get('1.0', tkinter.END))
 		retval.append(logic)
 	return retval
 
