@@ -74,6 +74,10 @@ def getposlist (bspec = {}, cspec = {}, fcount = 1, basedir = '.'):
 	return retval
 
 def serialized (cmdlets, rushobjlst, universe = {}, appsetup = {'project': {'folder': '.'}}, fframe = 1):
+	basedir = appsetup['project']['folder']
+	ispreview = appsetup['project']['preview']
+	winsize = appsetup['project']['winsize']
+	fps = appsetup['project']['fps']
 	frameset = {}
 	lastindx = 1
 	def mergeanimation (series = {}, frames = [], frameset = {}, lastindx = 1):
@@ -81,16 +85,23 @@ def serialized (cmdlets, rushobjlst, universe = {}, appsetup = {'project': {'fol
 		for frid in range(frames[0], frames[1]+1):
 			if str(frid) not in frameset: frameset[str(frid)] = []
 			frameset[str(frid)].append(series[str(frid)])
-		if lastindx < frames[1]: return frames[1]
-		return lastindx
+		if lastindx > frames[1]: return lastindx
+		return frames[1]
 	for cmdlet in cmdlets:
 		if cmdlet['func'] == 'NOMATCH' or cmdlet['params'] == {}: continue
 		#cmdlet['bspec'], cmdlet['cspec']
 		fcount = cmdlet['frames'][1]-cmdlet['frames'][0]+1
-		posdet = getposlist (bspec = cmdlet['bspec'], cspec = cmdlet['cspec'], fcount = fcount, basedir = appsetup['project']['folder'])
+		posdet = getposlist (bspec = cmdlet['bspec'], cspec = cmdlet['cspec'], fcount = fcount, basedir = basedir)
 		series = globals()[cmdlet['func']] (universe = universe, params = cmdlet['params'], posdet = posdet, frames = cmdlet['frames'], rushobjlst = rushobjlst)
 		lastindx = mergeanimation (series = series, frames = cmdlet['frames'], frameset = frameset, lastindx = lastindx)
 		print ("frameset", frameset)
+	animes = {}
+	for frid in range(1, fframe+2): animes['1'].extend(frameset[str(frid)])
+	for frid in range(fframe+1, lastindx+1): animes[str(frid - fframe + 1)].extend(frameset[str(frid)])
+	
+	retval = {'animes': animes, 'fframe': fframe, 'rushobjlst': rushobjlst, 'lastindx': lastindx,
+				'basedir': basedir, 'winsize': winsize, 'fps': fps, 'preview': preview}
+	with open("temp_rushframes.js", "w") as lujs: json.dump(frameset, lujs)
 	return frameset
 
 def createretval (frames = []):
