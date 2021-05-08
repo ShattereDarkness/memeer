@@ -1,6 +1,6 @@
 mystory = """earth is named Mypicture @(0,2,7,0,0,0,75,50,50) #1-#120
 line is drawn @f(somelist1) #61-#120
-Mypicture vanishes #121-#150
+Mypicture vanished #121-#150
 Ruchika is a lady
 Ruchika ran @(-21,0,0,0,0,0,1,1,1)-@(21,0,0,0,0,0,1,1,1) #61-#120
 front SUV moved away @f(Y_driveaway) #1-#60
@@ -11,7 +11,7 @@ import tkinter.filedialog
 from tkinter import ttk
 from tkinter import BOTH, END, LEFT
 
-import json
+import json	
 import requests
 import os
 import re
@@ -49,7 +49,7 @@ root.iconphoto(False, tkinter.PhotoImage(file='icon.png'))
 root.title("Meme'er")
 
 boarditems = [
-	{"Current rush": [{"Play story": ["FPS", "ScreenWidth", "ScreenHeight"]}, {"Play from frame": ["From frame#"]}, {"Export video": ["Draft (Yes/No)"]}, {"Replay frames": ["From frame#", "Upto frame#", "FPS"]}]},
+	{"Current rush": [{"Play story": ["FPS", "Screen Size (Wide x Height)", "Play from frame#"]}, {"Export video": ["Name of video", "Draft (Yes/No)"]}, {"Replay frames": ["From frame#", "Upto frame#", "FPS"]}]},
 	{"Story": [{"Save story": ["Name"]}, {"Open story": ["Name"]}, {"List stories": ["*NAME LIKE*"]}, {"Export story": ["Name"]}]},
 	{"Co-ord": [{"Save coords": ["Name"]}, {"Open coords": ["Name"]}, {"List coords": ["*NAME LIKE*"]}, {"Merge coords": ["Primary", "Secondary", "Plane"]}]},
 	{"Video": [{"Play video": ["Name", "FPS"]}, {"List videos": ["*NAME LIKE*"]}, {"Merge videos": ["First Video", "Last Video"]}]},
@@ -273,10 +273,10 @@ def frame_story_cmd ():
 	cobjs = pytkui.objsuiread(uiset = uielem['objs'])
 	clogix = pytkui.logixuiread(uielem['logix'])
 	universe = {"actions": cacts, "objects": cobjs, "logicals": clogix}
-	print ("Submitting following for parsing:")
-	print("option1:", option1, "option2:", option2, "entparams:", entparams)
-	print("appsetup", appsetup)
-	print("universe", universe)
+	# print ("Submitting following for parsing:")
+	# print("option1:", option1, "option2:", option2, "entparams:", entparams)
+	# print("appsetup", appsetup)
+	# print("universe", universe)
 	retv = -1
 	if option1 == "Current rush" and option2 == "Play story": retv = pyback.exec_play_story (entparams = entparams, appsetup = appsetup, universe = universe, story = storytext)
 	if option1 == "Current rush" and option2 == "Play frames": retv = pyback.exec_save_story (entparams[0], projvars = projvars)

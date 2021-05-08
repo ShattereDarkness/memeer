@@ -201,30 +201,40 @@ def updateuniverseforsend (universe = {}, appsetup = {}):
 		for model in objects:
 			if model['joint'] == '' or model['joint'] not in joints: continue
 			model['joint'] = joints[model['joint']]
+	def additionalobj (objects):
+		objects.insert(0, {'file': 'camera', 'acts': {}, 'syns': ['camera'], 'jjrb': [], 'move': ['move', 'locate', 'looks'], 'joint': ''})
+		objects.insert(1, {'file': 'line', 'acts': {}, 'syns': ['line'], 'jjrb': [], 'move': ['draw'], 'joint': ''})
+		objects.insert(2, {'file': 'subtext', 'acts': {}, 'syns': ['subtitle', 'text'], 'jjrb': [], 'move': ['draw'], 'joint': ''})
 	removeextraverb (universe['actions'])
 	updatejoints (universe['objects'], joints = appsetup['joint'])
+	additionalobj (universe['objects'])
 	return 1
 
-def forceint (item):
-	retval = -1
-	try: retval = int(item)
-	except: retval = -1
-	return retval
+def getscreensize (text, w, h):
+	try:
+		winsize = text.replace('X', 'x')
+		scrwide = list(map(int, winsize.split('x')))[0]
+		scrhigh = list(map(int, winsize.split('x')))[1]
+		if scrwide * scrhigh < 20: return w, h
+	except: return w, h
+	return 500, 500
+
+def forceint(text):
+	try: return int(text)
+	except: return -1
 
 def exec_play_story (entparams = [], appsetup = {}, universe = {}, story = ''):
 	fps = appsetup['project']['fps'] if forceint(entparams[0]) == -1 else forceint(entparams[0])
-	scrwide, scrhigh = forceint(entparams[1]), forceint(entparams[2])
-	if scrwide * scrhigh < 2:
-		winsize = appsetup['project']['winsize'].replace('X', 'x')
-		scrwide = list(map(int, winsize.split('x')))[0]
-		scrhigh = list(map(int, winsize.split('x')))[1]
+	scrwide, scrhigh = getscreensize (entparams[1], 0, 0) 
+	if scrwide * scrhigh < 2: scrwide, scrhigh = getscreensize (appsetup['project']['winsize'], 500, 500) 
+	winsize = entparams[1].replace('X', 'x')
+	fframe = 1 if forceint(entparams[2]) == -1 else forceint(entparams[2])
+	scrwide, scrhigh = forceint(entparams[1]), forceint(appsetup['project']['winsize'])
 	updateuniverseforsend (universe = universe, appsetup = appsetup)
-	commandlets = response_textplay (appsetup['meemerurl'], {'Content-type': 'application/json'}, universe, p3dfunc.storyparse(story))
-	serialized = p3dfunc.serialized (commandlets, universe = universe)
+	nlu = response_textplay (appsetup['meemerurl'], {'Content-type': 'application/json'}, universe, p3dfunc.storyparse(story), appsetup['democheck'])
+	serialized = p3dfunc.serialized (nlu['cmdlets'], nlu['rushobjlst'], universe = universe, appsetup = appsetup, fframe = 1)
 	os.system('ppython p3dpreview.py')
-	appsetup['laststory'] = storytext
-	appsetup['lastanime'] = pyback.framedesc (serialized)
-	return {'code': 0, 'data': ''}
+	return {'code': 0, 'data': 'temp_rushframes'}
 
 def exec_save_story (fname, projvars = {}):
 	retval = {'code': 0, 'data': ''}
@@ -285,8 +295,9 @@ def showstories (portf_dir_str):
 		retval = retval + file.name + "\n"
 	return retval
 
-def response_textplay (animurl, headers, cuniverse, story):
-	#return [{'line': 0, 'mmaps': {'0': [{'wt': 1, 'gmodel': 1, 'smodel': 0}], '2': [{'wt': 1, 'gmodel': 10, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [0, 0, 0, 0, 0, 0, 1, 1, 1], 'sttmts': [], 'frames': []}, 'fname': 'objectlay', 'ftag': 'text'}, {'line': 1, 'mmaps': {'0': [{'wt': 1, 'gmodel': 10, 'smodel': 0}], '1': [{'wt': 1, 'gmodel': 2, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [], 'sttmts': ['"hello youong frinds"'], 'frames': [36, -1]}, 'fname': 'objectlay', 'ftag': 'singl'}, {'line': 2, 'mmaps': {'0': [{'wt': 1, 'gmodel': 10, 'smodel': 0}], '1': [{'wt': 1, 'gmodel': 2, 'smodel': 0}]}, 'specs': {'locupto': [0, 0, 0, 0, 0, 0, 4, 4, 4], 'locfrom': [0, 0, 0, 0, 0, 0, 1, 1, 1], 'locpos': [], 'sttmts': ['"welcome to this animmation on far flung cltures of India"'], 'frames': []}, 'fname': 'objectlay', 'ftag': 'singl'}, {'line': 3, 'mmaps': {'0': [{'wt': 1, 'gmodel': 10, 'smodel': 0}], '1': [{'wt': 1, 'gmodel': 2, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [], 'sttmts': ['"My name is Ahmad Balti and today, I will tell you about my Balti people"'], 'frames': [72, 144]}, 'fname': 'objectlay', 'ftag': 'singl'}, {'line': 4, 'mmaps': {'0': [{'wt': 1, 'gmodel': 18, 'smodel': 0}], '1': [{'wt': 1, 'gmodel': 5, 'smodel': 0}]}, 'specs': {'locupto': [], 'locfrom': [], 'locpos': [], 'sttmts': ['"and that is true"'], 'frames': [72, 144]}, 'fname': 'actordoes', 'ftag': 'text'}]
+def response_textplay (animurl, headers, cuniverse, story, democheck):
+	if democheck == 1:
+		return {'cmdlets': [{'bspec': {'locupto': [], 'locfrom': [], 'locpos': [0.0, 2.0, 7.0, 0.0, 0.0, 0.0, 75.0, 50.0, 50.0], 'locfile': '', 'sttmts': [], 'frames': [1, 120], 'oid': 303}, 'cspec': {'locfile': '', 'locfrom': [], 'locupto': [], 'locpos': [], 'frames': []}, 'func': 'object_named', 'params': {'modid': 1, 'weight': 1, 'isnew': 1}, 'frames': [1, 120]}, {'bspec': {'locupto': [], 'locfrom': [], 'locpos': [], 'locfile': 'somelist1', 'sttmts': [], 'frames': [61, 120], 'oid': 304}, 'cspec': {'locfile': '', 'locfrom': [], 'locupto': [], 'locpos': [], 'frames': []}, 'func': 'object_exists', 'params': {'modid': 2, 'weight': 1, 'isnew': 1}, 'frames': [61, 120]}, {'bspec': {'locupto': [], 'locfrom': [], 'locpos': [], 'locfile': '', 'sttmts': [], 'frames': [121, 150], 'oid': 310}, 'cspec': {'locfile': '', 'locfrom': [], 'locupto': [], 'locpos': [], 'frames': []}, 'func': 'object_exists', 'params': {'modid': 1, 'weight': 4, 'isnew': 0}, 'frames': [121, 150]}, {'bspec': {'locupto': [], 'locfrom': [], 'locpos': [], 'locfile': '', 'sttmts': [], 'frames': [], 'oid': 306}, 'cspec': {'locfile': '', 'locfrom': [], 'locupto': [], 'locpos': [], 'frames': []}, 'func': 'object_named', 'params': {'modid': 3, 'weight': 1, 'isnew': 1}, 'frames': [151, 271]}, {'bspec': {'locupto': [21.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0], 'locfrom': [-21.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0], 'locpos': [], 'locfile': '', 'sttmts': [], 'frames': [61, 120], 'oid': 307}, 'cspec': {'locfile': '', 'locfrom': [], 'locupto': [], 'locpos': [], 'frames': []}, 'func': 'object_does', 'params': {'modid': 3, 'weight': 6, 'isnew': 0, 'type': 'acts', 'func': 'run', 'repeat': 0}, 'frames': [61, 120]}, {'bspec': {'locupto': [], 'locfrom': [], 'locpos': [], 'locfile': 'Y_driveaway', 'sttmts': [], 'frames': [1, 60], 'oid': 308}, 'cspec': {'locfile': '', 'locfrom': [], 'locupto': [], 'locpos': [], 'frames': []}, 'func': 'object_does', 'params': {'modid': 4, 'weight': 4, 'isnew': 1, 'type': 'move', 'func': 'move', 'repeat': 0}, 'frames': [1, 60]}, {'bspec': {'locupto': [], 'locfrom': [], 'locpos': [-21.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0], 'locfile': '', 'sttmts': [], 'frames': [], 'oid': 309}, 'cspec': {'locfile': '', 'locfrom': [], 'locupto': [], 'locpos': [], 'frames': []}, 'func': 'object_exists', 'params': {'modid': 5, 'weight': 2, 'isnew': 1}, 'frames': [272, 392]}], 'rushobjlst': [{'file': 'camera', 'acts': {}, 'syns': ['camera'], 'jjrb': [], 'move': ['move', 'locate', 'looks'], 'joint': '', 'type': 'move'}, {'file': 'earth', 'acts': {}, 'syns': ['earth'], 'jjrb': [], 'move': ['move', 'locate', 'l'], 'joint': '', 'rname': 'Mypicture'}, {'file': 'line', 'acts': {}, 'syns': ['line'], 'jjrb': [], 'move': ['draw'], 'joint': ''}, {'file': 'lady', 'acts': {'run': {'fstart': 1, 'flast': -1}}, 'syns': ['lady'], 'jjrb': [], 'move': ['move', 'moving', 'moved', 'locate', 'located', 'locating', 'vanish', 'vanished', 'vanishing'], 'joint': {'legs': {'include': ['LHipJoint', 'RHipJoint'], 'exclude': []}, 'hand': {'include': ['LeftShoulder', 'RightShoulder'], 'exclude': []}, 'head': {'include': ['Neck'], 'exclude': ['LHipJoint', 'RHipJoint']}}, 'rname': 'Ruchika'}, {'file': 'SUVfront', 'acts': {}, 'syns': ['SUV'], 'jjrb': ['front', 'front facing'], 'move': ['move', 'locate', 'l'], 'joint': ''}, {'file': 'SUVfront', 'acts': {}, 'syns': ['SUV'], 'jjrb': ['front', 'front facing'], 'move': ['move', 'locate', 'l'], 'joint': ''}]}
 	mydata=json.dumps({'story': story, 'universe': cuniverse})
 	response = requests.post(animurl, headers=headers, data=mydata)
 	animation = json.loads(response.text)

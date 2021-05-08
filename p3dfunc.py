@@ -5,21 +5,19 @@ import os
 import os.path
 import json
 import copy
-import coordinates
 
 def mergeposition (base = [], addit = []):
-	retval = [0, 0, 0, 0, 0, 0, 1, 1, 1]
 	if len(addit) < 3: return base
-	for idx in range(0, 3): retval[idx] = base[idx] + addit[idx]
+	for idx in range(0, 3): base[idx] = base[idx] + addit[idx]
 	if len(addit) < 9: return retval
-	for idx in range(3, 6): retval[idx] = base[idx] + addit[idx]
-	for idx in range(6, 9): retval[idx] = base[idx] * addit[idx]
-	return retval
+	for idx in range(3, 6): base[idx] = base[idx] + addit[idx]
+	for idx in range(6, 9): base[idx] = base[idx] * addit[idx]
+	return base
 
 def readposfile (filenm, basedir):
 	print("filenm, basedir", filenm, basedir)
 	if not re.match(".+\.txt$", filenm): filenm = filenm + '.txt'
-	if not os.path.isfile(basedir+'/coords/'+filenm): return []
+	if not os.path.isfile(basedir+'/coords/'+filenm): return [[]]
 	print (filenm, "file found")
 	with open(basedir+'/coords/'+filenm) as lujs: allpos = json.load(lujs)
 	return allpos['coord']
@@ -35,7 +33,9 @@ def generatedefposts (fcount = 1, baseloc = [], locrange = '', basedir = '.'):
 	retval = []
 	if len(baseloc) == 0: baseloc = [0,0,0,0,0,0,1,1,1]
 	if 'locfile' in locrange and locrange['locfile'] != '':
+		if len(baseloc) == 0: baseloc = [0,0,0]
 		coords = readposfile (locrange['locfile'], basedir)
+		if coords == [[]]: return [baseloc]
 		itemls = fixinitemlist (lfrom = len(coords)-1, linto = fcount)
 		lastix = -1
 		print("itemls, coords",  itemls, coords)
@@ -49,8 +49,9 @@ def generatedefposts (fcount = 1, baseloc = [], locrange = '', basedir = '.'):
 			modpos[2] = modpos[2]+coords[item][2]
 			retval.append(modpos)
 	elif 'locfrom' in locrange and 'locupto' in locrange:
-		modfpos = mergeposition(base = baseloc, addit = locrange['locfrom'])
-		modlpos = mergeposition(base = baseloc, addit = locrange['locupto'])
+		modfpos, modlpos = copy.deepcopy(baseloc), copy.deepcopy(baseloc)
+		mergeposition(base = modfpos, addit = locrange['locfrom'])
+		mergeposition(base = modlpos, addit = locrange['locupto'])
 		itemls = range (1, fcount)
 		for ix in itemls:
 			modpos = []
@@ -59,6 +60,7 @@ def generatedefposts (fcount = 1, baseloc = [], locrange = '', basedir = '.'):
 			retval.append(modpos)
 		retval.append(modlpos)
 	else: retval.append(baseloc)
+	#print ("generatedefposts", retval)
 	return retval
 
 def getposlist (bspec = {}, cspec = {}, fcount = 1, basedir = '.'):
@@ -71,38 +73,42 @@ def getposlist (bspec = {}, cspec = {}, fcount = 1, basedir = '.'):
 	if len(bspec['locpos']) == 9: mergeposition (base = locpos, addit = bspec['locpos'])
 	if len(cspec['locpos']) == 9: mergeposition (base = locpos, addit = cspec['locpos'])
 	retval = generatedefposts (fcount = fcount, baseloc = locpos, locrange = locrange, basedir = basedir)
+	#print ("getposlist", retval)
 	return retval
 
 def serialized (cmdlets, rushobjlst, universe = {}, appsetup = {'project': {'folder': '.'}}, fframe = 1):
+	print ("cmdlets, rushobjlst, universe, appsetup, fframe", cmdlets, rushobjlst, universe , appsetup, fframe)
 	basedir = appsetup['project']['folder']
-	ispreview = appsetup['project']['preview']
+	preview = appsetup['project']['preview']
 	winsize = appsetup['project']['winsize']
 	fps = appsetup['project']['fps']
 	frameset = {}
 	lastindx = 1
 	def mergeanimation (series = {}, frames = [], frameset = {}, lastindx = 1):
-		print ("series", series)
 		for frid in range(frames[0], frames[1]+1):
 			if str(frid) not in frameset: frameset[str(frid)] = []
-			frameset[str(frid)].append(series[str(frid)])
+			frameset[str(frid)].extend(series[str(frid)])
 		if lastindx > frames[1]: return lastindx
 		return frames[1]
-	for cmdlet in cmdlets:
+	for ix, cmdlet in enumerate(cmdlets):
 		if cmdlet['func'] == 'NOMATCH' or cmdlet['params'] == {}: continue
-		#cmdlet['bspec'], cmdlet['cspec']
+		print ("cmdlets["+str(ix)+"] =", cmdlet)
 		fcount = cmdlet['frames'][1]-cmdlet['frames'][0]+1
 		posdet = getposlist (bspec = cmdlet['bspec'], cspec = cmdlet['cspec'], fcount = fcount, basedir = basedir)
+		#print ("series input (params and posdet)", cmdlet['params'], posdet)
 		series = globals()[cmdlet['func']] (universe = universe, params = cmdlet['params'], posdet = posdet, frames = cmdlet['frames'], rushobjlst = rushobjlst)
+		#print ("series:", series)
 		lastindx = mergeanimation (series = series, frames = cmdlet['frames'], frameset = frameset, lastindx = lastindx)
-		print ("frameset", frameset)
+	#print ("frameset", frameset)
+	#print ("lastindx", lastindx)
 	animes = {}
-	for frid in range(1, fframe+2): animes['1'].extend(frameset[str(frid)])
-	for frid in range(fframe+1, lastindx+1): animes[str(frid - fframe + 1)].extend(frameset[str(frid)])
-	
+	for frid in range(1, fframe+1): animes.setdefault('1', []).extend(frameset[str(frid)])
+	for frid in range(fframe+1, lastindx+1): animes.setdefault(str(frid - fframe + 1), []).extend(frameset[str(frid)])
+	print ("animes", animes)
 	retval = {'animes': animes, 'fframe': fframe, 'rushobjlst': rushobjlst, 'lastindx': lastindx,
 				'basedir': basedir, 'winsize': winsize, 'fps': fps, 'preview': preview}
 	with open("temp_rushframes.js", "w") as lujs: json.dump(frameset, lujs)
-	return frameset
+	return temp_rushframes
 
 def createretval (frames = []):
 	retval = {}
@@ -110,19 +116,31 @@ def createretval (frames = []):
 		retval[str(frid)] = []
 	return retval
 
+def appendmovements (frames = [1,2], retval = {}, posdet = [], append = {}):
+	for ix in range(frames[0], frames[1]+1):
+		frid = ix - frames[0]
+		if len(posdet)-1 < frid: break
+		if len(posdet[frid]) < 3: continue
+		append['pos'] = posdet[frid]
+		retval[str(ix)].append(copy.deepcopy(append))
+	return 1
+
 def object_exists (universe = {},  params = {}, posdet = [], frames = [], rushobjlst = []):
 	retval = createretval (frames = frames)
 	p3dmodel = rushobjlst[params['modid']]
 	if params['isnew'] == 1: retval[str(frames[0])].append({'what': 'loadobj', 'model': params['modid']})
-	for frid in range(frames[0], frames[1]+1):
-		if len(posdet) <= frid: break
-		if len(posdet[frid-1]) == 0: continue
-		retval[str(frid)].append({'what': 'moveobj', 'model': params['modid'], 'pos': posdet[frid-1]})
+	appendmovements (frames = frames, retval = retval, posdet = posdet, append = {'what': 'moveobj', 'model': params['modid'], 'pos': []})
+	return retval
+
+def object_named (universe = {},  params = {}, posdet = [], frames = [], rushobjlst = []):
+	retval = createretval (frames = frames)
+	p3dmodel = rushobjlst[params['modid']]
+	if params['isnew'] == 1: retval[str(frames[0])].append({'what': 'loadobj', 'model': params['modid']})
+	appendmovements (frames = frames, retval = retval, posdet = posdet, append = {'what': 'moveobj', 'model': params['modid'], 'pos': []})
 	return retval
 
 def object_does (universe = {},  params = {}, posdet = [], frames = [], rushobjlst = []):
 	retval = createretval (frames = frames)
-	print ("params, posdet, fcount", params, posdet, fcount)
 	p3dmodel = rushobjlst[params['modid']]
 	if params['isnew'] == 1: retval[str(frames[0])].append({'what': 'loadobj', 'model': params['modid']})
 	if p3dmodel['file'] == 'line':
@@ -131,14 +149,11 @@ def object_does (universe = {},  params = {}, posdet = [], frames = [], rushobjl
 			if len(posdet[frid-1]) == 0: continue
 			retval[str(frid)].append({'what': 'lineseg', 'model': params['modid'], 'from': posdet[frid-1], 'upto': posdet[frid]})
 	else:
-		for frid in range(frames[0], frames[1]+1):
-			if len(posdet) <= frid: break
-			if len(posdet[frid-1]) == 0: continue
-			retval[str(frid)].append({'what': 'moveobj', 'model': params['modid'], 'pos': posdet[frid-1]})
-	if params['type'] == 'move': return retval
+		appendmovements (frames = frames, retval = retval, posdet = posdet, append = {'what': 'moveobj', 'model': params['modid'], 'pos': []})
+	if params['func'] in ['move', 'locate']: return retval
 	if params['type'] == 'acts':
 		fstart, flast = p3dmodel['acts'][params['func']]['fstart'], p3dmodel['acts'][params['func']]['flast']
-		retval[str(frames[0])][0]['stats'] = {'fstart': fstart, 'flast': flast, 'redux': 0}
+		p3dmodel['stats'] = {'fstart': fstart, 'flast': flast, 'redux': 0}
 		for frid in range(frames[0], frames[1]+1):
 			retval[str(frid)].append({'what': 'poseobj', 'model': params['modid'], 'action': params['func'], 'poseid': frid})
 	return retval

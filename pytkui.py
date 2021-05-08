@@ -215,9 +215,6 @@ def actsuisetup (root = {}, uiset = [], actions = []):
 
 def objsuiread (uiset = []):
 	retval = []
-	retval.append({'file': 'camera', 'acts': {}, 'syns': ['camera'], 'jjrb': [], 'move': ['move', 'locate', 'looks'], 'joint': ''})
-	retval.append({'file': 'line', 'acts': {}, 'syns': ['line'], 'jjrb': [], 'move': ['draw'], 'joint': ''})
-	retval.append({'file': 'subtext', 'acts': {}, 'syns': ['subtitle', 'text'], 'jjrb': [], 'move': ['draw'], 'joint': ''})
 	for obj in uiset:
 		lobj = {'file': obj['file'], 'acts': {}}
 		lobj['syns'] = pyback.splittext (text = obj['syns'].get())
