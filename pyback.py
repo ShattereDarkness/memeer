@@ -216,6 +216,7 @@ def getscreensize (text, w, h):
 		scrwide = list(map(int, winsize.split('x')))[0]
 		scrhigh = list(map(int, winsize.split('x')))[1]
 		if scrwide * scrhigh < 20: return w, h
+		else: return scrwide, scrhigh
 	except: return w, h
 	return 500, 500
 
@@ -224,15 +225,16 @@ def forceint(text):
 	except: return -1
 
 def exec_play_story (entparams = [], appsetup = {}, universe = {}, story = ''):
+	print ("appsetup:", appsetup)
+	print ("entparams:", entparams)
 	fps = appsetup['project']['fps'] if forceint(entparams[0]) == -1 else forceint(entparams[0])
 	scrwide, scrhigh = getscreensize (entparams[1], 0, 0) 
 	if scrwide * scrhigh < 2: scrwide, scrhigh = getscreensize (appsetup['project']['winsize'], 500, 500) 
-	winsize = entparams[1].replace('X', 'x')
+	print ("fps, scrwide, scrhigh", fps, scrwide, scrhigh)
 	fframe = 1 if forceint(entparams[2]) == -1 else forceint(entparams[2])
-	scrwide, scrhigh = forceint(entparams[1]), forceint(appsetup['project']['winsize'])
 	updateuniverseforsend (universe = universe, appsetup = appsetup)
 	nlu = response_textplay (appsetup['meemerurl'], {'Content-type': 'application/json'}, universe, p3dfunc.storyparse(story), appsetup['democheck'])
-	serialized = p3dfunc.serialized (nlu['cmdlets'], nlu['rushobjlst'], universe = universe, appsetup = appsetup, fframe = 1)
+	serialized = p3dfunc.serialized (nlu['cmdlets'], nlu['rushobjlst'], universe = universe, appsetup = appsetup, fframe = 1, fps = fps, winsize = [scrwide, scrhigh])
 	os.system('ppython p3dpreview.py')
 	return {'code': 0, 'data': 'temp_rushframes'}
 

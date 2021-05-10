@@ -10,6 +10,7 @@ from direct.gui.OnscreenImage import OnscreenImage
 from panda3d.core import TransparencyAttrib
 from direct.gui.DirectGui import *
 from pandac.PandaModules import ClockObject
+from direct.interval.ActorInterval import ActorInterval
 
 import time
 import json
@@ -19,21 +20,19 @@ from panda3d.core import NodePath
 # from direct.directbase import DirectStart
 # import direct.directtools.DirectSelection
 
-lines = LineSegs()
+model = {}
 def defaultTask(task):
-	ix = task.frame
-	lines.moveTo(ix, 1, 0)
-	lines.drawTo(ix, 1, 2)
-	lines.setThickness(ix*2)
-	print("ix and lines", ix, lines)
-	node = lines.create()
-	np = NodePath(node)
-	np.reparentTo(render)
+	if task.frame == 0:
+		actor = Actor("demo/model/lady", {"run": "demo/model/action/lady__run"})
+		actor.setPos(0, 0, 0)
+		actor.reparentTo(render)
+		myInterval = actor.actorInterval ("run", loop = 1, startFrame = 1, endFrame = 60)
+		myInterval.start()
 	return Task.cont
 
 ShowBase()
 base.disableMouse()
-camera.setPos(0, -420, 0)
+camera.setPos(0, -120, 0)
 camera.setHpr(0, 0, 0)
 
 taskMgr.add(defaultTask, "defaultTask")
