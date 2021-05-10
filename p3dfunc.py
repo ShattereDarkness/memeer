@@ -16,7 +16,7 @@ def mergeposition (base = [], addit = []):
 	return base
 
 def readposfile (filenm, basedir):
-	print("filenm, basedir", filenm, basedir)
+	#print("filenm, basedir", filenm, basedir)
 	if not re.match(".+\.txt$", filenm): filenm = filenm + '.txt'
 	filedat = basedir / 'coords' / filenm
 	if not filedat.is_file():
@@ -80,7 +80,7 @@ def getposlist (bspec = {}, cspec = {}, fcount = 1, basedir = '.'):
 	return retval
 
 def serialized (cmdlets, rushobjlst, universe = {}, appsetup = {'project': {'folder': '.'}}, fframe = 1, fps = 1, winsize = [10, 10]):
-	#print ("cmdlets, rushobjlst, universe, appsetup, fframe", cmdlets, rushobjlst, universe , appsetup, fframe)
+	print ("cmdlets, rushobjlst, universe, appsetup, fframe", cmdlets, rushobjlst, universe , appsetup, fframe)
 	basedir = Path(appsetup['project']['folder'])
 	preview = appsetup['project']['preview']
 	frameset = {}
@@ -98,7 +98,7 @@ def serialized (cmdlets, rushobjlst, universe = {}, appsetup = {'project': {'fol
 		posdet = getposlist (bspec = cmdlet['bspec'], cspec = cmdlet['cspec'], fcount = fcount, basedir = basedir)
 		print ("series input (params and posdet)", cmdlet['params'], posdet)
 		series = globals()[cmdlet['func']] (universe = universe, params = cmdlet['params'], posdet = posdet, frames = cmdlet['frames'], rushobjlst = rushobjlst, basedir = basedir)
-		print ("series:", series)
+		#print ("series:", series)
 		lastindx = mergeanimation (series = series, frames = cmdlet['frames'], frameset = frameset, lastindx = lastindx)
 	#print ("frameset", frameset)
 	#print ("lastindx", lastindx)
@@ -107,8 +107,8 @@ def serialized (cmdlets, rushobjlst, universe = {}, appsetup = {'project': {'fol
 		if str(frid) in frameset: animes.setdefault('1', []).extend(frameset[str(frid)])
 	for frid in range(fframe+1, lastindx+1):
 		if str(frid) in frameset: animes.setdefault(str(frid - fframe + 1), []).extend(frameset[str(frid)])
-	retval = {'animes': animes, 'fframe': fframe, 'rushobjlst': rushobjlst, 'lastindx': lastindx,
-				'basedir': str(basedir), 'winsize': winsize, 'fps': fps, 'preview': preview}
+	retval = {'animes': animes, 'fframe': fframe, 'rushobjlst': rushobjlst, 'lastindx': lastindx - fframe + 1,
+				'basedir': str(basedir.stem), 'winsize': winsize, 'fps': fps, 'preview': preview}
 	with open("temp_rushframes.js", "w") as lujs: json.dump(retval, lujs, indent=4)
 	return {'code': 0, 'data': 'temp_rushframes'}
 
@@ -163,9 +163,10 @@ def object_does (universe = {},  params = {}, posdet = [], frames = [], rushobjl
 		appendmovements (frames = frames, retval = retval, posdet = posdet, append = {'what': 'moveobj', 'model': params['modid'], 'pos': []})
 	if params['func'] in ['move', 'locate', 'draw']: return retval
 	if params['type'] == 'acts':
-		fstart, flast, repeat = p3dmodel['acts'][params['func']]['fstart'], p3dmodel['acts'][params['func']]['flast'], params['repeat']
-		if flast == -1: flast = fstart + frames[1] - frames[0]
-		retval[str(frames[0])].append({'what': 'actplay', 'model': params['modid'], 'action': params['func'], 'fstart': fstart, 'flast': flast, 'repeat': repeat})
+		fstart, flast = p3dmodel['acts'][params['func']]['fstart'], p3dmodel['acts'][params['func']]['flast']
+		for frid in range(frames[0], frames[1]+1):
+			if params['repeat'] == 0 and flast != -1 and (frid - frames[0]) > flast: break
+			retval[str(frid)].append({'what': 'poseobj', 'model': params['modid'], 'action': params['func'], 'poseid': frid, 'repeat': params['repeat']})
 	return retval
 
 def storyparse (story):
