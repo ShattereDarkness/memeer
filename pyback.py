@@ -4,6 +4,7 @@ import json
 import re
 import shutil
 import p3dfunc
+import subprocess
 
 import requests
 appfile = 'appsetup.js'
@@ -92,23 +93,21 @@ def create_mediamodel (folderstr = "model/", media_dir = Path('.'), model_dir = 
 			if exist == 2:
 				(model_dir / (file.stem+'.egg')).unlink()
 				retval['rem'] = retval['rem'] + 1
-		if file.suffix in ['.gif', '.mp4', '.mov', '.avi', '.wmv', '.webm']:
+		elif file.suffix in ['.gif', '.mp4', '.mov', '.avi', '.wmv', '.webm']:
 			exist = check2files (path1=media_dir, path2=model_dir, fstem=file.stem, suffix1=file.suffix, suffix2='.egg')
 			if exist == 1:
-				#try:
+				print ("Creating model for file", file)
 				os.mkdir('../media/' + file.stem)
-				vfps = os.system("ffprobe -v 0 -of csv=p=0 -select_streams v:0 -show_entries stream=r_frame_rate media/" + file.name)
-				print ("vfps1", vfps)
+				cmdstr = "ffprobe -v 0 -of csv=p=0 -select_streams v:0 -show_entries stream=avg_frame_rate ../media/" + file.name
+				avgfps = (subprocess.run(cmdstr, capture_output=True)).stdout.decode('unicode_escape')[:-2]
+				vfps = round(float(avgfps.split('/')[0])/float(avgfps.split('/')[1]))
 				vfps = round(vfps)
-				print ("vfps2", vfps)
 				cmdstr = "ffmpeg -i ../media/" + file.name + " -vf scale=320:-1 -vsync 0 ../media/" + file.stem + "/series%4d.png"
-				print ("cmdstr", cmdstr)
 				os.system(cmdstr)
-				#except: print ("Video "+file.stem+" is already parsed and will be reused")
 				cmdstr = "egg-texture-cards -o " + file.stem + ".egg -fps "+str(vfps)+" ../media/" + file.stem + "/series*.png"
 				os.system(cmdstr)
 				retval['add'] = retval['add'] + 1
-			if exist == 2:
+			elif exist == 2:
 				(model_dir / (file.stem+'.egg')).unlink()
 				shutil.rmtree('../media/' + file.stem, ignore_errors=True)
 				retval['rem'] = retval['rem'] + 1
@@ -162,6 +161,17 @@ def getUniverseData (user = '', folder =  '', appset = {}):
 		return univ
 	with universe.open('w') as univjs: json.dump(univ, univjs, indent=4)
 	return univ
+
+def entdefaultparams (ix, params, projvars):
+	if params[ix] == 'FPS': return projvars['fps']
+	if params[ix] == 'Screen Size (Wide x Height)': return projvars['winsize']
+	if params[ix] == 'Play from frame#': return '1'
+	if params[ix] == 'From frame#': return '1'
+	if params[ix] == 'Upto frame#': return '-1'
+	if params[ix] == 'Draft (Yes/No)': return projvars['preview']
+	if params[ix] == 'Frames range': return '1, -1'
+	if params[ix] == '*NAME LIKE*': return '*'
+	return ""
 
 def splittext (text = '', rtyp = str, sep = ','):
 	retval = []
@@ -236,27 +246,44 @@ def exec_play_story (entparams = [], appsetup = {}, universe = {}, story = ''):
 	nlu = response_textplay (appsetup['meemerurl'], {'Content-type': 'application/json'}, universe, p3dfunc.storyparse(story), appsetup['democheck'])
 	serialized = p3dfunc.serialized (nlu['cmdlets'], nlu['rushobjlst'], universe = universe, appsetup = appsetup, fframe = fframe, fps = fps, winsize = [scrwide, scrhigh])
 	os.system('ppython p3dpreview.py')
+	pngoverwrites (fframe = fframe, imgdest = appsetup['project']['folder']+'/rushes/')
 	return {'code': 0, 'data': 'temp_rushframes'}
 
-def exec_save_story (fname, projvars = {}):
-	retval = {'code': 0, 'data': ''}
-	portf_dir = Path(portf_dir_str) / 'stories'
-	if fname == '': {'code': 1, 'data': ''}
-	saveas = portf_dir / 'stories' / fname
-	saveas.write_text(storytxt)
-	return {'code': 1, 'data': ''}
+def pngoverwrites (fframe = 1, imgdest = Path('.')):
+	for frid in range(2, 9999):
+		oldimg = "rush__"+"%04d"%(frid)+".png"
+		newimg = "rush__"+"%04d"%(frid+fframe-2)+".png"
+		print ("remove", imgdest+newimg)
+		try: os.remove(imgdest+newimg)
+		except: pass
+		if not os.path.isfile(imgdest+'temp/'+oldimg): break
+		print ("rename", imgdest+'temp/'+oldimg, "to", imgdest+newimg)
+		try: os.rename(imgdest+'temp/'+oldimg, imgdest+newimg)
+		except: pass
+	return 1
 
-def exec_open_story (fname, projvars = {}):
-	if fname == '': return {'code': 1, 'data': ''}
-	fromf = Path(portf_dir_str) / 'stories' / fname
-	return {'code': 0, 'data': fromf.read_text()}
+def exec_save_story (entparams = [], appsetup = {}, story = ''):
+	if entparams[0] == '': return 0
+	filename = Path(appsetup['project']['name']) / 'stories' / entparams[0]
+	if filename.suffix != '.story': filename = Path(appsetup['project']['name']) / 'stories' / (entparams[0]+'.story')
+	filename.write_text(story)
+	return 1
 
-def exec_list_story (flike, projvars = {}):
-	retval = {'code': 0, 'data': ''}
-	portf_dir = Path(portf_dir_str) / 'stories'
-	if flike == '': flike = '*'
-	for file in list(portf_dir.glob(flike)):
+def exec_open_story (entparams = [], appsetup = {}):
+	if entparams[0] == '': return 0
+	filename = Path(appsetup['project']['name']) / 'stories' / entparams[0]
+	if filename.suffix != '.story': filename = Path(appsetup['project']['name']) / 'stories' / (entparams[0]+'.story')
+	if not filename.is_file(): return {'code': 1, 'data': ''}
+	return {'code': 0, 'data': filename.read_text()}
+
+def exec_list_story (entparams = [], appsetup = {}):
+	retval = {'code': 0, 'data': []}
+	stories = Path(appsetup['project']['name']) / 'stories'
+	entparams[0] = '*' + entparams[0] + '*'
+	for file in list(stories.glob(entparams[0])):
+		if file.suffix != '.story': continue
 		retval['data'].append(file.name)
+	print ("retval", retval)
 	return retval
 
 def exec_expo_story (fname, projvars = {}):
@@ -271,19 +298,6 @@ def exec_save_coords (fname, projvars = {}):
 	saveas = portf_dir / 'coords' / fname
 	saveas.write_text(storytxt)
 	return {'code': 1, 'data': ''}
-
-def exec_open_story (fname, projvars = {}):
-	if fname == '': return {'code': 1, 'data': ''}
-	fromf = Path(portf_dir_str) / 'coords' / fname
-	return {'code': 0, 'data': fromf.read_text()}
-
-def exec_list_story (flike, projvars = {}):
-	retval = {'code': 0, 'data': ''}
-	portf_dir = Path(portf_dir_str) / 'coords'
-	if flike == '': flike = '*'
-	for file in list(portf_dir.glob(flike)):
-		retval['data'].append(file.name)
-	return retval
 
 def exec_expo_story (fname, projvars = {}):
 	if 'lastexec' not in projvars: return {'code': 101, 'data': ''}
@@ -304,6 +318,47 @@ def response_textplay (animurl, headers, cuniverse, story, democheck):
 	response = requests.post(animurl, headers=headers, data=mydata)
 	animation = json.loads(response.text)
 	return animation
+
+def framerunparams (entparams = [], appsetup = {}):
+	retval = {'fromfr': 1, 'tillfr': -1, 'fps': 1, 'width': 500, 'height': 500}
+	retval['fromfr'] = 1 if forceint(entparams[0]) == -1 else forceint(entparams[0])
+	retval['tillfr'] = 9999 if forceint(entparams[1]) == -1 else forceint(entparams[1])
+	retval['fps'] = appsetup['project']['fps'] if forceint(entparams[2]) == -1 else forceint(entparams[2])
+	retval['scrwide'], retval['scrhigh'] = getscreensize (appsetup['project']['winsize'], 500, 500)
+	maxscr = max(retval['scrwide'], retval['scrhigh'])
+	if maxscr <= 500: return retval
+	retval['scrwide'], retval['scrhigh'] = int(retval['scrwide']*500/maxscr), int(retval['scrhigh']*500/maxscr)
+	return retval
+
+def exec_pic_export (entparams = [], appsetup = {}):
+	if entparams[0] == '': return 1
+	filenm = Path(appsetup['project']['name']) / entparams[0]
+	if filenm.suffix == '': filenm = Path(appsetup['project']['name']) / (entparams[0] + '.gif')
+	fps = appsetup['project']['fps'] if forceint(entparams[1]) == -1 else forceint(entparams[1])
+	rushes = Path(appsetup['project']['name']) / "rushes"
+	frange = entparams[2].split(",")
+	fstart = int(frange[0].strip())
+	flast = -1 if len(frange) == 1 else int(frange[1].strip())
+	cmdstr = "ffmpeg -framerate " + str(fps) + " -start_number " + str(fstart) + " "
+	if flast != -1:
+		vlen = (flast+1 - fstart)/fps
+		cmdstr = cmdstr + " -t " + str(vlen) + " "
+	cmdstr = cmdstr + " -i " + str(rushes) + "/rush__%04d.png "
+	print ("filenm", filenm, filenm.suffix, filenm.stem)
+	if filenm.suffix in ['.mp4', '.mov']: cmdstr = cmdstr + " -pix_fmt yuv420p "
+	cmdstr = cmdstr + str(filenm) + " -y"
+	print ("cmdstr", cmdstr)
+	os.system(cmdstr)
+	return 1
+
+def exec_pic_delete (entparams = [], appsetup = {}):
+	rushes = Path(appsetup['project']['name']) / "rushes"
+	for files in rushes.glob('*.png'):
+		files.unlink()
+	tempr = Path(appsetup['project']['name']) / "rushes" / "temp"
+	for files in tempr.glob('*.png'):
+		files.unlink()
+	return 1
 
 def getchanged (laststory, currstory, change):
 	if change == 0: return 0

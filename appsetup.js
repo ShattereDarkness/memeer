@@ -4,6 +4,7 @@
 	"democheck": 0,
     "project": {
         "folder": "C:/ProgramData/Memeer/demo",
+		"name": "demo",
         "winsize": "600 x 400",
         "preview": 1,
         "fps": "12",

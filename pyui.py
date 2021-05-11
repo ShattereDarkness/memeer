@@ -49,12 +49,13 @@ root.iconphoto(False, tkinter.PhotoImage(file='icon.png'))
 root.title("Meme'er")
 
 boarditems = [
-	{"Current rush": [{"Play story": ["FPS", "Screen Size (Wide x Height)", "Play from frame#"]}, {"Export video": ["Name of video", "Draft (Yes/No)"]}, {"Replay frames": ["From frame#", "Upto frame#", "FPS"]}]},
-	{"Story": [{"Save story": ["Name"]}, {"Open story": ["Name"]}, {"List stories": ["*NAME LIKE*"]}, {"Export story": ["Name"]}]},
+	{"Current rush": [{"Play story": ["FPS", "Screen Size (Wide x Height)", "Play from frame#"]}, {"Replay frames": ["From frame#", "Upto frame#", "FPS"]}, {"Export video": ["Name of video", "FPS", "Frames range"]}, {"Delete rush frames": []}]},
+	{"Story": [{"Save story": ["Name"]}, {"Open story": ["Name"]}, {"List stories": ["*NAME LIKE*"]}]},
 	{"Co-ord": [{"Save coords": ["Name"]}, {"Open coords": ["Name"]}, {"List coords": ["*NAME LIKE*"]}, {"Merge coords": ["Primary", "Secondary", "Plane"]}]},
 	{"Video": [{"Play video": ["Name", "FPS"]}, {"List videos": ["*NAME LIKE*"]}, {"Merge videos": ["First Video", "Last Video"]}]},
 	{"Audio": [{"List audio": ["Name"]}]},
-	{"Objects": [{"Example texts": ["*NAME LIKE*"]}]}
+	{"Objects": [{"Example texts": ["*NAME LIKE*"]}]},
+	{"Project": [{"Recreate as": ["Name"]}, "Go Supernova!"]}
 ]
 
 nb = ttk.Notebook(root)
@@ -200,28 +201,6 @@ def frame_play_edit():
 	for keys in ['frindex', 'frlast', 'frixdel']: gappvars['rushes'][keys] = storyanim[keys]
 	pyback.overwrites (gappvars['imgdest'], storyanim['frindex'], storyanim['frlast'], storyanim['frixdel'])
 
-def frame_play_pngs():
-	fromfr = int(lstoryui['froment'].get())
-	tillfr = int(lstoryui['tillent'].get())
-	ffpsfr = int(lstoryui['ffpsent'].get())
-	global gappvars
-	print(gappvars['rushes'])
-	if 'frindex' not in gappvars['rushes'] or 'frlast' not in gappvars['rushes'] or 'frixdel' not in gappvars['rushes']: return 1
-	if fromfr < 1 or fromfr > gappvars['rushes']['frlast']: return 1
-	if tillfr < 1 or tillfr > gappvars['rushes']['frlast']:
-		lstoryui['tillent'].insert(0, str(gappvars['rushes']['frlast']))
-		tillfr = gappvars['rushes']['frlast']
-	lstoryui['canvas'].delete("all")
-	for px in range(fromfr, tillfr):
-		imgpng = gappvars['imgdest']+'pngs_'+"%04d"%(px)+".png"
-		print(imgpng)
-		image = Image.open(imgpng)
-		image = image.resize((640, 480), Image.ANTIALIAS)
-		root.myimg = myimg = ImageTk.PhotoImage(image)
-		lstoryui['canvas'].create_image((0,0), image=myimg, anchor='nw')
-		lstoryui['canvas'].update()
-		time.sleep(1/ffpsfr)
-
 def frame_stop_pngs():
 	frameat = int(lstoryui['frmatent'].get())
 	global gappvars
@@ -261,6 +240,21 @@ def frame_point_exec():
 		pyback.save3dcoord (fname, lconf['portf_dir'])
 	print(gappvars['linepos'])
 
+def exec_play_frame (entparams = [], appsetup = {}, uielem = {}):
+	params = pyback.framerunparams (entparams = entparams, appsetup = appsetup)
+	imgdest = appsetup['project']['folder']+'/rushes/'
+	print ("params", params)
+	for frid in range(params['fromfr'], params['tillfr']+1):
+		imgfile = imgdest+"rush__"+"%04d"%(frid)+".png"
+		if not os.path.isfile(imgfile): break
+		image = Image.open(imgfile)
+		image = image.resize((params['scrwide'], params['scrhigh']), Image.ANTIALIAS)
+		root.myimg = myimg = ImageTk.PhotoImage(image)
+		uielem['canvas'].create_image((250,250), image=myimg, anchor='center')
+		uielem['canvas'].update()
+		time.sleep(1/params['fps'])
+	return 1
+
 def frame_story_cmd ():
 	option1 = lstoryui['lbox1'].get(list(lstoryui['lbox1'].curselection())[0])
 	option2 = lstoryui['lbox2'].get(list(lstoryui['lbox2'].curselection())[0])
@@ -274,16 +268,28 @@ def frame_story_cmd ():
 	clogix = pytkui.logixuiread(uielem['logix'])
 	universe = {"actions": cacts, "objects": cobjs, "logicals": clogix}
 	# print ("Submitting following for parsing:")
-	# print("option1:", option1, "option2:", option2, "entparams:", entparams)
+	print("option1:", option1, "option2:", option2, "entparams:", entparams)
 	# print("appsetup", appsetup)
 	# print("universe", universe)
 	retv = -1
-	if option1 == "Current rush" and option2 == "Play story": retv = pyback.exec_play_story (entparams = entparams, appsetup = appsetup, universe = universe, story = storytext)
-	if option1 == "Current rush" and option2 == "Play frames": retv = pyback.exec_save_story (entparams[0], projvars = projvars)
-	if option1 == "Story" and option2 == "Save story": retv = pyback.exec_save_story (entparams[0], projvars = projvars)
-	if option1 == "Story" and option2 == "Open story": retv = pyback.exec_open_story (entparams[0], projvars = projvars)
-	if option1 == "Story" and option2 == "List story": retv = pyback.exec_list_story (entparams[0], projvars = projvars)
-	if option1 == "Story" and option2 == "Export story": retv = pyback.exec_expo_story (entparams[0], projvars = projvars)
+	if option1.lower() == "Current rush".lower() and option2.lower() == "Play story".lower():
+		retv = pyback.exec_play_story (entparams = entparams, appsetup = appsetup, universe = universe, story = storytext)
+	if option1.lower() == "Current rush".lower() and option2.lower() == "Replay frames".lower():
+		retv = exec_play_frame (entparams = entparams, appsetup = appsetup, uielem = lstoryui)
+	if option1.lower() == "Current rush".lower() and option2.lower() == "Export video".lower():
+		retv = pyback.exec_pic_export (entparams = entparams, appsetup = appsetup)
+	if option1.lower() == "Current rush".lower() and option2.lower() == "Delete rush frames".lower():
+		retv = pyback.exec_pic_delete (entparams = entparams, appsetup = appsetup)
+	if option1.lower() == "Story".lower() and option2.lower() == "Save story".lower():
+		retv = pyback.exec_save_story (entparams = entparams, appsetup = appsetup, story = storytext)
+	if option1.lower() == "Story".lower() and option2.lower() == "Open story".lower():
+		retv = pyback.exec_open_story (entparams = entparams, appsetup = appsetup)
+		lstoryui['storybox'].delete('1.0', END)
+		lstoryui['storybox'].insert(1.0, retv['data'])
+	if option1.lower() == "Story".lower() and option2.lower() == "List stories".lower():
+		retv = pyback.exec_list_story (entparams = entparams, appsetup = appsetup)
+		lstoryui['coordbox'].delete('1.0', END)
+		lstoryui['coordbox'].insert(1.0, "\n".join(retv['data']))
 	if option1 == "Co-ord" and option2 == "Save coords": retv = pyback.exec_save_coords (entparams[0], projvars = projvars)
 	if option1 == "Co-ord" and option2 == "Open coords": retv = pyback.exec_save_coords (entparams[0], projvars = projvars)
 	if option1 == "Co-ord" and option2 == "List coords": retv = pyback.exec_save_coords (entparams[0], projvars = projvars)

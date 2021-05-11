@@ -11,6 +11,8 @@ import pprint
 from tkinter import messagebox 
 from pathlib import Path
 import yaml
+from PIL import ImageTk, Image
+import time
 
 def addstdframe (root, framedesc, width=900, height=600):
 	nframe = tkinter.Frame(root, width=width, height=600)
@@ -173,6 +175,7 @@ def storyroomsetup (lstory, projvars = {}, boarditems = {}, session = {}):
 			if len(params) <= ix: continue
 			param_ent[ix]['label'].grid()
 			param_ent[ix]['entry'].grid()
+			modifyentry(entry_elem = param_ent[ix]['entry'], text = pyback.entdefaultparams (ix, params, projvars))
 			param_ent[ix]['label'].config(text = params[ix])
 		return 1
 	listboxl2 = tkinter.Listbox(lstory, height = 5, width = 20, activestyle = 'dotbox', exportselection=0)
@@ -180,7 +183,7 @@ def storyroomsetup (lstory, projvars = {}, boarditems = {}, session = {}):
 	listboxl2.bind("<<ListboxSelect>>", loadparams)
 	param_ent = []
 	for ix in range(0, 3):
-		paramix = newentry (framep=lstory, width=10, col=5, row=ix+1, text='10', lbltext='Not needed', retlbl = 1)
+		paramix = newentry (framep=lstory, width=10, col=5, row=ix+1, text='', lbltext='Not needed', retlbl = 1)
 		param_ent.append(paramix)
 	lstoryui = {'storybox': storybox, 'canvas': canvas, 'coordbox': coordbox, 'lbox1': listboxl1, 'lbox2': listboxl2, 'param_ent': param_ent}
 	return lstoryui
@@ -261,7 +264,7 @@ def logixuiread (llogixui):
 
 def logixuisetup (root = {}, uiset = [], logix = []):
 	rownum = 0
-	for logid, logic in enumerate(logix+[{'basic': '', 'addon': []}]):
+	for logid, 	logic in enumerate(logix+[{'basic': '', 'addon': []}]):
 		ttk.Label(root, text='-'*100).grid(column=0, row=rownum, columnspan=2, sticky='nw')
 		llogcui = {'logid': logid}
 		llogcui['basic'] = newentry (framep=root, width=120, col=1, row=rownum+1, colspan=8, text=logic['basic'], lbltext='Current condition')
@@ -273,3 +276,20 @@ def logixuisetup (root = {}, uiset = [], logix = []):
 		llogcui['addon'] = indexbox
 		rownum=rownum+3
 		uiset.append(llogcui)
+
+def exec_play_frame (entparams = [], appsetup = {}, uielem = {}, root = {}):
+	fromfr = 1 if pyback.forceint(entparams[0]) == -1 else pyback.forceint(entparams[0])
+	tillfr = 9999 if pyback.forceint(entparams[1]) == -1 else pyback.forceint(entparams[1])
+	fps = appsetup['project']['fps'] if pyback.forceint(entparams[2]) == -1 else pyback.forceint(entparams[2])
+	imgdest = appsetup['project']['folder']+'/rushes/'
+	print ("fromfr, tillfr, fps", fromfr, tillfr, fps)
+	for frid in range(fromfr, tillfr+1):
+		imgfile = imgdest+"rush__"+"%04d"%(frid)+".png"
+		print ("imgfile", imgfile)
+		image = Image.open(imgfile)
+		image = image.resize((500, 500), Image.ANTIALIAS)
+		root.myimg = myimg = ImageTk.PhotoImage(image)
+		uielem['canvas'].create_image((0,0), image=myimg, anchor='nw')
+		uielem['canvas'].update()
+		time.sleep(1/fps)
+	return {'imgdest': imgdest, 'frame': tillfr+1}
