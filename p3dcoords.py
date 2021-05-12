@@ -10,15 +10,9 @@ class YourClass(ShowBase):
 	def __init__(self):
 		ShowBase.__init__(self)
 		self.disableMouse()
-		self.camera.setPos(0, -120, 0)
-		self.camera.lookAt(0, 0, 0)
-		y = 0
-		self.plane = Plane(Vec3(0, 1, 0), Point3(0, y, 0))
-		self.model = loader.loadModel("jack")
-		self.model.reparentTo(render)
-		cm = CardMaker("blah")
-		cm.setFrame(-500, 500, 500, -500)
-		render.attachNewNode(cm.generate()).lookAt(0, -1, 0)
+		self.camera.setPos(campos[0], campos[1], campos[2])
+		self.camera.lookAt(bcenter[0], bcenter[1], bcenter[2])
+		self.plane = Plane(Vec3(pvector[0], pvector[1], pvector[2]), Point3(bcenter[0], bcenter[1], bcenter[2]))
 		taskMgr.add(self.__getMousePos, "_YourClass__getMousePos")
 		
 	def __getMousePos(self, task):
@@ -30,19 +24,19 @@ class YourClass(ShowBase):
 			farPoint = Point3()
 			base.camLens.extrude(mpos, nearPoint, farPoint)
 			if self.plane.intersectsLine(pos3d,	render.getRelativePoint(camera, nearPoint),	render.getRelativePoint(camera, farPoint)):
-				print ("Mouse ray intersects ground plane at ", mpos, pos3d)
+				pass
 			coords.append([pos3d[0], pos3d[1], pos3d[2]])
 		coordls['coord'] = coords
 		with open(filename, "w") as lujs: json.dump(coordls, lujs)
 		exit()
 
-print ('Coordinate List:', str(sys.argv[1]))
 filename = str(sys.argv[1])
 fromf = Path(filename)
 with open(fromf) as lpts: coordls = json.load(lpts)
+bcenter = list(map(int, coordls['bcenter'].split(',')))
+campos = list(map(int, coordls['campos'].split(',')))
+pvector = [bcenter[0]-campos[0], bcenter[1]-campos[1], bcenter[2]-campos[2]]
 pixels = coordls['pixel']
 
-print(coords)
 YourClass()
 base.taskMgr.run()
-print("DFSDFSDFASDF")

@@ -276,20 +276,3 @@ def logixuisetup (root = {}, uiset = [], logix = []):
 		llogcui['addon'] = indexbox
 		rownum=rownum+3
 		uiset.append(llogcui)
-
-def exec_play_frame (entparams = [], appsetup = {}, uielem = {}, root = {}):
-	fromfr = 1 if pyback.forceint(entparams[0]) == -1 else pyback.forceint(entparams[0])
-	tillfr = 9999 if pyback.forceint(entparams[1]) == -1 else pyback.forceint(entparams[1])
-	fps = appsetup['project']['fps'] if pyback.forceint(entparams[2]) == -1 else pyback.forceint(entparams[2])
-	imgdest = appsetup['project']['folder']+'/rushes/'
-	print ("fromfr, tillfr, fps", fromfr, tillfr, fps)
-	for frid in range(fromfr, tillfr+1):
-		imgfile = imgdest+"rush__"+"%04d"%(frid)+".png"
-		print ("imgfile", imgfile)
-		image = Image.open(imgfile)
-		image = image.resize((500, 500), Image.ANTIALIAS)
-		root.myimg = myimg = ImageTk.PhotoImage(image)
-		uielem['canvas'].create_image((0,0), image=myimg, anchor='nw')
-		uielem['canvas'].update()
-		time.sleep(1/fps)
-	return {'imgdest': imgdest, 'frame': tillfr+1}

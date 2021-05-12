@@ -51,7 +51,7 @@ root.title("Meme'er")
 boarditems = [
 	{"Current rush": [{"Play story": ["FPS", "Screen Size (Wide x Height)", "Play from frame#"]}, {"Replay frames": ["From frame#", "Upto frame#", "FPS"]}, {"Export video": ["Name of video", "FPS", "Frames range"]}, {"Delete rush frames": []}]},
 	{"Story": [{"Save story": ["Name"]}, {"Open story": ["Name"]}, {"List stories": ["*NAME LIKE*"]}]},
-	{"Co-ord": [{"Save coords": ["Name"]}, {"Open coords": ["Name"]}, {"List coords": ["*NAME LIKE*"]}, {"Merge coords": ["Primary", "Secondary", "Plane"]}]},
+	{"Co-ord": [{"Save coords": ["Camera Location (3D)", "Camera Looks at/\nWhiteboard Center", "Name"]}, {"Quick coords": ["Camera Location (3D)", "Camera Looks at/\nWhiteboard Center"]}, {"Open coords": ["Name"]}, {"List coords": ["*NAME LIKE*"]}, {"Merge coords": ["X list file", "Y list file", "Z list file"]}]},
 	{"Video": [{"Play video": ["Name", "FPS"]}, {"List videos": ["*NAME LIKE*"]}, {"Merge videos": ["First Video", "Last Video"]}]},
 	{"Audio": [{"List audio": ["Name"]}]},
 	{"Objects": [{"Example texts": ["*NAME LIKE*"]}]},
@@ -64,6 +64,7 @@ nb.pack()
 frame_conf = pytkui.addstdframe (nb, "Application Setup")
 appsetup = pyback.getappsetup()
 projvars = appsetup['project']
+sessionv = {}
 uielem = {'conf': {}, 'acts': [], 'objs': [], 'logix': [], 'funcs': []}
 pytkui.appuisetup (appset = appsetup, root =  frame_conf, uiset = uielem['conf'])
 lstoryui = {}
@@ -287,13 +288,29 @@ def frame_story_cmd ():
 		lstoryui['storybox'].delete('1.0', END)
 		lstoryui['storybox'].insert(1.0, retv['data'])
 	if option1.lower() == "Story".lower() and option2.lower() == "List stories".lower():
-		retv = pyback.exec_list_story (entparams = entparams, appsetup = appsetup)
+		retv = pyback.exec_list_filesets (entparams = entparams, appsetup = appsetup, folder = 'stories', suffix = '.story')
 		lstoryui['coordbox'].delete('1.0', END)
 		lstoryui['coordbox'].insert(1.0, "\n".join(retv['data']))
-	if option1 == "Co-ord" and option2 == "Save coords": retv = pyback.exec_save_coords (entparams[0], projvars = projvars)
-	if option1 == "Co-ord" and option2 == "Open coords": retv = pyback.exec_save_coords (entparams[0], projvars = projvars)
-	if option1 == "Co-ord" and option2 == "List coords": retv = pyback.exec_save_coords (entparams[0], projvars = projvars)
-	if option1 == "Co-ord" and option2 == "Merge coords": retv = pyback.exec_save_coords (entparams[0], projvars = projvars)
+	if option1.lower() == "Co-ord".lower() and option2.lower() == "Save coords".lower():
+		retv = pyback.exec_save_coords (entparams = entparams, appsetup = appsetup, coord = coordstxt, revert = 0)
+	if option1.lower() == "Co-ord".lower() and option2.lower() == "Quick coords".lower():
+		entparams[2] = '__quicktemp__'
+		retv = pyback.exec_save_coords (entparams = entparams, appsetup = appsetup, coord = coordstxt, revert = 1)
+		lstoryui['coordbox'].delete('1.0', END)
+		lstoryui['coordbox'].insert(1.0, "\n".join(retv))
+	if option1.lower() == "Co-ord".lower() and option2.lower() == "Open coords".lower():
+		retv = pyback.exec_open_coords (entparams = entparams, appsetup = appsetup)
+		lstoryui['coordbox'].delete('1.0', END)
+		for ix in range(0, len(retv)-1):
+			lstoryui['canvas'].create_line((retv[ix][0], retv[ix][1], retv[ix+1][0], retv[ix+1][1]))
+		session['coords'] = retv
+		lstoryui['coordbox'].insert(1.0, pprint.pformat(session['coords'], indent=2))
+	if option1.lower() == "Co-ord".lower() and option2.lower() == "List coords".lower():
+		retv = pyback.exec_list_filesets (entparams = entparams, appsetup = appsetup, folder = 'coords', suffix = '.coord')
+		lstoryui['coordbox'].delete('1.0', END)
+		lstoryui['coordbox'].insert(1.0, "\n".join(retv['data']))
+	if option1.lower() == "Co-ord".lower() and option2.lower() == "Merge coords".lower():
+		retv = pyback.exec_merge_coords (entparams = entparams, appsetup = appsetup)
 	if option1 == "Video" and option2 == "Save Video": retv = pyback.exec_save_story (entparams)
 	if option1 == "Video" and option2 == "Play video": retv = pyback.exec_save_story (entparams)
 	if option1 == "Video" and option2 == "List videos": retv = pyback.exec_save_story (entparams)

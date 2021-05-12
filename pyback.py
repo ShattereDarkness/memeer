@@ -171,6 +171,8 @@ def entdefaultparams (ix, params, projvars):
 	if params[ix] == 'Draft (Yes/No)': return projvars['preview']
 	if params[ix] == 'Frames range': return '1, -1'
 	if params[ix] == '*NAME LIKE*': return '*'
+	if params[ix] == 'Camera Location (3D)': return '0, -120, 0'
+	if params[ix] == 'Camera Looks at/\nWhiteboard Center': return '0, 0, 0'
 	return ""
 
 def splittext (text = '', rtyp = str, sep = ','):
@@ -276,33 +278,62 @@ def exec_open_story (entparams = [], appsetup = {}):
 	if not filename.is_file(): return {'code': 1, 'data': ''}
 	return {'code': 0, 'data': filename.read_text()}
 
-def exec_list_story (entparams = [], appsetup = {}):
+def exec_list_filesets (entparams = [], appsetup = {}, folder = '___', suffix = '.tmp'):
 	retval = {'code': 0, 'data': []}
-	stories = Path(appsetup['project']['name']) / 'stories'
+	dirpath = Path(appsetup['project']['name']) / folder
 	entparams[0] = '*' + entparams[0] + '*'
-	for file in list(stories.glob(entparams[0])):
-		if file.suffix != '.story': continue
+	entparams[0] = re.sub("\*+", "*", entparams[0])
+	for file in list(dirpath.glob(entparams[0])):
+		if file.suffix != suffix: continue
 		retval['data'].append(file.name)
-	print ("retval", retval)
 	return retval
 
-def exec_expo_story (fname, projvars = {}):
-	if 'lastexec' not in projvars: return {'code': 101, 'data': ''}
-	if fname == '': {'code': 1, 'data': ''}
-	return {'code': 0, 'data': ''}
+def exec_save_coords (entparams = [], appsetup = {}, coord = [], revert = 0):
+	if entparams[0] == '': entparams[0] = [0, -120, 0]
+	if entparams[1] == '': entparams[1] = [0, 0, 0]
+	if entparams[2] == '': return 1
+	filename = Path(appsetup['project']['name']) / 'coords' / entparams[2]
+	if filename.suffix != '.coord': filename = Path(appsetup['project']['name']) / 'coords' / (entparams[2]+'.coord')
+	jsondat = {'campos': entparams[0], 'bcenter': entparams[1], 'pixel': json.loads(coord), 'coord': []}
+	if revert == 0: jsondat['pixel'].append (jsondat['pixel'][len(jsondat['pixel'])-1])
+	with open(filename, "w") as lpts: json.dump(jsondat, lpts)
+	os.system('ppython p3dcoords.py ' + str(filename))
+	if revert == 0: return 1
+	with open(filename) as lpts: coordls = json.load(lpts)
+	return list(map(str, coordls['coord']))
 
-def exec_save_coords (fname, projvars = {}):
-	retval = {'code': 0, 'data': ''}
-	portf_dir = Path(portf_dir_str) / 'coords'
-	if fname == '': {'code': 1, 'data': ''}
-	saveas = portf_dir / 'coords' / fname
-	saveas.write_text(storytxt)
-	return {'code': 1, 'data': ''}
+def exec_open_coords (entparams = [], appsetup = {}, jskey = 'pixel'):
+	if entparams[0] == '': return 1
+	filename = Path(appsetup['project']['name']) / 'coords' / entparams[0]
+	if filename.suffix != '.coord': filename = Path(appsetup['project']['name']) / 'coords' / (entparams[0]+'.coord')
+	with open(filename) as lpts: coordls = json.load(lpts)
+	return coordls[jskey]
 
-def exec_expo_story (fname, projvars = {}):
-	if 'lastexec' not in projvars: return {'code': 101, 'data': ''}
-	if fname == '': {'code': 1, 'data': ''}
-	return {'code': 0, 'data': ''}
+def exec_merge_coords (entparams = [], appsetup = {}):
+	fdata = [None, None, None]
+	def fixinitemlist (lfrom = 1, linto = 1):
+		retval = [0]
+		for ix in range(1, linto):
+			fix = round(ix*(lfrom/(linto-1)), 0)
+			retval.append(int(fix))
+		return retval
+	for ix in range(0,3):
+		if entparams[ix] == '': return 2
+		fdata[ix] = exec_open_coords (entparams = [entparams[ix], '', ''], appsetup = appsetup, jskey = 'coord')
+		fdata[ix].pop()
+	datalen = min(len(fdata[0]), len(fdata[1]), len(fdata[2]))
+	itemls = [None, None, None]
+	for ix in range(0,3):
+		itemls[ix] = fixinitemlist (lfrom = len(fdata[ix])-1, linto = datalen)
+	coordjs = {'X_coord': entparams[0], 'Y_coord': entparams[1], 'Z_coord': entparams[2], 'coord': []}
+	for ix in range(0, datalen):
+		X_coord = fdata[0][itemls[0][ix]][0]
+		Y_coord = fdata[1][itemls[1][ix]][1]
+		Z_coord = fdata[2][itemls[2][ix]][2]
+		coordjs['coord'].append([X_coord, Y_coord, Z_coord])
+	filename = Path(appsetup['project']['name']) / 'coords' / ("+".join(entparams)+'.coord')
+	with open(filename, "w") as lpts: json.dump(coordjs, lpts)
+	return 1
 
 def showstories (portf_dir_str):
 	retval = ''

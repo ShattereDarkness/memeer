@@ -1,39 +1,34 @@
-from panda3d.core import WindowProperties
 from direct.showbase.ShowBase import ShowBase
-from direct.task import Task
-from direct.actor.Actor import Actor
-from direct.interval.IntervalGlobal import Sequence
-from panda3d.core import Point3
-from direct.gui.OnscreenText import OnscreenText
-from panda3d.core import loadPrcFileData
-from direct.gui.OnscreenImage import OnscreenImage
-from panda3d.core import TransparencyAttrib
-from direct.gui.DirectGui import *
-from pandac.PandaModules import ClockObject
-from direct.interval.ActorInterval import ActorInterval
+from panda3d.core import Plane, Vec3, Point3, CardMaker
 
-import time
-import json
+class YourClass(ShowBase):
+  def __init__(self):
+    ShowBase.__init__(self)
+    self.disableMouse()
+    self.camera.setPos(100, 100, 100)
+    self.camera.lookAt(0, 0, 0)
+    z = 0
+    self.plane = Plane(Vec3(-100, -100, -100), Point3(0, 0, 0))
+    self.model = loader.loadModel("jack")
+    self.model.reparentTo(render)
+    cm = CardMaker("blah")
+    cm.setFrame(-100, 100, -100, 100)
+    render.attachNewNode(cm.generate()).lookAt(0, -1, 0)
+    taskMgr.add(self.__getMousePos, "_YourClass__getMousePos")
+  
+  def __getMousePos(self, task):
+    if base.mouseWatcherNode.hasMouse():
+      mpos = base.mouseWatcherNode.getMouse()
+      pos3d = Point3()
+      nearPoint = Point3()
+      farPoint = Point3()
+      base.camLens.extrude(mpos, nearPoint, farPoint)
+      if self.plane.intersectsLine(pos3d,
+          render.getRelativePoint(camera, nearPoint),
+          render.getRelativePoint(camera, farPoint)):
+        print ("Mouse ray intersects ground plane at ", pos3d)
+        self.model.setPos(render, pos3d)
+    return task.again
 
-from panda3d.core import LineSegs
-from panda3d.core import NodePath
-# from direct.directbase import DirectStart
-# import direct.directtools.DirectSelection
-
-model = {}
-def defaultTask(task):
-	if task.frame == 0:
-		actor = Actor("demo/model/lady", {"run": "demo/model/action/lady__run"})
-		actor.setPos(0, 0, 0)
-		actor.reparentTo(render)
-		myInterval = actor.actorInterval ("run", loop = 1, startFrame = 1, endFrame = 60)
-		myInterval.start()
-	return Task.cont
-
-ShowBase()
-base.disableMouse()
-camera.setPos(0, -120, 0)
-camera.setHpr(0, 0, 0)
-
-taskMgr.add(defaultTask, "defaultTask")
-base.run()
+YourClass()
+base.taskMgr.run()
