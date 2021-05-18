@@ -13,6 +13,7 @@ from pathlib import Path
 import yaml
 from PIL import ImageTk, Image
 import time
+import imagings
 
 def addstdframe (root, framedesc, width=900, height=600):
 	nframe = tkinter.Frame(root, width=width, height=600)
@@ -64,7 +65,6 @@ def newentry (framep='', width=0, col=0, row=0, colspan=1, text='', lbltext = ''
 	entry_text.insert(0, text)
 	if retlbl != 0: return {"label": label, "entry": entry_text}
 	return entry_text
-	
 
 def newscrolltext (framep = {}, text = '', column=0, row=0, width=10, height=5, columnspan = 0, rowspan = 0):
 	scrolltext = scrolledtext.ScrolledText(framep, undo=True, width=60, height=5)
@@ -122,7 +122,7 @@ def port_conf_save (uielems, appsetup, univ):
 	appsetup['project']['expand'] = 1 if uielems['expand'].instate(['selected']) else 0
 	pyback.port_conf_save(appsetup)
 
-def storyroomsetup (lstory, projvars = {}, boarditems = {}, session = {}):
+def storyroomsetup (lstory, projvars = {}, boarditems = [], session = {}):
 	csize = 500
 	def savePosn(event):
 		global lastx, lasty
@@ -187,6 +187,41 @@ def storyroomsetup (lstory, projvars = {}, boarditems = {}, session = {}):
 		param_ent.append(paramix)
 	lstoryui = {'storybox': storybox, 'canvas': canvas, 'coordbox': coordbox, 'lbox1': listboxl1, 'lbox2': listboxl2, 'param_ent': param_ent}
 	return lstoryui
+
+def procsfuncsetup (lprocs, projvars = {}, procsitems = []):
+	def processfunc(event):
+		fncix = flist.current()
+		gifnm = tkinter.PhotoImage(file = 'imgs/earth.gif') #procsitems[fncix]['descimage'])
+		descimg.create_image (0, 0, image = gifnm, anchor='nw')
+		for ix in range(0, 6):
+			param_ent[ix]['text'].grid_remove()
+			param_ent[ix]['ent'].grid_remove()
+			modifyentry(entry_elem = param_ent[ix]['ent'], text = "")
+		for ix in range(0, 6):
+			if len(procsitems[fncix]['params']) <= ix: continue
+			param_ent[ix]['text'].grid()
+			param_ent[ix]['ent'].grid()
+			modifyentry(entry_elem = param_ent[ix]['ent'], text = '')
+			param_ent[ix]['text'].delete (1.0, END)
+			param_ent[ix]['text'].insert (1.0, procsitems[fncix]['params'][ix])
+	pitems = []
+	for item in procsitems:
+		pitems.append(item['fname'] + ": " + item['text'])
+	ttk.Label(lprocs, text='Select action').grid(column=0, row=0, sticky='nw')
+	flist = ttk.Combobox(lprocs, width = 127, values = pitems, state="readonly")
+	flist.grid(column = 1, row = 0, columnspan=2)
+	flist.bind("<<ComboboxSelected>>", processfunc)
+	descimg = tkinter.Canvas(lprocs, width=560, height=560, background='gray75')
+	descimg.grid(column=0, row=1, columnspan=2, rowspan = 20)
+	param_ent = []
+	for ix in range(0, 6):
+		paramsg = tkinter.Text(lprocs, height = 2, width = 42)
+		paramsg.insert(1.0, "...")
+		paramsg.grid(column = 2, row = 2*ix+1)
+		paramen = newentry (framep=lprocs, width=50, col=2, row=2*ix+2, text='')
+		param_ent.append({'text': paramsg, 'ent': paramen})
+	lprocsui = {'flist': flist, 'param_ent': param_ent}
+	return lprocsui
 
 def actsuiread (uiset = [], expand = 1):
 	retval = []

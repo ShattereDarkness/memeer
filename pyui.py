@@ -19,6 +19,7 @@ import pprint
 
 import p3dfunc
 import pyback
+import imagings
 import pytkui
 from PIL import ImageTk, Image
 from tkinter import messagebox 
@@ -45,17 +46,30 @@ session = {'coords': []}
 root = tkinter.Tk()
 root.geometry("950x650")
 root.resizable(0,0)
-root.iconphoto(False, tkinter.PhotoImage(file='icon.png'))
+root.iconphoto(False, tkinter.PhotoImage(file='imgs/icon.png'))
 root.title("Meme'er")
 
 boarditems = [
 	{"Current rush": [{"Play story": ["FPS", "Screen Size (Wide x Height)", "Play from frame#"]}, {"Replay frames": ["From frame#", "Upto frame#", "FPS"]}, {"Export video": ["Name of video", "FPS", "Frames range"]}, {"Delete rush frames": []}]},
 	{"Story": [{"Save story": ["Name"]}, {"Open story": ["Name"]}, {"List stories": ["*NAME LIKE*"]}]},
 	{"Co-ord": [{"Save coords": ["Camera Location (3D)", "Camera Looks at/\nWhiteboard Center", "Name"]}, {"Quick coords": ["Camera Location (3D)", "Camera Looks at/\nWhiteboard Center"]}, {"Open coords": ["Name"]}, {"List coords": ["*NAME LIKE*"]}, {"Merge coords": ["X list file", "Y list file", "Z list file"]}]},
-	{"Video": [{"Play video": ["Name", "FPS"]}, {"List videos": ["*NAME LIKE*"]}, {"Merge videos": ["First Video", "Last Video"]}]},
-	{"Audio": [{"List audio": ["Name"]}]},
-	{"Objects": [{"Example texts": ["*NAME LIKE*"]}]},
-	{"Project": [{"Recreate as": ["Name"]}, "Go Supernova!"]}
+	{"Audio/ Video": [{"List Audios": ["*NAME LIKE*"]}, {"List Videos": ["*NAME LIKE*"]}, {"Merge Audio+Video": ["Audio file", "Video file", "Output file"]}]},
+	{"Project": [{"Fork project": ["Name"]}, {"Go Supernova!": []}]}
+]
+
+procsitems = [
+	{"fname": "some_func1", "text": "Add audio upon existing video file", "descimage": "earth.png",
+		"params": ["Video file (with/ without existing audio)", "Name of the audio file to be appended", "Starting time for the audio to be included", "Length of the audio file to addup", "Output file (blank for same video file)"]
+	}, {
+		"fname": "some_func2", "text": "some 2story and explaination of the same", "descimage": "earth.png" ,
+		"params": ["param1", "param2"]
+	}, {"fname": "some_func3", "text": "some 3story and explaination of the same", "descimage": "earth.png" ,
+		"params": ["param1", "param2", "param3"]
+	}, {"fname": "some_func4", "text": "some 4story and explaination of the same", "descimage": "earth.png" ,
+		"params": ["param1"]
+	}, {"fname": "some_func5", "text": "some 5story and explaination of the same", "descimage": "earth.png" ,
+		"params": ["param1", "param2"]
+	}
 ]
 
 nb = ttk.Notebook(root)
@@ -79,12 +93,13 @@ root.bind('<Alt_L><Key>', key_press)
 frame_acts = pytkui.addcnvframe (nb, "Defined Actions")
 frame_objs = pytkui.addcnvframe (nb, "Defined Objects")
 frame_logix = pytkui.addcnvframe (nb, "Logical Statements")
-frame_funcs = pytkui.addcnvframe (nb, "Miscellaneous Tasks")
-conf_frames = {'conf': frame_conf, 'acts': frame_acts, 'objs': frame_objs, 'logix': frame_logix, 'funcs': frame_funcs}
+conf_frames = {'conf': frame_conf, 'acts': frame_acts, 'objs': frame_objs, 'logix': frame_logix}
+frame_procs = pytkui.addcnvframe (nb, "Pre and Post processing")
 frame_story = pytkui.addstdframe (nb, "User Stories and play")
 
 lstoryui = pytkui.storyroomsetup (frame_story, projvars = projvars, boarditems = boarditems, session = session)
-lstoryui['storybox'].insert(1.0, mystory)
+lprocsui = pytkui.procsfuncsetup (frame_procs, projvars = projvars, procsitems = procsitems)
+#lstoryui['storybox'].insert(1.0, mystory)
 
 def frame_acts_save ():
 	cacts = pytkui.actsuiread(uiset = uielem['acts'], expand = projvars['expand'])
@@ -311,14 +326,36 @@ def frame_story_cmd ():
 		lstoryui['coordbox'].insert(1.0, "\n".join(retv['data']))
 	if option1.lower() == "Co-ord".lower() and option2.lower() == "Merge coords".lower():
 		retv = pyback.exec_merge_coords (entparams = entparams, appsetup = appsetup)
-	if option1 == "Video" and option2 == "Save Video": retv = pyback.exec_save_story (entparams)
-	if option1 == "Video" and option2 == "Play video": retv = pyback.exec_save_story (entparams)
-	if option1 == "Video" and option2 == "List videos": retv = pyback.exec_save_story (entparams)
-	if option1 == "Video" and option2 == "Merge videos": retv = pyback.exec_save_story (entparams)
-	if option1 == "Audio" and option2 == "List audio": retv = pyback.exec_save_story (entparams)
-	if option1 == "Objects" and option2 == "Example texts": retv = pyback.exec_save_story (entparams)
+	if option1.lower() == "Audio/ Video".lower() and option2.lower() == "List Audios".lower():
+		retv = pyback.exec_list_filesets (entparams = entparams, appsetup = appsetup, folder = 'coords', suffix = ['.aac', '.mp3'])
+		lstoryui['coordbox'].delete('1.0', END)
+		lstoryui['coordbox'].insert(1.0, "\n".join(retv['data']))
+	if option1.lower() == "Audio/ Video".lower() and option2.lower() == "List Videos".lower():
+		retv = pyback.exec_list_filesets (entparams = entparams, appsetup = appsetup, folder = 'coords', suffix = ['.gif', '.mp4', '.mov', '.avi', '.wmv', '.webm'])
+		lstoryui['coordbox'].delete('1.0', END)
+		lstoryui['coordbox'].insert(1.0, "\n".join(retv['data']))
+	if option1.lower() == "Audio/ Video".lower() and option2.lower() == "Merge Audio+Video".lower():
+		retv = pyback.exec_save_merge (entparams = entparams, appsetup = appsetup)
+	if option1.lower() == "Project".lower() and option2.lower() == "Fork project".lower():
+		retv = pyback.exec_fork_project (entparams)
+	if option1.lower() == "Project".lower() and option2.lower() == "Go Supernova!".lower():
+		UREP = messagebox.askquestion("Go Supernova!", "All the data and files (not Videos) will be deleted\nAre you sure?")
+		if UREP == 'no': return 0
+		UREP = messagebox.askquestion("Final reminder**", "***Data will be deleted***\n***Data will not be recoverable***\n(Except media/ video folder)\nCancel now?")
+		if UREP == 'yes': return 0
+		return 1
 
 btn_story_story = ttk.Button(frame_story, text="Execute the command (Selected Options)", command=frame_story_cmd).grid(column=1, row=3, columnspan=5, sticky="w")
+
+def frame_procs_cmd ():
+	fncix = lprocsui['flist'].get()
+	entparams = []
+	for entry in lprocsui['param_ent']:
+		entparams.append(entry['ent'].get())
+	if fncix == 'some_func1: Add audio upon existing video file':
+		retv = imagings.addaudiotovideo (videoentparams)
+	return 1
+btn_procs_procs = ttk.Button(frame_procs, text="Execute the command (Selected Options)", command=frame_procs_cmd).grid(column=2, row=13)
 
 nb.enable_traversal()
 root.mainloop()

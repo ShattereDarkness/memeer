@@ -104,6 +104,9 @@ def create_mediamodel (folderstr = "model/", media_dir = Path('.'), model_dir = 
 				vfps = round(vfps)
 				cmdstr = "ffmpeg -i ../media/" + file.name + " -vf scale=320:-1 -vsync 0 ../media/" + file.stem + "/series%4d.png"
 				os.system(cmdstr)
+				cmdstr = "ffmpeg -i ../media/" + file.name + " -vn -acodec copy ../audio/" + file.stem + ".aac"
+				os.system(cmdstr)
+				shutil.copy(file, Path("../video/"+file.name))
 				cmdstr = "egg-texture-cards -o " + file.stem + ".egg -fps "+str(vfps)+" ../media/" + file.stem + "/series*.png"
 				os.system(cmdstr)
 				retval['add'] = retval['add'] + 1
@@ -284,7 +287,8 @@ def exec_list_filesets (entparams = [], appsetup = {}, folder = '___', suffix = 
 	entparams[0] = '*' + entparams[0] + '*'
 	entparams[0] = re.sub("\*+", "*", entparams[0])
 	for file in list(dirpath.glob(entparams[0])):
-		if file.suffix != suffix: continue
+		if isinstance(suffix, str) and file.suffix != suffix: continue
+		if isinstance(suffix, list) and file.suffix not in suffix: continue
 		retval['data'].append(file.name)
 	return retval
 
@@ -335,6 +339,29 @@ def exec_merge_coords (entparams = [], appsetup = {}):
 	with open(filename, "w") as lpts: json.dump(coordjs, lpts)
 	return 1
 
+def exec_save_merge (entparams = [], appsetup = {}):
+	for ix in range(0,3):
+		if entparams[ix] == '': return 2
+	audio = Path(appsetup['project']['name']) / 'audio' / entparams[0]
+	video = Path(appsetup['project']['name']) / 'video' / entparams[1]
+	merge = Path(appsetup['project']['name']) / 'video' / entparams[2]
+	if merge.suffix == '': merge = Path(appsetup['project']['name']) / 'video' / (entparams[2]+video.suffix)
+	cmdstr = "ffmpeg -i " + video.name + " -i " + aidio.name + " -c:v copy -map 0:v:0 -map 1:a:0 " + merge.name
+	os.system(cmdstr)
+	return 1
+
+def exec_fork_project (entparams = [], appsetup = {}):
+	if entparams[0] == '': return 2
+	shutil.copytree(Path(appsetup['project']['name']), entparams[0])
+	shutil.rmtree(entparams[0]+'video')
+	shutil.rmtree(entparams[0]+'audio')
+	shutil.rmtree(entparams[0]+'rushes')
+	os.mkdir(entparams[0]+'video')
+	os.mkdir(entparams[0]+'audio')
+	os.mkdir(entparams[0]+'rushes')
+	os.mkdir(entparams[0]+'rushes/temp')
+	return 1
+	
 def showstories (portf_dir_str):
 	retval = ''
 	for file in portf_dir.iterdir():
@@ -363,8 +390,8 @@ def framerunparams (entparams = [], appsetup = {}):
 
 def exec_pic_export (entparams = [], appsetup = {}):
 	if entparams[0] == '': return 1
-	filenm = Path(appsetup['project']['name']) / entparams[0]
-	if filenm.suffix == '': filenm = Path(appsetup['project']['name']) / (entparams[0] + '.gif')
+	filenm = Path(appsetup['project']['name']) / 'video' / entparams[0]
+	if filenm.suffix == '': filenm = Path(appsetup['project']['name']) / 'video' / (entparams[0] + '.gif')
 	fps = appsetup['project']['fps'] if forceint(entparams[1]) == -1 else forceint(entparams[1])
 	rushes = Path(appsetup['project']['name']) / "rushes"
 	frange = entparams[2].split(",")
