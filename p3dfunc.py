@@ -17,7 +17,7 @@ def mergeposition (base = [], addit = []):
 
 def readposfile (filenm, basedir):
 	#print("filenm, basedir", filenm, basedir)
-	if not re.match(".+\.txt$", filenm): filenm = filenm + '.txt'
+	if not re.match(".+\.coord$", filenm): filenm = filenm + '.coord'
 	filedat = basedir / 'coords' / filenm
 	if not filedat.is_file():
 		print ("ERROR: ", str(filedat), " could not be found")
@@ -30,6 +30,7 @@ def fixinitemlist (lfrom = 1, linto = 1):
 	for ix in range(1, linto):
 		fix = round(ix*(lfrom/(linto-1)), 0)
 		retval.append(int(fix))
+	print ("fixinitemlist", retval)
 	return retval
 
 def generatedefposts (fcount = 1, baseloc = [], locrange = '', basedir = '.'):
@@ -172,6 +173,7 @@ def object_does (universe = {},  params = {}, posdet = [], frames = [], rushobjl
 def storyparse (story):
 	retval = []
 	def getspecifics (text):
+		print ("Working for text:", text)
 		retval = [text, {'locupto': [], 'locfrom': [], 'locpos': [], 'locfile': '', 'sttmts': [], 'frames': []}]
 		tofrom=re.match(".+\@\((.+?)\)\-\@\((.+?)\)", retval[0])
 		if tofrom and len(tofrom.groups()) == 2:

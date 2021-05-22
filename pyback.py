@@ -258,11 +258,9 @@ def pngoverwrites (fframe = 1, imgdest = Path('.')):
 	for frid in range(2, 9999):
 		oldimg = "rush__"+"%04d"%(frid)+".png"
 		newimg = "rush__"+"%04d"%(frid+fframe-2)+".png"
-		print ("remove", imgdest+newimg)
 		try: os.remove(imgdest+newimg)
 		except: pass
 		if not os.path.isfile(imgdest+'temp/'+oldimg): break
-		print ("rename", imgdest+'temp/'+oldimg, "to", imgdest+newimg)
 		try: os.rename(imgdest+'temp/'+oldimg, imgdest+newimg)
 		except: pass
 	return 1
@@ -289,12 +287,16 @@ def exec_list_filesets (entparams = [], appsetup = {}, folder = '___', suffix = 
 	for file in list(dirpath.glob(entparams[0])):
 		if isinstance(suffix, str) and file.suffix != suffix: continue
 		if isinstance(suffix, list) and file.suffix not in suffix: continue
-		retval['data'].append(file.name)
+		if file.suffix == '.coord':
+			with open(file) as lpts: coordls = json.load(lpts)
+			retval['data'].append('File name: ' + file.name + ', Frames: ' + str(len(coordls['pixel'])))
+		else:
+			retval['data'].append(file.name)
 	return retval
 
 def exec_save_coords (entparams = [], appsetup = {}, coord = [], revert = 0):
-	if entparams[0] == '': entparams[0] = [0, -120, 0]
-	if entparams[1] == '': entparams[1] = [0, 0, 0]
+	if entparams[0] == '': entparams[0] = '0, -120, 0'
+	if entparams[1] == '': entparams[1] = '0, 0, 0'
 	if entparams[2] == '': return 1
 	filename = Path(appsetup['project']['name']) / 'coords' / entparams[2]
 	if filename.suffix != '.coord': filename = Path(appsetup['project']['name']) / 'coords' / (entparams[2]+'.coord')
@@ -489,9 +491,9 @@ def save3dcoord (fname, portf_dir_str):
 	with open(f3dfile, "w") as lpts: json.dump(f3dlist, lpts)
 	return 1
 
-def logit (logtext, input):
-	if isinstance(input, str):
-		logtext.insert('end', "Application logging------------------------------------\n")
+def logit (logtext, inputlog):
+	if isinstance(inputlog, str):
+		logtext.insert('end', inputlog)
 
 def getlvllists (level = 1, boarditems = {}, sel = 0):
 	retval = []

@@ -58,11 +58,11 @@ boarditems = [
 ]
 
 procsitems = [
-	{"fname": "some_func1", "text": "Add audio upon existing video file", "descimage": "earth.png",
+	{"fname": "AddAudio", "text": "Add audio upon existing video file", "descimage": "earth.png",
 		"params": ["Video file (with/ without existing audio)", "Name of the audio file to be appended", "Starting time for the audio to be included", "Length of the audio file to addup", "Output file (blank for same video file)"]
 	}, {
-		"fname": "some_func2", "text": "some 2story and explaination of the same", "descimage": "earth.png" ,
-		"params": ["param1", "param2"]
+		"fname": "GetContours", "text": "Get image coordinates for doodling", "descimage": "earth.png" ,
+		"params": ["Input image file", "Output file name (image & coordinates", "Camera Location (3D)", "Camera Looks at/ Whiteboard Center"]
 	}, {"fname": "some_func3", "text": "some 3story and explaination of the same", "descimage": "earth.png" ,
 		"params": ["param1", "param2", "param3"]
 	}, {"fname": "some_func4", "text": "some 4story and explaination of the same", "descimage": "earth.png" ,
@@ -349,13 +349,19 @@ btn_story_story = ttk.Button(frame_story, text="Execute the command (Selected Op
 
 def frame_procs_cmd ():
 	fncix = lprocsui['flist'].get()
+	print ("fncix", fncix)
 	entparams = []
 	for entry in lprocsui['param_ent']:
 		entparams.append(entry['ent'].get())
-	if fncix == 'some_func1: Add audio upon existing video file':
+	print ("entparams", entparams)
+	if fncix == 'AddAudio: Add audio upon existing video file':
 		retv = imagings.addaudiotovideo (videoentparams)
+	if fncix == 'GetContours: Get image coordinates for doodling':
+		retv = imagings.ui_find_image_contours (entparams = entparams, appsetup = appsetup)
+		pyback.logit (gappvars['logtext'], retv['data']['logictxt'])
 	return 1
-btn_procs_procs = ttk.Button(frame_procs, text="Execute the command (Selected Options)", command=frame_procs_cmd).grid(column=2, row=13)
+
+btn_procs_procs = ttk.Button(frame_procs, text="Execute the command (Selected Options)", command=frame_procs_cmd).grid(column=2, row=8, sticky="w")
 
 nb.enable_traversal()
 root.mainloop()

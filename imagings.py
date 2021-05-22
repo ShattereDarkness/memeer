@@ -12,6 +12,8 @@ import numpy
 import argparse
 import random
 
+import pyback
+
 def ui_addaudiotovideo (params):
 	if params[2] == '': params[2] = '00:00:10'
 	if params[4] == '': params[4] = params[0]
@@ -24,6 +26,29 @@ def ui_mrcnn_objects (params):
 	if params[0] == '' or params[1] == '': return 1
 	mrcnn_image_retrieval (ifile = ifile, ofiles = ofiles)
 	return 1
+
+def ui_find_image_contours (entparams = [], appsetup = {}):
+	ifile = entparams[0]
+	ofile = entparams[1]
+	campos = entparams[2]
+	bcenter = entparams[3]
+	print ("ifile, ofile, campos, bcenter", ifile, ofile, campos, bcenter)
+	proc = find_image_contours (ifile = ifile, ofile = ofile)
+	ofileo = Path(ofile)
+	contours = proc['data']['contours']
+	logictxt, thisf, lastf = '', 1, 1
+	for ix, contour in enumerate(contours):
+		pxdata = []
+		cofile = "%04d" % (ix) + ofileo.stem + '.coord'
+		for jx, item in enumerate(contour):
+			if jx-1 > len(contour)/2: break
+			pxdata.append([item[0][0], item[0][1]])
+		print ("pxdata", pxdata)
+		pyback.exec_save_coords (entparams = [campos, bcenter, cofile], appsetup = appsetup, coord = str(pxdata), revert = 0)
+		thisf = lastf + len(pxdata)
+		logictxt = logictxt + "line is drawn @f(" + cofile + ") #" + str(lastf) + "-#" + str(thisf) + "\n"
+		lastf = thisf
+	return {'code': 'OK', 'estack': [], 'data': {'logictxt': logictxt, 'imgfile': ofile, 'count': len(contours)}}
 
 def f_add_audio_video_timewise (vfile = '', afile = '', startt = '', tlen = '', outfile = ''):
 	''' Example is ffmpeg -ss 00:00:10  -t 5 -i "video.mp4" -ss 0:00:01 -t 5 -i "music.m4a" -map 0:v:0 -map 1:a:0 -y out.mp4 '''
@@ -61,7 +86,7 @@ def mrcnn_image_retrieval (ifile = '', ofiles = ''):
 			temp[:,:,j] = temp[:,:,j] * mask[:,:,i]
 		cv2.imwrite((str(i)+"__"+ofiles), temp)
 
-def set_transparency (ctype = 'B', analog = 0, ifile = '', ofile = '')
+def set_transparency (ctype = 'B', analog = 0, ifile = '', ofile = ''):
 	'''Black background converts to transparent - BINARY'''
 	img = Image.open(ifile)
 	img = img.convert("RGBA")
@@ -82,36 +107,36 @@ def set_transparency (ctype = 'B', analog = 0, ifile = '', ofile = '')
 
 def modify_images (ifile = '', ofile = '', param = [], nval = 1.0):
 	image = Image.open(ifile)
-	if param = 'contrast':
+	if param == 'contrast':
 		contrast = ImageEnhance.Contrast(image)
 		contrast.enhance(nval).save(ofile)
-	if param = 'color':
+	if param == 'color':
 		color = ImageEnhance.Color(image)
 		color.enhance(nval).save(ofile)
-	if param = 'brightness':
+	if param == 'brightness':
 		brightness = ImageEnhance.Brightness(image)
 		brightness.enhance(nval).save(ofile)
-	if param = 'contrast':
+	if param == 'contrast':
 		sharpness = ImageEnhance.Sharpness(image)
 		sharpness.enhance(nval).save(ofile)
-	if param = 'greyscale':
+	if param == 'greyscale':
 		greyscale = image.convert('L')
 		greyscale.save(ofile)
-	if param = 'invert':
+	if param == 'invert':
 		rgbimg = image.convert('RGB')
 		rgbimginv = ImageOps.invert(rgbimg)
 		rgbimginv.save(ofile)
 	return 1
 
 def image_resize (ifile = '', high = 1, wide = 1, rtype = 'rel'):
-	for rtype not in ['rel', 'abs', 'sim']: return 1
-    image = Image.open(ifile)
-    if rtype == 'abs': nimage = image.resize((high, wide), Image.ANTIALIAS)
+	if rtype not in ['rel', 'abs', 'sim']: return 1
+	image = Image.open(ifile)
+	if rtype == 'abs': nimage = image.resize((high, wide), Image.ANTIALIAS)
 	if rtype == 'rel':
 		width, height = im.size
 		nimage = image.resize((width*wide, height*high), Image.ANTIALIAS)
 	if rtype == 'sim': nimage = image.thumbnail((high, wide), Image.ANTIALIAS)
-    nimage.save(ofile)
+	nimage.save(ofile)
 	return 0
 	
 def check_sysytem_fonts (fontlike):
@@ -128,13 +153,13 @@ def check_sysytem_fonts (fontlike):
 	return retval
 	
 def text_as_image (xy = [0, 0], imgtext = '', ifile = '', ofile = '', fill=None, font=None, anchor=None, spacing=4, align='left', size = 10,
-		direction=None, features=None, language=None, stroke_width=0, stroke_fill=None, embedded_color=False, font = fontnm)
+		direction=None, features=None, language=None, stroke_width=0, stroke_fill=None, embedded_color=False):
 	'''Black background converts to transparent - BINARY'''
 	if font == '': lfont = ImageFont.load_default()
 	else: lfont = ImageFont.truetype(font, size)
 	image = Image.open(ifile)
 	draw = ImageDraw.Draw(image)
-	draw.text((xy, imgtext, font=lfont, fill=fill)
+	draw.text(xy, imgtext, font=lfont, fill=fill)
 	image.save(ofile)
 	return 1
 
@@ -150,12 +175,13 @@ def find_image_contours (ifile = '', ofile = '', thresh = 100):
 			color = (random.randint(0,256), random.randint(0,256), random.randint(0,256))
 			cv2.drawContours(drawing, contours, ix, color, 2, cv2.LINE_8, hierarchy, 0)
 		cv2.imwrite(ofile, drawing)
+		return contours
 	src = cv2.imread(ifile)
 	src_gray = cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)
 	src_gray = cv2.blur(src_gray, (3,3))
 	max_thresh = 255
-	thresh_callback(thresh)
-	return 1
+	contours = thresh_callback(thresh)
+	return {'code': 'OK', 'estack': [], 'data': {'contours': contours, 'ofile': ofile}}
 
 def create_image_cartoon (ifile = '', ofile = '', num_down = 2, num_bilateral = 7):
 	img_rgb = cv2.imread(ifile)
