@@ -10,7 +10,6 @@ from tkinter import BOTH, END, LEFT
 import pprint
 from tkinter import messagebox 
 from pathlib import Path
-import yaml
 from PIL import ImageTk, Image
 import time
 import imagings

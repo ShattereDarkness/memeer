@@ -20,6 +20,7 @@ file_copyadd = [
 	{'file': 'verbforms.js'},
 	{'file': 'icon.png'},
 	{'file': 'demo', 'folder': 1},
+	{'file': 'IBRT', 'folder': 1},
 	{'file': 'pyui.py'},
 	{'file': 'pytkui.py'},
 	{'file': 'pyback.py'},
@@ -54,6 +55,7 @@ for file_item in file_copyadd:
 	else:
 		shutil.copy(file_item['file'], str(install_path / file_item['file']))
 
+print ("Installation is completed!")
 python_path = sys.executable
 for filename in shortcuts:
 	if platform.system() == ['Linux', 'Darwin']:	#Set this as binary
@@ -64,7 +66,7 @@ for filename in shortcuts:
 		import winshell
 		from win32com.client import Dispatch
 		desktop = winshell.desktop()
-		path = os.path.join(desktop, "MeMeer.lnk")
+		path = os.path.join(desktop, "Memeer.lnk")
 		target = python_path + ' ' + install_path + '\\pyui.py'
 		wDir = install_path
 		icon = install_path + '\\icon.png'
@@ -74,5 +76,5 @@ for filename in shortcuts:
 		shortcut.WorkingDirectory = wDir
 		shortcut.IconLocation = icon
 		shortcut.save()	
-print ("Installation is completed!")
+print ("Setting of softlinks/ shortcuts completed!")
 print ("Please run the test demo scripts to make sure your system is all set to use MeMeer!")

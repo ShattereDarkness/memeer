@@ -6,10 +6,8 @@ import mrcnn.model
 import mrcnn.visualize
 import cv2
 import os
-import cv2
 import matplotlib.font_manager
 import numpy
-import argparse
 import random
 
 import pyback
@@ -33,16 +31,19 @@ def ui_find_image_contours (entparams = [], appsetup = {}):
 	campos = entparams[2]
 	bcenter = entparams[3]
 	print ("ifile, ofile, campos, bcenter", ifile, ofile, campos, bcenter)
+	pwide, phigh = Image.open(ifile).size
 	proc = find_image_contours (ifile = ifile, ofile = ofile)
 	ofileo = Path(ofile)
 	contours = proc['data']['contours']
 	logictxt, thisf, lastf = '', 1, 1
+	canwide, canhigh = pyback.getscreensize (appsetup['project']['canvas'], 500, 500)
+	diffw, diffh = int((canwide-pwide)/2), int((canhigh-phigh)/2)
 	for ix, contour in enumerate(contours):
 		pxdata = []
 		cofile = "%04d" % (ix) + ofileo.stem + '.coord'
 		for jx, item in enumerate(contour):
 			if jx-1 > len(contour)/2: break
-			pxdata.append([item[0][0], item[0][1]])
+			pxdata.append([item[0][0]+diffw, item[0][1]+diffh])
 		print ("pxdata", pxdata)
 		pyback.exec_save_coords (entparams = [campos, bcenter, cofile], appsetup = appsetup, coord = str(pxdata), revert = 0)
 		thisf = lastf + len(pxdata)

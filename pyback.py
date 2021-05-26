@@ -168,6 +168,7 @@ def getUniverseData (user = '', folder =  '', appset = {}):
 def entdefaultparams (ix, params, projvars):
 	if params[ix] == 'FPS': return projvars['fps']
 	if params[ix] == 'Screen Size (Wide x Height)': return projvars['winsize']
+	if params[ix] == 'Canvas Size (Wide x Height)': return projvars['canvas']
 	if params[ix] == 'Play from frame#': return '1'
 	if params[ix] == 'From frame#': return '1'
 	if params[ix] == 'Upto frame#': return '-1'
@@ -313,6 +314,8 @@ def exec_open_coords (entparams = [], appsetup = {}, jskey = 'pixel'):
 	filename = Path(appsetup['project']['name']) / 'coords' / entparams[0]
 	if filename.suffix != '.coord': filename = Path(appsetup['project']['name']) / 'coords' / (entparams[0]+'.coord')
 	with open(filename) as lpts: coordls = json.load(lpts)
+	print (coordls)
+	if jskey == 'all': return coordls
 	return coordls[jskey]
 
 def exec_merge_coords (entparams = [], appsetup = {}):
@@ -340,6 +343,23 @@ def exec_merge_coords (entparams = [], appsetup = {}):
 	filename = Path(appsetup['project']['name']) / 'coords' / ("+".join(entparams)+'.coord')
 	with open(filename, "w") as lpts: json.dump(coordjs, lpts)
 	return 1
+
+def exec_transform_coords (entparams = [], appsetup = {}):
+	if entparams[0] == '': return 1
+	if entparams[1] == '': entparams[1] = appsetup['project']['canvas']
+	if entparams[2] == '': entparams[2] = appsetup['project']['winsize']
+	framerunparams (entparams = entparams, appsetup = appsetup)
+	canw, canh = getscreensize (entparams[1], 500, 500)
+	winw, winh = getscreensize (entparams[2], 500, 500)
+	nratio = max(winw, winh)/min(winw, winh)
+	pixels = exec_open_coords (entparams = entparams, appsetup = appsetup, jskey = 'pixel')
+	npixels = []
+	for pixel in pixels:
+		rwpix, rhpix = 250+int((pixel[0]-250)*nratio), 250+int((pixel[1]-250)*nratio)
+		print ("from pixel to rwpix, rhpix", pixel, rwpix, rhpix)
+		npixels.append([rwpix, rhpix])
+	nfile = 'T_' + entparams[0]
+	exec_save_coords (entparams = ['', '', nfile], appsetup = appsetup, coord = str(npixels), revert = 0)
 
 def exec_save_merge (entparams = [], appsetup = {}):
 	for ix in range(0,3):

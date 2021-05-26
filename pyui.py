@@ -4,7 +4,13 @@ Ruchika is a lady #61
 Ruchika ran @(-21,0,0,0,0,0,1,1,1)-@(21,0,0,0,0,0,1,1,1) #61-#120
 front SUV moved away @f(Y_driveaway) #1-#60
 line is drawn @(0,0,22,0,0,0,1,1,1)-@(0,0,-22,0,0,0,1,1,1) #121-#180
-another front SUV @(-21,0,0,0,0,0,1,1,1)"""
+another front SUV @(-21,0,0,0,0,0,1,1,1)
+
+
+line is drawn @f(0000horse1)
+line is drawn @f(0001horse1)
+line is drawn @f(0002horse1)
+"""
 
 import tkinter
 import tkinter.filedialog
@@ -52,7 +58,7 @@ root.title("Meme'er")
 boarditems = [
 	{"Current rush": [{"Play story": ["FPS", "Screen Size (Wide x Height)", "Play from frame#"]}, {"Replay frames": ["From frame#", "Upto frame#", "FPS"]}, {"Export video": ["Name of video", "FPS", "Frames range"]}, {"Delete rush frames": []}]},
 	{"Story": [{"Save story": ["Name"]}, {"Open story": ["Name"]}, {"List stories": ["*NAME LIKE*"]}]},
-	{"Co-ord": [{"Save coords": ["Camera Location (3D)", "Camera Looks at/\nWhiteboard Center", "Name"]}, {"Quick coords": ["Camera Location (3D)", "Camera Looks at/\nWhiteboard Center"]}, {"Open coords": ["Name"]}, {"List coords": ["*NAME LIKE*"]}, {"Merge coords": ["X list file", "Y list file", "Z list file"]}]},
+	{"Co-ord": [{"Save coords": ["Camera Location (3D)", "Camera Looks at/\nWhiteboard Center", "Name"]}, {"Quick coords": ["Camera Location (3D)", "Camera Looks at/\nWhiteboard Center"]}, {"Open coords": ["Name"]}, {"List coords": ["*NAME LIKE*"]}, {"Merge coords": ["X list file", "Y list file", "Z list file"]}, {"Transform coords": ["Name", "Canvas Size (Wide x Height)", "Screen Size (Wide x Height)"]}]},
 	{"Audio/ Video": [{"List Audios": ["*NAME LIKE*"]}, {"List Videos": ["*NAME LIKE*"]}, {"Merge Audio+Video": ["Audio file", "Video file", "Output file"]}]},
 	{"Project": [{"Fork project": ["Name"]}, {"Go Supernova!": []}]}
 ]
@@ -326,6 +332,8 @@ def frame_story_cmd ():
 		lstoryui['coordbox'].insert(1.0, "\n".join(retv['data']))
 	if option1.lower() == "Co-ord".lower() and option2.lower() == "Merge coords".lower():
 		retv = pyback.exec_merge_coords (entparams = entparams, appsetup = appsetup)
+	if option1.lower() == "Co-ord".lower() and option2.lower() == "Transform coords".lower():
+		retv = pyback.exec_transform_coords (entparams = entparams, appsetup = appsetup)
 	if option1.lower() == "Audio/ Video".lower() and option2.lower() == "List Audios".lower():
 		retv = pyback.exec_list_filesets (entparams = entparams, appsetup = appsetup, folder = 'coords', suffix = ['.aac', '.mp3'])
 		lstoryui['coordbox'].delete('1.0', END)

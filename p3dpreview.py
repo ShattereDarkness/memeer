@@ -12,6 +12,7 @@ from panda3d.core import WindowProperties
 from direct.interval.ActorInterval import ActorInterval
 from panda3d.core import LineSegs
 from panda3d.core import NodePath
+from panda3d.core import OrthographicLens
 
 import time
 import json
@@ -77,17 +78,20 @@ basedir, winsize, fps, preview = animdat['basedir'], animdat['winsize'], animdat
 props = WindowProperties( )
 props.setTitle("For Preview (Starting from frame " + str(fframe) + ")")
 winw, winh = winsize[0], winsize[1] 
-props = WindowProperties() 
 props.setSize(winw, winh) 
 
 ShowBase()
 base.disableMouse()
 camera.setPos(0, -120, 0)
 camera.setHpr(0, 0, 0)
-statements = OnscreenText(text=" ", pos=(-1.2, 0.9), scale=0.08, align=0, wordwrap=30)
-if preview == 1: textbasics = OnscreenText(text=" ", pos=(-1.2, -0.95), scale=0.08, align=0, wordwrap=30)
+# lens = OrthographicLens()
+# lens.setFilmSize(80,100)
+# lens.setAspectRatio(900.0 / 600.0)
+# base.cam.node().setLens(lens)
+statements = OnscreenText(text=" ", pos=(-1.0, 0.9), scale=0.08, align=0, wordwrap=30)
+if preview == 1: textbasics = OnscreenText(text=" ", pos=(-1.0, -0.95), scale=0.08, align=0, wordwrap=30)
 def defaultTask(task):
-	#print ("Frame number from start", task.frame, fframe)
+	print ("Frame number from start", task.frame, fframe)
 	if preview == 1: textbasics.text = 'Frame#: '+str(fframe+task.frame-1)
 	if lastindx <= task.frame:
 		return exit(1)

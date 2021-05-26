@@ -1,6 +1,8 @@
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import Plane, Vec3, Point3, CardMaker
 from panda3d.core import LPoint2f
+from panda3d.core import WindowProperties
+
 import sys
 import json
 from pathlib import Path
