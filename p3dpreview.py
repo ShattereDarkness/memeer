@@ -13,6 +13,7 @@ from direct.interval.ActorInterval import ActorInterval
 from panda3d.core import LineSegs
 from panda3d.core import NodePath
 from panda3d.core import OrthographicLens
+from panda3d.core import LColor
 
 import time
 import json
@@ -28,10 +29,9 @@ def loadObject (modid = 0):
 		model = Actor(modfile['filenm'], modfile['action'])
 		for jname, jparts in modfile['joint'].items():
 			model.makeSubpart(jname, jparts['include'], jparts['exclude'])
-	elif modfile['file'] == 'line':
-		line = LineSegs()
-	else:
+	elif modfile['file'] not in ['line']:
 		model = loader.loadModel(modfile['filenm'])
+	else: return 1
 	model.reparentTo(render)
 	rushobjlst[modid]['p3dmod'] = model
 	return 1
@@ -54,7 +54,6 @@ def poseObject (modid = 0, action = '', poseid = 1):
 def linesegObj (modid = 0, pfrom = [0, 0, 0], pupto = [0, 0, 0]):
 	lines.moveTo(pfrom[0], pfrom[1], pfrom[2])
 	lines.drawTo(pupto[0], pupto[1], pupto[2])
-	lines.setThickness(1)
 	node = lines.create()
 	np = NodePath(node)
 	np.reparentTo(render)
@@ -84,21 +83,16 @@ ShowBase()
 base.disableMouse()
 camera.setPos(0, -120, 0)
 camera.setHpr(0, 0, 0)
-# lens = OrthographicLens()
-# lens.setFilmSize(80,100)
-# lens.setAspectRatio(900.0 / 600.0)
-# base.cam.node().setLens(lens)
 statements = OnscreenText(text=" ", pos=(-1.0, 0.9), scale=0.08, align=0, wordwrap=30)
 if preview == 1: textbasics = OnscreenText(text=" ", pos=(-1.0, -0.95), scale=0.08, align=0, wordwrap=30)
 def defaultTask(task):
-	print ("Frame number from start", task.frame, fframe)
 	if preview == 1: textbasics.text = 'Frame#: '+str(fframe+task.frame-1)
 	if lastindx <= task.frame:
 		return exit(1)
 	if str(task.frame) not in animes: return Task.cont
 	anims = animes[str(task.frame)]
+	print ("anims", anims)
 	for anim in  anims:
-		#print("in this frame", anim)
 		if anim['what'] == 'loadobj': loadObject (modid = anim['model'])
 		if anim['what'] == 'moveobj': moveObject (modid = anim['model'], pos = anim['pos'])
 		if anim['what'] == 'poseobj': poseObject (modid = anim['model'], action = anim['action'], poseid = anim['poseid'])
@@ -106,6 +100,8 @@ def defaultTask(task):
 	return Task.cont
 
 lines = LineSegs()
+lines.setColor(0,0,0,1)
+lines.setThickness(33)
 base.win.requestProperties(props) 
 loadlist.append({'file': 'camera', 'model': base.camera, 'post': [0, -120, 0, 0, 0, 0, 1, 1, 1]})
 taskMgr.add(defaultTask, "defaultTask")

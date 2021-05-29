@@ -1,16 +1,18 @@
 from pathlib import Path
 from PIL import Image, ImageEnhance, ImageOps, ImageDraw, ImageFont
-import mrcnn
-import mrcnn.config
-import mrcnn.model
-import mrcnn.visualize
+# import mrcnn
+# import mrcnn.config
+# import mrcnn.model
+# import mrcnn.visualize
 import cv2
 import os
 import matplotlib.font_manager
 import numpy
 import random
 
+import json
 import pyback
+import copy
 
 def ui_addaudiotovideo (params):
 	if params[2] == '': params[2] = '00:00:10'
@@ -25,31 +27,41 @@ def ui_mrcnn_objects (params):
 	mrcnn_image_retrieval (ifile = ifile, ofiles = ofiles)
 	return 1
 
-def ui_find_image_contours (entparams = [], appsetup = {}):
+def int_proc_filenames (entparams = [], appsetup = {}, defextn = '.png'):
 	ifile = entparams[0]
 	ofile = entparams[1]
+	bdir = Path(appsetup['project']['name']) / 'media'
+	ifile, ofile = bdir / ifile, bdir / ofile
+	if ofile.suffix == '': ofile = bdir / (entparams[1] + defextn)
+	return {'ifile': ifile, 'ofile': ofile}
+
+def ui_image_manipulation_basic (entparams = [], appsetup = {}):
+	files = int_proc_filenames (entparams = entparams, appsetup = appsetup)
+	ifile, ofile = files['ifile'], files['ofile']
+	if entparams[2] != '': image_resize (ifile = ifile, ofile = ofile, nsize = entparams[2])
+	return 1
+	
+def ui_find_image_contours (entparams = [], appsetup = {}):
+	files = int_proc_filenames (entparams = entparams, appsetup = appsetup)
+	ifile, ofile = files['ifile'], files['ofile']
 	campos = entparams[2]
 	bcenter = entparams[3]
 	print ("ifile, ofile, campos, bcenter", ifile, ofile, campos, bcenter)
 	pwide, phigh = Image.open(ifile).size
-	proc = find_image_contours (ifile = ifile, ofile = ofile)
-	ofileo = Path(ofile)
+	proc = find_image_contours (ifile = str(ifile), ofile = str(ofile))
 	contours = proc['data']['contours']
-	logictxt, thisf, lastf = '', 1, 1
+	logictxt, thisf, lastf, groups = '', 1, 1, [0]
 	canwide, canhigh = pyback.getscreensize (appsetup['project']['canvas'], 500, 500)
 	diffw, diffh = int((canwide-pwide)/2), int((canhigh-phigh)/2)
+	pxdata = []
 	for ix, contour in enumerate(contours):
-		pxdata = []
-		cofile = "%04d" % (ix) + ofileo.stem + '.coord'
 		for jx, item in enumerate(contour):
 			if jx-1 > len(contour)/2: break
 			pxdata.append([item[0][0]+diffw, item[0][1]+diffh])
-		print ("pxdata", pxdata)
-		pyback.exec_save_coords (entparams = [campos, bcenter, cofile], appsetup = appsetup, coord = str(pxdata), revert = 0)
-		thisf = lastf + len(pxdata)
-		logictxt = logictxt + "line is drawn @f(" + cofile + ") #" + str(lastf) + "-#" + str(thisf) + "\n"
-		lastf = thisf
-	return {'code': 'OK', 'estack': [], 'data': {'logictxt': logictxt, 'imgfile': ofile, 'count': len(contours)}}
+		groups.append(len(pxdata))
+	pyback.exec_save_coords (entparams = [campos, bcenter, ofile.stem], appsetup = appsetup, coord = str(pxdata), addxtra = {'group': groups})
+	pyback.set_multifile_coords (file = ofile.name, appsetup = appsetup, addlogic = 1)
+	return 1
 
 def f_add_audio_video_timewise (vfile = '', afile = '', startt = '', tlen = '', outfile = ''):
 	''' Example is ffmpeg -ss 00:00:10  -t 5 -i "video.mp4" -ss 0:00:01 -t 5 -i "music.m4a" -map 0:v:0 -map 1:a:0 -y out.mp4 '''
@@ -129,14 +141,14 @@ def modify_images (ifile = '', ofile = '', param = [], nval = 1.0):
 		rgbimginv.save(ofile)
 	return 1
 
-def image_resize (ifile = '', high = 1, wide = 1, rtype = 'rel'):
-	if rtype not in ['rel', 'abs', 'sim']: return 1
+def image_resize (ifile = '', ofile = '', nsize = 100):
 	image = Image.open(ifile)
-	if rtype == 'abs': nimage = image.resize((high, wide), Image.ANTIALIAS)
-	if rtype == 'rel':
-		width, height = im.size
-		nimage = image.resize((width*wide, height*high), Image.ANTIALIAS)
-	if rtype == 'sim': nimage = image.thumbnail((high, wide), Image.ANTIALIAS)
+	cwide, chigh = image.size
+	if pyback.forceint(nsize, default = -1) != -1:
+		nwide, nhigh = int(cwide*int(nsize)/100), int(chigh*int(nsize)/100)
+	else:
+		nwide, nhigh = pyback.getscreensize (nsize, cwide, chigh)
+	nimage = image.resize((nwide, nhigh), Image.ANTIALIAS)
 	nimage.save(ofile)
 	return 0
 	

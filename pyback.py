@@ -221,9 +221,17 @@ def updateuniverseforsend (universe = {}, appsetup = {}):
 		objects.insert(0, {'file': 'camera', 'acts': {}, 'syns': ['camera'], 'jjrb': [], 'move': ['move', 'locate', 'looks'], 'joint': ''})
 		objects.insert(1, {'file': 'line', 'acts': {}, 'syns': ['line'], 'jjrb': [], 'move': ['draw'], 'joint': ''})
 		objects.insert(2, {'file': 'subtext', 'acts': {}, 'syns': ['subtitle', 'text'], 'jjrb': [], 'move': ['draw'], 'joint': ''})
+	def parselogical (logicals):
+		print ("logicals", logicals)
+		for logical in logicals:
+			logical['basic'] = p3dfunc.storyparse (logical['basic'])[0]
+			logical['addon'] = p3dfunc.storyparse ("\n".join(logical['addon']))
+		return 1
 	removeextraverb (universe['actions'])
 	updatejoints (universe['objects'], joints = appsetup['joint'])
 	additionalobj (universe['objects'])
+	parselogical (universe['logicals'])
+	print ("universe['logicals']", universe['logicals'])
 	return 1
 
 def getscreensize (text, w, h):
@@ -236,9 +244,9 @@ def getscreensize (text, w, h):
 	except: return w, h
 	return 500, 500
 
-def forceint(text):
+def forceint(text, default = -1):
 	try: return int(text)
-	except: return -1
+	except: return default
 
 def exec_play_story (entparams = [], appsetup = {}, universe = {}, story = ''):
 	print ("appsetup:", appsetup)
@@ -290,18 +298,19 @@ def exec_list_filesets (entparams = [], appsetup = {}, folder = '___', suffix = 
 		if isinstance(suffix, list) and file.suffix not in suffix: continue
 		if file.suffix == '.coord':
 			with open(file) as lpts: coordls = json.load(lpts)
-			retval['data'].append('File name: ' + file.name + ', Frames: ' + str(len(coordls['pixel'])))
+			if 'pixel' in coordls: retval['data'].append('File name: ' + file.name + ', Frames: ' + str(len(coordls['pixel'])))
+			else: retval['data'].append('File name: ' + file.name + ', Frames: *PIXEL INFO MISSING*')
 		else:
 			retval['data'].append(file.name)
 	return retval
 
-def exec_save_coords (entparams = [], appsetup = {}, coord = [], revert = 0):
+def exec_save_coords (entparams = [], appsetup = {}, coord = [], revert = 0, addxtra = {}):
 	if entparams[0] == '': entparams[0] = '0, -120, 0'
 	if entparams[1] == '': entparams[1] = '0, 0, 0'
 	if entparams[2] == '': return 1
 	filename = Path(appsetup['project']['name']) / 'coords' / entparams[2]
 	if filename.suffix != '.coord': filename = Path(appsetup['project']['name']) / 'coords' / (entparams[2]+'.coord')
-	jsondat = {'campos': entparams[0], 'bcenter': entparams[1], 'pixel': json.loads(coord), 'coord': []}
+	jsondat = {'campos': entparams[0], 'bcenter': entparams[1], 'pixel': json.loads(coord), 'coord': [], 'addxtra': addxtra}
 	if revert == 0: jsondat['pixel'].append (jsondat['pixel'][len(jsondat['pixel'])-1])
 	with open(filename, "w") as lpts: json.dump(jsondat, lpts)
 	os.system('ppython p3dcoords.py ' + str(filename))
@@ -314,7 +323,6 @@ def exec_open_coords (entparams = [], appsetup = {}, jskey = 'pixel'):
 	filename = Path(appsetup['project']['name']) / 'coords' / entparams[0]
 	if filename.suffix != '.coord': filename = Path(appsetup['project']['name']) / 'coords' / (entparams[0]+'.coord')
 	with open(filename) as lpts: coordls = json.load(lpts)
-	print (coordls)
 	if jskey == 'all': return coordls
 	return coordls[jskey]
 
@@ -359,7 +367,43 @@ def exec_transform_coords (entparams = [], appsetup = {}):
 		print ("from pixel to rwpix, rhpix", pixel, rwpix, rhpix)
 		npixels.append([rwpix, rhpix])
 	nfile = 'T_' + entparams[0]
-	exec_save_coords (entparams = ['', '', nfile], appsetup = appsetup, coord = str(npixels), revert = 0)
+	exec_save_coords (entparams = ['', '', nfile], appsetup = appsetup, coord = str(npixels), revert = 0, addxtra = {'tform': entparams})
+
+def set_multifile_coords (file = '', appsetup = {}, addlogic = 0):
+	ifile = Path(appsetup['project']['name']) / 'coords' / file
+	if ifile.suffix != '.coord': ifile = Path(appsetup['project']['name']) / 'coords' / (file + '.coord')
+	coordls = exec_open_coords (entparams = [ifile.stem], appsetup = appsetup, jskey = 'all')
+	if 'addxtra' not in coordls or 'group' not in coordls['addxtra']: return 1
+	groups = coordls['addxtra']['group']
+	startf, addons = 1, []
+	for gx in range(1, len(groups)):
+		npixels = coordls['pixel'][groups[gx-1]:groups[gx]] + [coordls['pixel'][groups[gx]-1]]
+		ncoords = coordls['coord'][groups[gx-1]:groups[gx]] + [coordls['coord'][groups[gx]-1]]
+		nfilenm = Path(ifile.parent.parent) / 'coords' / ("%04d" % (gx) + ifile.stem + ".coord")
+		njson = {'campos': coordls['campos'], 'bcenter': coordls['bcenter'], 'pixel': npixels, 'coord': ncoords, 'basef': ifile.stem}
+		with open(nfilenm, "w") as lpts: json.dump(njson, lpts)
+		addons.append("line is drawn @(" + nfilenm.stem + ") #"+str(startf)+'-#'+str(startf+len(npixels)))
+		startf = startf + len(npixels)
+	print (addlogic, "addlogic")
+	if addlogic == 0: return 1
+	univfile = Path(appsetup['project']['name']) / 'universe.js'
+	universe = getUniverseJS (univfile)
+	universe['logicals'].append({'basic': 'line is drawn logic for image '+ifile.name, 'addon': addons})
+	putUniverseJS (universe, univfile)
+	return 1
+
+def exec_translate_coords (entparams = [], appsetup = {}):
+	if entparams[0] == '': return 1
+	entparams[1] = 0 if entparams[1] == '' else forceint(entparams[1], default = 0)
+	entparams[2] = 0 if entparams[2] == '' else forceint(entparams[2], default = 0)
+	if entparams[1] == 0 and entparams[2] == 0: return 1
+	pixels = exec_open_coords (entparams = entparams, appsetup = appsetup, jskey = 'pixel')
+	npixels = []
+	for pixel in pixels:
+		npixels.append([pixel[0]+entparams[1], pixel[1]+entparams[2]])
+	nfile = 'Tl_' + entparams[0]
+	exec_save_coords (entparams = ['', '', nfile], appsetup = appsetup, coord = str(npixels), revert = 0, addxtra = {'tlate': entparams})
+	set_multifile_coords (file = nfile, appsetup = appsetup, addlogic = 0)
 
 def exec_save_merge (entparams = [], appsetup = {}):
 	for ix in range(0,3):

@@ -58,7 +58,11 @@ root.title("Meme'er")
 boarditems = [
 	{"Current rush": [{"Play story": ["FPS", "Screen Size (Wide x Height)", "Play from frame#"]}, {"Replay frames": ["From frame#", "Upto frame#", "FPS"]}, {"Export video": ["Name of video", "FPS", "Frames range"]}, {"Delete rush frames": []}]},
 	{"Story": [{"Save story": ["Name"]}, {"Open story": ["Name"]}, {"List stories": ["*NAME LIKE*"]}]},
-	{"Co-ord": [{"Save coords": ["Camera Location (3D)", "Camera Looks at/\nWhiteboard Center", "Name"]}, {"Quick coords": ["Camera Location (3D)", "Camera Looks at/\nWhiteboard Center"]}, {"Open coords": ["Name"]}, {"List coords": ["*NAME LIKE*"]}, {"Merge coords": ["X list file", "Y list file", "Z list file"]}, {"Transform coords": ["Name", "Canvas Size (Wide x Height)", "Screen Size (Wide x Height)"]}]},
+	{"Co-ord": [{"Save coords": ["Camera Location (3D)", "Camera Looks at/\nWhiteboard Center", "Name"]}, 
+		{"Quick coords": ["Camera Location (3D)", "Camera Looks at/\nWhiteboard Center"]}, {"Open coords": ["Name"]}, 
+		{"List coords": ["*NAME LIKE*"]}, {"Merge coords": ["X list file", "Y list file", "Z list file"]}, 
+		{"Transform coords": ["Name", "Canvas Size (Wide x Height)", "Screen Size (Wide x Height)"]}, 
+		{"Translate coords": ["Name", "Movement to right", "Movement to bottom"]}]},
 	{"Audio/ Video": [{"List Audios": ["*NAME LIKE*"]}, {"List Videos": ["*NAME LIKE*"]}, {"Merge Audio+Video": ["Audio file", "Video file", "Output file"]}]},
 	{"Project": [{"Fork project": ["Name"]}, {"Go Supernova!": []}]}
 ]
@@ -69,8 +73,8 @@ procsitems = [
 	}, {
 		"fname": "GetContours", "text": "Get image coordinates for doodling", "descimage": "earth.png" ,
 		"params": ["Input image file", "Output file name (image & coordinates", "Camera Location (3D)", "Camera Looks at/ Whiteboard Center"]
-	}, {"fname": "some_func3", "text": "some 3story and explaination of the same", "descimage": "earth.png" ,
-		"params": ["param1", "param2", "param3"]
+	}, {"fname": "Manipulation", "text": "Basic image manipulation functions", "descimage": "earth.png" ,
+		"params": ["Input image file", "New name for image", "Resize (Percentage)", "param3"]
 	}, {"fname": "some_func4", "text": "some 4story and explaination of the same", "descimage": "earth.png" ,
 		"params": ["param1"]
 	}, {"fname": "some_func5", "text": "some 5story and explaination of the same", "descimage": "earth.png" ,
@@ -116,8 +120,8 @@ def frame_objs_save ():
 	pyback.saveuniv(which = 'objects', what = cobjs, where = projvars['folder']+'/universe.js')
 
 def frame_logix_save ():
-	clogix = pytkui.llogixuiread(lportui['logix'])
-	pyback.saveuniv('logicals', clogix, lconf['portf_dir']+'/universe.js')
+	clogix = pytkui.logixuiread(uiset = uielem['logix'])
+	pyback.saveuniv(which = 'logicals', what = clogix, where = projvars['folder']+'/universe.js')
 
 def refresh_frame_buttons ():
 	frame_size = frame_acts.grid_size()
@@ -334,6 +338,8 @@ def frame_story_cmd ():
 		retv = pyback.exec_merge_coords (entparams = entparams, appsetup = appsetup)
 	if option1.lower() == "Co-ord".lower() and option2.lower() == "Transform coords".lower():
 		retv = pyback.exec_transform_coords (entparams = entparams, appsetup = appsetup)
+	if option1.lower() == "Co-ord".lower() and option2.lower() == "Translate coords".lower():
+		retv = pyback.exec_translate_coords (entparams = entparams, appsetup = appsetup)
 	if option1.lower() == "Audio/ Video".lower() and option2.lower() == "List Audios".lower():
 		retv = pyback.exec_list_filesets (entparams = entparams, appsetup = appsetup, folder = 'coords', suffix = ['.aac', '.mp3'])
 		lstoryui['coordbox'].delete('1.0', END)
@@ -360,16 +366,17 @@ def frame_procs_cmd ():
 	print ("fncix", fncix)
 	entparams = []
 	for entry in lprocsui['param_ent']:
-		entparams.append(entry['ent'].get())
+		entparams.append(entry['entry'].get())
 	print ("entparams", entparams)
 	if fncix == 'AddAudio: Add audio upon existing video file':
 		retv = imagings.addaudiotovideo (videoentparams)
 	if fncix == 'GetContours: Get image coordinates for doodling':
 		retv = imagings.ui_find_image_contours (entparams = entparams, appsetup = appsetup)
-		pyback.logit (gappvars['logtext'], retv['data']['logictxt'])
+	if fncix == 'Manipulation: Basic image manipulation functions':
+		retv = imagings.ui_image_manipulation_basic (entparams = entparams, appsetup = appsetup)
 	return 1
 
-btn_procs_procs = ttk.Button(frame_procs, text="Execute the command (Selected Options)", command=frame_procs_cmd).grid(column=2, row=8, sticky="w")
+btn_procs_procs = ttk.Button(frame_procs, text="Execute the command (Selected Options)", command=frame_procs_cmd).grid(column=2, row=18, sticky="w")
 
 nb.enable_traversal()
 root.mainloop()

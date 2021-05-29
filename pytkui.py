@@ -66,8 +66,8 @@ def newentry (framep='', width=0, col=0, row=0, colspan=1, text='', lbltext = ''
 	return entry_text
 
 def newscrolltext (framep = {}, text = '', column=0, row=0, width=10, height=5, columnspan = 0, rowspan = 0):
-	scrolltext = scrolledtext.ScrolledText(framep, undo=True, width=60, height=5)
-	scrolltext.grid(column=1, row=row, columnspan=columnspan, rowspan = rowspan)
+	scrolltext = scrolledtext.ScrolledText(framep, undo=True, width=width, height=height)
+	scrolltext.grid(column=column, row=row, columnspan=columnspan, rowspan = rowspan)
 	scrolltext.bind('<MouseWheel>', lambda eff: on_canvas_mousewheel (eff, lvl=3))
 	scrolltext.insert(1.0, text)
 	return scrolltext
@@ -123,6 +123,7 @@ def port_conf_save (uielems, appsetup, univ):
 
 def storyroomsetup (lstory, projvars = {}, boarditems = [], session = {}):
 	csize = 500
+	paramlen = 3
 	def savePosn(event):
 		global lastx, lasty
 		lastx, lasty = event.x, event.y
@@ -166,11 +167,11 @@ def storyroomsetup (lstory, projvars = {}, boarditems = [], session = {}):
 		sel1 = list(listboxl1.curselection())[0]
 		sel2 = list(listboxl2.curselection())[0]
 		params = list(list(boarditems[sel1].values())[0][sel2].values())[0]
-		for ix in range(0, 3):
+		for ix in range(0, paramlen):
 			param_ent[ix]['label'].grid_remove()
 			param_ent[ix]['entry'].grid_remove()
 			modifyentry(entry_elem = param_ent[ix]['entry'], text = "")
-		for ix in range(0, 3):
+		for ix in range(0, paramlen):
 			if len(params) <= ix: continue
 			param_ent[ix]['label'].grid()
 			param_ent[ix]['entry'].grid()
@@ -181,28 +182,28 @@ def storyroomsetup (lstory, projvars = {}, boarditems = [], session = {}):
 	listboxl2.grid(column=2, row=1, sticky='nw', rowspan=2)
 	listboxl2.bind("<<ListboxSelect>>", loadparams)
 	param_ent = []
-	for ix in range(0, 3):
+	for ix in range(0, paramlen):
 		paramix = newentry (framep=lstory, width=10, col=5, row=ix+1, text='', lbltext='Not needed', retlbl = 1)
 		param_ent.append(paramix)
 	lstoryui = {'storybox': storybox, 'canvas': canvas, 'coordbox': coordbox, 'lbox1': listboxl1, 'lbox2': listboxl2, 'param_ent': param_ent}
 	return lstoryui
 
 def procsfuncsetup (lprocs, projvars = {}, procsitems = []):
+	paramlen = 10
 	def processfunc(event):
 		fncix = flist.current()
 		gifnm = tkinter.PhotoImage(file = 'imgs/earth.gif') #procsitems[fncix]['descimage'])
 		descimg.create_image (0, 0, image = gifnm, anchor='nw')
-		for ix in range(0, 6):
-			param_ent[ix]['text'].grid_remove()
-			param_ent[ix]['ent'].grid_remove()
-			modifyentry(entry_elem = param_ent[ix]['ent'], text = "")
-		for ix in range(0, 6):
+		for ix in range(0, paramlen):
+			param_ent[ix]['label'].grid_remove()
+			param_ent[ix]['entry'].grid_remove()
+			modifyentry(entry_elem = param_ent[ix]['entry'], text = "")
+		for ix in range(0, paramlen):
 			if len(procsitems[fncix]['params']) <= ix: continue
-			param_ent[ix]['text'].grid()
-			param_ent[ix]['ent'].grid()
-			modifyentry(entry_elem = param_ent[ix]['ent'], text = '')
-			param_ent[ix]['text'].delete (1.0, END)
-			param_ent[ix]['text'].insert (1.0, procsitems[fncix]['params'][ix])
+			param_ent[ix]['label'].grid()
+			param_ent[ix]['entry'].grid()
+			modifyentry(entry_elem = param_ent[ix]['entry'], text = '')
+			param_ent[ix]['label'].config(text = procsitems[fncix]['params'][ix])
 	pitems = []
 	for item in procsitems:
 		pitems.append(item['fname'] + ": " + item['text'])
@@ -213,12 +214,12 @@ def procsfuncsetup (lprocs, projvars = {}, procsitems = []):
 	descimg = tkinter.Canvas(lprocs, width=560, height=560, background='gray75')
 	descimg.grid(column=0, row=1, columnspan=2, rowspan = 20)
 	param_ent = []
-	for ix in range(0, 6):
-		paramsg = tkinter.Text(lprocs, height = 2, width = 42)
-		paramsg.insert(1.0, "...")
-		paramsg.grid(column = 2, row = 2*ix+1)
-		paramen = newentry (framep=lprocs, width=50, col=2, row=2*ix+2, text='')
-		param_ent.append({'text': paramsg, 'ent': paramen})
+	for ix in range(0, paramlen):
+		rowid = 2*ix+1
+		plabel = ttk.Label(lprocs, text='Not needed')
+		plabel.grid(column=2, row=rowid+1, sticky='nw')
+		pentry = newentry(framep=lprocs, width=20, col=2, row=rowid+2, text='', sticky = 'ne')
+		param_ent.append({'entry': pentry, 'label': plabel})
 	lprocsui = {'flist': flist, 'param_ent': param_ent}
 	return lprocsui
 
@@ -285,14 +286,15 @@ def objsuisetup (root = {}, uiset = [], objects = []):
 			rownum = rownum + 1
 		uiset.append(lobjui)
 
-def logixuiread (llogixui):
+def logixuiread (uiset = []):
 	retval = []
-	for llist in llogixui:
+	for obj in uiset:
+		print(obj)
 		logic = {}
-		if llist['basic'].get() == '': continue
-		logic['basic'] = p3dfunc.storyparse(llist['basic'].get())[0]
-		if logic['basic'] == '': continue
-		logic['addon'] = p3dfunc.storyparse(llist['addon'].get('1.0', tkinter.END))
+		if obj['remove'].instate(['selected']): continue
+		if obj['basic'].get() == '': continue
+		logic['basic'] = obj['basic'].get()
+		logic['addon'] = obj['addon'].get('1.0', tkinter.END).split("\n")
 		retval.append(logic)
 	return retval
 
@@ -300,13 +302,17 @@ def logixuisetup (root = {}, uiset = [], logix = []):
 	rownum = 0
 	for logid, 	logic in enumerate(logix+[{'basic': '', 'addon': []}]):
 		ttk.Label(root, text='-'*100).grid(column=0, row=rownum, columnspan=2, sticky='nw')
-		llogcui = {'logid': logid}
-		llogcui['basic'] = newentry (framep=root, width=120, col=1, row=rownum+1, colspan=8, text=logic['basic'], lbltext='Current condition')
+		logix = {'logid': logid}
+		logix['basic'] = newentry (framep=root, width=100, col=1, row=rownum+1, colspan=8, text=logic['basic'], lbltext='Current condition')
+		# remove = ttk.Checkbutton(root, text='DELETE LOGIC')
+		# remove.state(['!alternate'])
+		# remove.state(['!selected'])
+		# remove.grid(column=5, row=rownum+1)
+		logix['remove'] = newchkbox (root = root, text = 'DELETE LOGIC', value = 0, column=5, row=rownum+1)
 		ttk.Label(root, text='Extra steps').grid(column=0, row=rownum+2, sticky='nw')
 		indexbox = scrolledtext.ScrolledText(root, undo=True, width=90, height=5)
 		indexbox.grid(column=1, row=rownum+2, columnspan=5)
 		indexbox.insert(1.0, "\n".join(logic['addon']))
-		indexbox.bind('<MouseWheel>', on_canvas_mousewheel)
-		llogcui['addon'] = indexbox
+		logix['addon'] = indexbox
 		rownum=rownum+3
-		uiset.append(llogcui)
+		uiset.append(logix)
