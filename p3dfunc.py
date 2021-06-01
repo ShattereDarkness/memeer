@@ -10,13 +10,13 @@ import copy
 def mergeposition (base = [], addit = []):
 	if len(addit) < 3: return base
 	for idx in range(0, 3): base[idx] = base[idx] + addit[idx]
-	if len(addit) < 9: return retval
+	if len(addit) < 6: return base
 	for idx in range(3, 6): base[idx] = base[idx] + addit[idx]
+	if len(addit) < 9: return base
 	for idx in range(6, 9): base[idx] = base[idx] * addit[idx]
 	return base
 
 def readposfile (filenm, basedir):
-	#print("filenm, basedir", filenm, basedir)
 	if not re.match(".+\.coord$", filenm): filenm = filenm + '.coord'
 	filedat = basedir / 'coords' / filenm
 	if not filedat.is_file():
@@ -42,7 +42,7 @@ def generatedefposts (fcount = 1, baseloc = [], locrange = '', basedir = '.'):
 		if coords == [[]]: return [baseloc]
 		itemls = fixinitemlist (lfrom = len(coords)-1, linto = fcount)
 		lastix = -1
-		print("itemls, coords",  itemls, coords)
+		print("baseloc, itemls, coords", baseloc, itemls, coords)
 		for ix, item in enumerate(itemls):
 			if lastix == ix:
 				retval.append([])
@@ -74,8 +74,9 @@ def getposlist (bspec = {}, cspec = {}, fcount = 1, basedir = '.'):
 	elif cspec['locfile'] != '': locrange = {'locfile': cspec['locfile']}
 	elif len(bspec['locfrom']) == 9 and len(bspec['locupto']) == 9: locrange = {'locfrom': bspec['locfrom'], 'locupto': bspec['locupto']}
 	elif len(cspec['locfrom']) == 9 and len(cspec['locupto']) == 9: locrange = {'locfrom': cspec['locfrom'], 'locupto': cspec['locupto']}
-	if len(bspec['locpos']) == 9: mergeposition (base = locpos, addit = bspec['locpos'])
-	if len(cspec['locpos']) == 9: mergeposition (base = locpos, addit = cspec['locpos'])
+	if len(bspec['locpos']) > 2: mergeposition (base = locpos, addit = bspec['locpos'])
+	if len(cspec['locpos']) > 2: mergeposition (base = locpos, addit = cspec['locpos'])
+	print ("bspec, cspec", bspec, cspec)
 	retval = generatedefposts (fcount = fcount, baseloc = locpos, locrange = locrange, basedir = basedir)
 	#print ("getposlist", retval)
 	return retval
@@ -125,6 +126,7 @@ def appendmovements (frames = [1,2], retval = {}, posdet = [], append = {}):
 		if len(posdet)-1 < frid: break
 		if len(posdet[frid]) < 3: continue
 		append['pos'] = posdet[frid]
+		if 'posnow' not in append: append['posnow'] = 0
 		retval[str(ix)].append(copy.deepcopy(append))
 	return 1
 
@@ -143,6 +145,21 @@ def object_exists (universe = {},  params = {}, posdet = [], frames = [], rushob
 	retval = createretval (frames = frames)
 	p3dmodel = loadobjectflet (params = params, retval = retval, rushobjlst = rushobjlst, basedir = basedir, frames = frames)
 	appendmovements (frames = frames, retval = retval, posdet = posdet, append = {'what': 'moveobj', 'model': params['modid'], 'pos': []})
+	return retval
+
+def appendnewobjects (frames = [1,2], retval = {}, posdet = [], append = {}):
+	for ix in range(frames[0], frames[1]+1):
+		frid = ix - frames[0]
+		if len(posdet)-1 < frid: break
+		if len(posdet[frid]) < 3: continue
+		append['pos'] = posdet[frid]
+		retval[str(ix)].append(copy.deepcopy(append))
+	return 1
+
+def object_multiple (universe = {},  params = {}, posdet = [], frames = [], rushobjlst = [], basedir = Path('.')):
+	retval = createretval (frames = frames)
+	rushobjlst[params['modid']]['filenm'] = basedir.stem + '/model/' + rushobjlst[params['modid']]['file']
+	appendmovements (frames = frames, retval = retval, posdet = posdet, append = {'what': 'loadobj', 'model': params['modid'], 'posnow': 1, 'pos': []})
 	return retval
 
 def object_named (universe = {},  params = {}, posdet = [], frames = [], rushobjlst = [], basedir = Path('.')):

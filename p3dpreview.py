@@ -22,54 +22,59 @@ loadlist = []
 screentx = []
 execoutp = []
 
-def loadObject (modid = 0):
-	modfile = rushobjlst[modid]
-	print ("modfile", modfile)
-	if modfile['acts'] != {}:
-		model = Actor(modfile['filenm'], modfile['action'])
-		for jname, jparts in modfile['joint'].items():
-			model.makeSubpart(jname, jparts['include'], jparts['exclude'])
-	elif modfile['file'] not in ['line']:
-		model = loader.loadModel(modfile['filenm'])
-	else: return 1
-	model.reparentTo(render)
-	rushobjlst[modid]['p3dmod'] = model
-	return 1
+def loadObject (modid = 0, fullanim = {}):
+    modfile = rushobjlst[modid]
+    print ("modfile", modfile)
+    if modfile['acts'] != {}:
+        model = Actor(modfile['filenm'], modfile['action'])
+        for jname, jparts in modfile['joint'].items():
+            model.makeSubpart(jname, jparts['include'], jparts['exclude'])
+    elif modfile['file'] not in ['line']:
+        model = loader.loadModel(modfile['filenm'])
+        ##model.find('**/+SequenceNode').node().play() - enable for like "play bird loading once"?
+    else: return 1
+    model.reparentTo(render)
+    if 'posnow' in fullanim and 'pos' in fullanim and fullanim['posnow'] == 1:
+        if len(fullanim['pos']) > 2: model.setPos(float(fullanim['pos'][0]), float(fullanim['pos'][1]), float(fullanim['pos'][2]))
+        if len(fullanim['pos']) > 5: model.setHpr(float(fullanim['pos'][3]), float(fullanim['pos'][4]), float(fullanim['pos'][5]))
+        if len(fullanim['pos']) > 8: model.setScale(float(fullanim['pos'][6]), float(fullanim['pos'][7]), float(fullanim['pos'][8]))
+    rushobjlst[modid]['p3dmod'] = model
+    return 1
 
 def moveObject (modid = 0, pos = [0, 0, 0, 0, 0, 0, 1, 1, 1]):
-	model = rushobjlst[modid]['p3dmod']
-	model.setPos(float(pos[0]), float(pos[1]), float(pos[2]))
-	if len(pos) < 4: return 1
-	model.setHpr(float(pos[3]), float(pos[4]), float(pos[5]))
-	if modid == 0 or len(pos) < 7: return 1
-	model.setScale(float(pos[6]), float(pos[7]), float(pos[8]))
-	return 1
+    model = rushobjlst[modid]['p3dmod']
+    model.setPos(float(pos[0]), float(pos[1]), float(pos[2]))
+    if len(pos) < 4: return 1
+    model.setHpr(float(pos[3]), float(pos[4]), float(pos[5]))
+    if modid == 0 or len(pos) < 7: return 1
+    model.setScale(float(pos[6]), float(pos[7]), float(pos[8]))
+    return 1
 
 def poseObject (modid = 0, action = '', poseid = 1):
-	model = rushobjlst[modid]['p3dmod']
-	if 'bpart' not in rushobjlst[modid]: model.pose (action, poseid)
-	else: model.pose (action, poseid, partName = rushobjlst[modid]['bpart'])
-	return 1
+    model = rushobjlst[modid]['p3dmod']
+    if 'bpart' not in rushobjlst[modid]: model.pose (action, poseid)
+    else: model.pose (action, poseid, partName = rushobjlst[modid]['bpart'])
+    return 1
 
 def linesegObj (modid = 0, pfrom = [0, 0, 0], pupto = [0, 0, 0]):
-	lines.moveTo(pfrom[0], pfrom[1], pfrom[2])
-	lines.drawTo(pupto[0], pupto[1], pupto[2])
-	node = lines.create()
-	np = NodePath(node)
-	np.reparentTo(render)
-	return 1
+    lines.moveTo(pfrom[0], pfrom[1], pfrom[2])
+    lines.drawTo(pupto[0], pupto[1], pupto[2])
+    node = lines.create()
+    np = NodePath(node)
+    np.reparentTo(render)
+    return 1
 
 def subtitling (modid = 0, text = ''):
-	return 1
+    return 1
 
 def setscrtext (statements, text, lineid):
-	if lineid > -1:
-		screentx.append({'text': text, 'lineid': lineid})
-	txtstr = ''
-	for scrtx in screentx: txtstr = txtstr + scrtx['text'] + "\n"
-	txtstr.strip()
-	statements.text = txtstr
-	return 1
+    if lineid > -1:
+        screentx.append({'text': text, 'lineid': lineid})
+    txtstr = ''
+    for scrtx in screentx: txtstr = txtstr + scrtx['text'] + "\n"
+    txtstr.strip()
+    statements.text = txtstr
+    return 1
 
 with open('temp_rushframes.js') as lujs: animdat = json.load(lujs)
 animes, fframe, rushobjlst, lastindx = animdat['animes'], animdat['fframe'], animdat['rushobjlst'], animdat['lastindx']
@@ -86,22 +91,22 @@ camera.setHpr(0, 0, 0)
 statements = OnscreenText(text=" ", pos=(-1.0, 0.9), scale=0.08, align=0, wordwrap=30)
 if preview == 1: textbasics = OnscreenText(text=" ", pos=(-1.0, -0.95), scale=0.08, align=0, wordwrap=30)
 def defaultTask(task):
-	if preview == 1: textbasics.text = 'Frame#: '+str(fframe+task.frame-1)
-	if lastindx <= task.frame:
-		return exit(1)
-	if str(task.frame) not in animes: return Task.cont
-	anims = animes[str(task.frame)]
-	print ("anims", anims)
-	for anim in  anims:
-		if anim['what'] == 'loadobj': loadObject (modid = anim['model'])
-		if anim['what'] == 'moveobj': moveObject (modid = anim['model'], pos = anim['pos'])
-		if anim['what'] == 'poseobj': poseObject (modid = anim['model'], action = anim['action'], poseid = anim['poseid'])
-		if anim['what'] == 'lineseg': linesegObj (modid = anim['model'], pfrom = anim['from'], pupto = anim['upto'])
-	return Task.cont
+    if preview == 1: textbasics.text = 'Frame#: '+str(fframe+task.frame-1)
+    if lastindx <= task.frame:
+        return exit(1)
+    if str(task.frame) not in animes: return Task.cont
+    anims = animes[str(task.frame)]
+    print ("anims", anims)
+    for anim in  anims:
+        if anim['what'] == 'loadobj': loadObject (modid = anim['model'], fullanim = anim)
+        if anim['what'] == 'moveobj': moveObject (modid = anim['model'], pos = anim['pos'])
+        if anim['what'] == 'poseobj': poseObject (modid = anim['model'], action = anim['action'], poseid = anim['poseid'])
+        if anim['what'] == 'lineseg': linesegObj (modid = anim['model'], pfrom = anim['from'], pupto = anim['upto'])
+    return Task.cont
 
 lines = LineSegs()
 lines.setColor(0,0,0,1)
-lines.setThickness(33)
+lines.setThickness(1)
 base.win.requestProperties(props) 
 loadlist.append({'file': 'camera', 'model': base.camera, 'post': [0, -120, 0, 0, 0, 0, 1, 1, 1]})
 taskMgr.add(defaultTask, "defaultTask")
