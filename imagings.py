@@ -21,11 +21,17 @@ def ui_addaudiotovideo (params):
     rval = f_add_audio_video_timewise (vfile = params[0], afile = params[1], startt = params[2], tlen = params[3], outfile = params[4])
     return rval
 
+def ui_prepare_stage (entparams = [], appsetup = {}):
+    inputlst = entparams[0]
+    output = entparams[1]
+    for idir in inputlist:
+        pyback.pngoverwrites (fframe = 1, lframe = 9999, imgsource = sourcep, imgdest = destmed, overwrite = 1, action='copy')
+
 def ui_mrcnn_objects (params):
     ifile = params[0]
     ofiles = params[1]
     if params[0] == '' or params[1] == '': return 1
-    mrcnn_image_retrieval (ifile = ifile, ofiles = ofiles)
+    mrcnn_image_retrieval (ifile = ifile, ofiles = ofiles, color = '', params = '', appsetup = '')
     return 1
 
 def int_proc_filenames (entparams = [], appsetup = {}, defextn = '.png', basedir = 'media'):
@@ -33,6 +39,7 @@ def int_proc_filenames (entparams = [], appsetup = {}, defextn = '.png', basedir
     ofile = entparams[1]
     bdir = Path(appsetup['project']['name']) / basedir
     ifile, ofile = bdir / ifile, bdir / ofile
+    if ifile.suffix == '': ifile = bdir / (entparams[0] + defextn)
     if ofile.suffix == '': ofile = bdir / (entparams[1] + defextn)
     return {'ifile': ifile, 'ofile': ofile}
 
@@ -44,12 +51,23 @@ def ui_image_manipulation_basic (entparams = [], appsetup = {}):
 
 def ui_image_manipulation (function = '', entparams = [], appsetup = {}):
     print ("function, entparams, appsetup", function, entparams, appsetup)
+    return 1
+    replace = 0
+    if entparams[1] == '':
+        entparams[1] = 'REPLACE_'+entparams[0]
+        replace = 1
     files = int_proc_filenames (entparams = entparams, appsetup = appsetup, basedir = 'video')
     ifile, ofile = files['ifile'], files['ofile']
-    if entparams[2] == '': entparams[2] = 'black'
-    if function not in ('setcolortransparent'): return 1
+    color = 'black' if entparams[2] == '' else entparams[2]
+    color = 'IBRT' if color not in appsetup['colorcode'] else entparams[2]
+    if function not in ('settransparent'): return 1
+    function = 'setcolortransparent'
+    if color in ['IBRT']: function = 'ibrt__OPHoperHPO'
     function = "f_" + function
     globals()[function] (ifile, ofile, color = entparams[2], params = entparams[3], appsetup = appsetup)
+    if replace == 1:
+        ifile.rename(Path(ifile.parent) / (ifile.stem+'_REPLACED'+ifile.suffix))
+        ofile.rename(ifile)
     return 1
 
 def ui_find_image_contours (entparams = [], appsetup = {}):
@@ -76,12 +94,21 @@ def ui_find_image_contours (entparams = [], appsetup = {}):
 
 def ui_basic_movie_creation (entparams = [], appsetup = {}):
     if entparams[2] == '': return 0
+    cmodel = 0 if entparams[2].lower() in ('no', 'n', 'nope') == '' else 1
     sframe = pyback.forceint(entparams[0], default = 1)
     lframe = pyback.forceint(entparams[1], default = 1)
     sourcep = Path(appsetup['project']['name']) / 'rushes'
     destinp = Path(appsetup['project']['name']) / 'video' / entparams[2]
+    destmed = Path(appsetup['project']['name']) / 'media' / entparams[2]
     pyback.pngoverwrites (fframe = 2-sframe, lframe = lframe, imgsource = sourcep, imgdest = destinp, overwrite = 1, action='copy')
+    if cmodel == 1:
+        pyback.pngoverwrites (fframe = 2-sframe, lframe = lframe, imgsource = sourcep, imgdest = destmed, overwrite = 1, action='copy')
     pyback.exec_pic_export (entparams = [entparams[2], appsetup['project']['fps'], "1, -1"], appsetup = appsetup, rushes = '/video/'+entparams[2]+'/')
+    if cmodel == 0: return 1
+    os.chdir(Path(appsetup['project']['name']) / 'model')
+    cmdstr = "egg-texture-cards -o \"" + destmed.stem + ".egg\" -fps "+str(appsetup['project']['fps'])+" \"../media/" + outname + "/*.png\""
+    os.system(cmdstr)
+    os.chdir('../..')
 
 def ui_transparent_movie_creation (entparams = [], appsetup = {}):
     print ("entparams, appsetup", entparams, appsetup)
@@ -220,12 +247,14 @@ def f_add_audio_video_timewise (vfile = '', afile = '', startt = '', tlen = '', 
     rval = os.system(cmdstr)
     return rval
 
-def ibrt__OPHoperHPO (ifile = '', ofiles = ''):
-    cmdstr = 'ppython ibrt/main.py -i ' + ifile + ' -o ' + ofile + ' -m u2net'
+def f_ibrt__OPHoperHPO (ifile = '', ofiles = '', color = '', params = '', appsetup = ''):
+    os.chdir("ibrt")
+    cmdstr = 'ppython main.py -i "../' + str(ifile) + '" -o "../' + str(ofile) + '" -m u2net'
     rval = os.system(cmdstr)
+    os.chdir("..")
     return rval
 
-def mrcnn_image_retrieval (ifile = '', ofiles = ''):
+def mrcnn_image_retrieval (ifile = '', ofiles = '', color = '', params = '', appsetup = ''):
     CLASS_NAMES = ['BG', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush']
     class SimpleConfig(mrcnn.config.Config):
         NAME = "coco_inference"

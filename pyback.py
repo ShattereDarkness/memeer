@@ -87,7 +87,8 @@ def create_mediamodel (folderstr = "model/", media_dir = Path('.'), model_dir = 
             exist = check2files (path1=media_dir, path2=model_dir, fstem=file.stem, suffix1=file.suffix, suffix2='.egg')
             if exist == 1:
                 print ("Creating model for file", file)
-                cmdstr = "egg-texture-cards -o " + file.stem + ".egg ../media/" + file.name
+                cmdstr = "egg-texture-cards -o \"" + file.stem + ".egg\" \"../media/" + file.name + "\""
+                print ("cmdstr", cmdstr)
                 os.system(cmdstr)
                 retval['add'] = retval['add'] + 1
             if exist == 2:

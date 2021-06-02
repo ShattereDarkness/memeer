@@ -76,15 +76,17 @@ procsitems = [
     }, {"fname": "Manipulation", "text": "Basic image manipulation functions", "descimage": "earth.png" ,
         "params": ["Input image file", "New name for image", "Resize (Percentage)", "param3"]
     }, {"fname": "Manipulation", "text": "Advanced image manipulation - Remove background", "descimage": "earth.png" ,
-        "params": ["Input file (image or gif)", "Output file name", "Color to remove", "Additional parameters"]
+        "params": ["Input file (image or gif)", "Output file name (REPLACE?)", "Color to remove/ Removal method", "Additional parameters"]
     }, {"fname": "MovieCreate", "text": "Make a movie from existing rush frames", "descimage": "earth.png" ,
-        "params": ["First frame", "Last Frame", "Output movie name"]
+        "params": ["First frame", "Last Frame", "Output movie name", "To be reused (default YES)"]
     }, {"fname": "MovieCreate", "text": "Make a transparent gif from existing rush frames", "descimage": "earth.png" ,
         "params": ["Final image frame", "Start frame", "Last Frame", "Output movie name"]
     }, {"fname": "MovieCreate", "text": "Remove blue/ green screen from existing rushes", "descimage": "earth.png" ,
         "params": ["Start frame", "Last Frame", "Output movie name", "Color to remove\n(Red/Green/Blue/Yellow)"]
     }, {"fname": "ImageCreate", "text": "Make text image", "descimage": "earth.png" ,
         "params": ["File name", "Text", "Font name", "Font size"]
+    }, {"fname": "Release", "text": "Prepare stage for release", "descimage": "earth.png" ,
+        "params": ["Movie folder names", "Output Stage Name"]
     }
 ]
 
@@ -383,7 +385,7 @@ def frame_procs_cmd ():
     if fncix == 'Manipulation: Basic image manipulation functions':
         retv = imagings.ui_image_manipulation_basic (entparams = entparams, appsetup = appsetup)
     if fncix == 'Manipulation: Advanced image manipulation - Remove background':
-        retv = imagings.ui_image_manipulation ('setcolortransparent', entparams = entparams, appsetup = appsetup)
+        retv = imagings.ui_image_manipulation ('settransparent', entparams = entparams, appsetup = appsetup)
     if fncix == 'MovieCreate: Make a movie from existing rush frames':
         retv = imagings.ui_basic_movie_creation (entparams = entparams, appsetup = appsetup)
     if fncix == 'MovieCreate: Make a transparent gif from existing rush frames':
@@ -392,6 +394,8 @@ def frame_procs_cmd ():
         retv = imagings.ui_remove_background_movie (entparams = entparams, appsetup = appsetup)
     if fncix == 'ImageCreate: Make text image':
         retv = imagings.ui_text_image_creation (entparams = entparams, appsetup = appsetup)
+    if fncix == 'Release: Prepare stage for release':
+        retv = imagings.ui_prepare_stage (entparams = entparams, appsetup = appsetup)
     return 1
 
 btn_procs_procs = ttk.Button(frame_procs, text="Execute the command (Selected Options)", command=frame_procs_cmd).grid(column=2, row=18, sticky="w")
