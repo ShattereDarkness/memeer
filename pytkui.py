@@ -81,15 +81,18 @@ def refresh_universe(uielem = {}, conf_frames = {}, appsetup = {}):
         if code == 'conf': continue
         for tkitemls in frames.winfo_children():
             tkitemls.destroy()
-    univ = pyback.getUniverseData (user = uielem['conf']['auser'].get(), folder = uielem['conf']['folder'].get(), appset = appsetup)
+    univ = pyback.getUniverseData (name = uielem['conf']['name'].get(), appsetup = appsetup)
+    if univ == {}:
+        messagebox.showerror (title='Universe cannot be started', message='The mentioned path cannot be used for a new project')
+        return {}
     modifyentry(entry_elem = uielem['conf']['detail'], text = appsetup['project']['detail'])
     modifyentry(entry_elem = uielem['conf']['winsize'], text = appsetup['project']['winsize'])
     modifyentry(entry_elem = uielem['conf']['fps'], text = appsetup['project']['fps'])
     uielem['conf']['preview'].state(['selected'])
-    appuisetup (appset = appsetup, root = conf_frames['conf'], uiset = uielem['conf'])
-    actsuisetup (root = conf_frames['acts'], uiset = uielem['acts'], actions = univ['actions'])
-    objsuisetup (root = conf_frames['objs'], uiset = uielem['objs'], objects = univ['objects'])
-    logixuisetup (root = conf_frames['logix'], uiset = uielem['logix'], logix = univ['logicals'])
+    appuisetup (appsetup = appsetup, root = conf_frames['conf'], uiset = uielem['conf'])
+    uielem['acts'] = actsuisetup (root = conf_frames['acts'], actions = univ['actions'])
+    uielem['objs'] = objsuisetup (root = conf_frames['objs'], objects = univ['objects'])
+    uielem['logix'] = logixuisetup (root = conf_frames['logix'], logix = univ['logicals'])
     return univ
 
 def newchkbox (root = {}, text = '<MISSING>', value = 0, column=0, row=0):
@@ -99,21 +102,21 @@ def newchkbox (root = {}, text = '<MISSING>', value = 0, column=0, row=0):
     chkbox_ui.grid(column=column, row=row)
     return chkbox_ui
 
-def appuisetup (appset = {}, root = {}, uiset = {}, retry=1):
+def appuisetup (appsetup = {}, root = {}, uiset = {}, retry=1):
     ttk.Label(root, text="\t\t\t").grid(column=2, row=1)
-    uiset['auser'] = newentry (framep=root, width=90, col=3, row=2, text=appset['user_idnt'], lbltext = 'User Identity')
-    uiset['apkey'] = newentry (framep=root, width=90, col=3, row=3, text=appset['secrettxt'], lbltext = 'Secret Passkey')
-    uiset['folder'] = newentry (framep=root, width=90, col=3, row=4, text=appset['project']['folder'], lbltext = 'Project Folder')
-    uiset['detail'] = newentry (framep=root, width=90, col=3, row=5, text=appset['project']['detail'], lbltext = 'Project Description')
-    uiset['winsize'] = newentry (framep=root, width=10, col=3, row=6, text=appset['project']['winsize'], lbltext = 'Screen resolution')
-    uiset['fps'] = newentry (framep=root, width=2, col=3, row=7, text=appset['project']['fps'], lbltext = 'Frame Rate')
-    uiset['preview'] = newchkbox (root = root, text = 'In Preview mode (not production ready)', value = appset['project']['preview'], column=3, row=11)
-    uiset['expand'] = newchkbox (root = root, text = 'Expansion for Verb Synonyms', value = appset['project']['expand'], column=2, row=11)
+    uiset['auser'] = newentry (framep=root, width=90, col=3, row=2, text=appsetup['user_idnt'], lbltext = 'User Identity')
+    uiset['apkey'] = newentry (framep=root, width=90, col=3, row=3, text=appsetup['secrettxt'], lbltext = 'Secret Passkey')
+    uiset['name'] = newentry (framep=root, width=90, col=3, row=4, text=appsetup['project']['name'], lbltext = 'Project Name')
+    uiset['detail'] = newentry (framep=root, width=90, col=3, row=5, text=appsetup['project']['detail'], lbltext = 'Project Description')
+    uiset['winsize'] = newentry (framep=root, width=10, col=3, row=6, text=appsetup['project']['winsize'], lbltext = 'Screen resolution')
+    uiset['fps'] = newentry (framep=root, width=2, col=3, row=7, text=appsetup['project']['fps'], lbltext = 'Frame Rate')
+    uiset['preview'] = newchkbox (root = root, text = 'In Preview mode (not production ready)', value = appsetup['project']['preview'], column=3, row=11)
+    uiset['expand'] = newchkbox (root = root, text = 'Expansion for Verb Synonyms', value = appsetup['project']['expand'], column=2, row=11)
 
 def port_conf_save (uielems, appsetup, univ):
     appsetup['user_idnt'] = uielems['auser'].get()
     appsetup['secrettxt'] = uielems['apkey'].get()
-    appsetup['project']['folder'] = uielems['folder'].get()
+    appsetup['project']['name'] = uielems['name'].get()
     appsetup['project']['detail'] = uielems['detail'].get()
     appsetup['project']['winsize'] = uielems['winsize'].get()
     appsetup['project']['fps'] = uielems['fps'].get()
@@ -229,6 +232,7 @@ def actsuiread (uiset = [], expand = 1):
     synofile = Path("verbforms.js")
     with open(synofile) as lujs: verbjs = json.load(lujs)
     for acta in uiset:
+        if acta['syns'].get() == 'REMOVE': continue
         lact = {'func': acta['func']}
         verbsyns = pyback.splittext (text = acta['syns'].get())
         lact['syns'] = pyback.loadsynos(verbsyns, verbjs, expand)
@@ -237,10 +241,12 @@ def actsuiread (uiset = [], expand = 1):
         retval.append(lact)
     return retval
 
-def actsuisetup (root = {}, uiset = [], actions = []):
+def actsuisetup (root = {}, actions = []):
+    retval = []
     ttk.Label(root, text='Functions: "move", "locate", "vanish" are common for all').grid(column=0, row=0, columnspan=3, sticky='nw')
     ttk.Label(root, text='Suffix "+" for default expasion, "-" to never expand').grid(column=0, row=1, columnspan=3, sticky='nw')
-    rownum = 2
+    ttk.Label(root, text='Set Synonym as REMOVE for delete and then refresh').grid(column=0, row=2, columnspan=3, sticky='nw')
+    rownum = 3
     for actid, action in enumerate(actions):
         scrllabel (framep = root, text = '-'*100, column=0, row=rownum, columnspan=2, sticky='nw')
         lactui = {'actid': actid}
@@ -250,7 +256,8 @@ def actsuisetup (root = {}, uiset = [], actions = []):
         lactui['syns'] = newentry (framep=root, width=40, col=1, row=rownum+1, colspan=1, text=', '.join(action['syns']), lbltext='Synonyms')
         lactui['jjrb'] = newentry (framep=root, width=40, col=2, row=rownum+1, colspan=1, text=', '.join(action['jjrb']), lbltext='Modifiers')
         rownum = rownum + 2
-        uiset.append(lactui)
+        retval.append(lactui)
+    return retval
 
 def objsuiread (uiset = []):
     retval = []
@@ -267,8 +274,10 @@ def objsuiread (uiset = []):
         retval.append(lobj)
     return retval
 
-def objsuisetup (root = {}, uiset = [], objects = []):
-    rownum = 0
+def objsuisetup (root = {}, objects = []):
+    retval = []
+    ttk.Label(root, text='Set Synonym as REMOVE for delete and then refresh').grid(column=0, row=0, columnspan=3, sticky='nw')
+    rownum = 1
     for modid, model in enumerate(objects):
         scrllabel (framep = root, text = '-'*120, column=0, row=rownum, columnspan=3, sticky='nw')
         objdets = model['file'] + " (animations: " + ', '.join(list(model['acts'].keys())) + ")"
@@ -286,12 +295,12 @@ def objsuisetup (root = {}, uiset = [], objects = []):
             lobjfui['flast'] = newentry (framep=root, width=10, col=3, row=rownum, text=actdet['flast'], sticky='ne')
             lobjui['acts'].append(lobjfui)
             rownum = rownum + 1
-        uiset.append(lobjui)
+        retval.append(lobjui)
+    return retval
 
 def logixuiread (uiset = []):
     retval = []
     for obj in uiset:
-        print(obj)
         logic = {}
         if obj['remove'].instate(['selected']): continue
         if obj['basic'].get() == '': continue
@@ -300,16 +309,13 @@ def logixuiread (uiset = []):
         retval.append(logic)
     return retval
 
-def logixuisetup (root = {}, uiset = [], logix = []):
+def logixuisetup (root = {}, logix = []):
+    retval = []
     rownum = 0
-    for logid,     logic in enumerate(logix+[{'basic': '', 'addon': []}]):
+    for logid, logic in enumerate(logix+[{'basic': '', 'addon': []}]):
         ttk.Label(root, text='-'*100).grid(column=0, row=rownum, columnspan=2, sticky='nw')
         logix = {'logid': logid}
         logix['basic'] = newentry (framep=root, width=100, col=1, row=rownum+1, colspan=8, text=logic['basic'], lbltext='Current condition')
-        # remove = ttk.Checkbutton(root, text='DELETE LOGIC')
-        # remove.state(['!alternate'])
-        # remove.state(['!selected'])
-        # remove.grid(column=5, row=rownum+1)
         logix['remove'] = newchkbox (root = root, text = 'DELETE LOGIC', value = 0, column=5, row=rownum+1)
         ttk.Label(root, text='Extra steps').grid(column=0, row=rownum+2, sticky='nw')
         indexbox = scrolledtext.ScrolledText(root, undo=True, width=90, height=5)
@@ -317,4 +323,5 @@ def logixuisetup (root = {}, uiset = [], logix = []):
         indexbox.insert(1.0, "\n".join(logic['addon']))
         logix['addon'] = indexbox
         rownum=rownum+3
-        uiset.append(logix)
+        retval.append(logix)
+    return retval

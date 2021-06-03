@@ -17,10 +17,7 @@ from panda3d.core import LColor
 
 import time
 import json
-
-loadlist = []
-screentx = []
-execoutp = []
+import sys
 
 def loadObject (modid = 0, fullanim = {}):
     modfile = rushobjlst[modid]
@@ -64,19 +61,7 @@ def linesegObj (modid = 0, pfrom = [0, 0, 0], pupto = [0, 0, 0]):
     np.reparentTo(render)
     return 1
 
-def subtitling (modid = 0, text = ''):
-    return 1
-
-def setscrtext (statements, text, lineid):
-    if lineid > -1:
-        screentx.append({'text': text, 'lineid': lineid})
-    txtstr = ''
-    for scrtx in screentx: txtstr = txtstr + scrtx['text'] + "\n"
-    txtstr.strip()
-    statements.text = txtstr
-    return 1
-
-with open('temp_rushframes.js') as lujs: animdat = json.load(lujs)
+with open(sys.argv[1]) as lujs: animdat = json.load(lujs)
 animes, fframe, rushobjlst, lastindx = animdat['animes'], animdat['fframe'], animdat['rushobjlst'], animdat['lastindx']
 basedir, winsize, fps, preview = animdat['basedir'], animdat['winsize'], animdat['fps'], animdat['preview']
 props = WindowProperties( )
@@ -108,9 +93,7 @@ lines = LineSegs()
 lines.setColor(0,0,0,1)
 lines.setThickness(1)
 base.win.requestProperties(props) 
-loadlist.append({'file': 'camera', 'model': base.camera, 'post': [0, -120, 0, 0, 0, 0, 1, 1, 1]})
 taskMgr.add(defaultTask, "defaultTask")
-namePrefix = "demo/rushes/temp/rush_"
-print("namePrefix", namePrefix)
-base.movie(namePrefix=namePrefix, duration=100, fps=fps, format='png')
+namePrefix = basedir + "/rushes/temp/frame_"
+base.movie(namePrefix=namePrefix, duration=10000, fps=fps, format='png', sd=6)
 base.run()

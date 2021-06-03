@@ -3,7 +3,6 @@
     "secrettxt": "6bef18936ac12a9096e9fe7a8fe1f777ww",
     "democheck": 0,
     "project": {
-        "folder": "C:/ProgramData/Memeer/demo",
         "name": "demo",
         "winsize": "900x600",
         "preview": 1,

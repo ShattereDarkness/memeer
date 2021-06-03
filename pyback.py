@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import pprint
 import json
 import re
 import shutil
@@ -8,6 +9,7 @@ import subprocess
 
 import requests
 appfile = 'appsetup.js'
+basedir = Path()
 
 def port_conf_save (appsetup):
     appfile = 'appsetup.js'
@@ -24,7 +26,7 @@ def getappsetup ():
     return appsetup
 
 def putappsetup (appsetup):
-    with open(appfile, "w") as lujs: json.dump(lconf, lujs)
+    with open(appfile, "w") as lujs: json.dump(appsetup, lujs, indent=4)
     return 1
 
 def getUniverseJS (univfile):
@@ -43,35 +45,30 @@ def getbasedir(portf_dir):
     portf_dir = Path(portf_dir)
     return portf_dir.stem
 
-def checkProject (folder =  ''):
-    portf_dir = Path(folder)
-    if not portf_dir.is_dir(): return 0
+def checkProject (name =  ''):
+    projdir = Path(name)
+    if not projdir.is_dir(): return 0
     return 1
 
-def createProject (folder =  ''):
-    portf_dir = Path(folder)
-    universe = portf_dir / 'universe.js'
+def createProject (name =  ''):
+    retval = {}
+    projdir = Path() / name
+    if not projdir.exists(): projdir.mkdir (parents = False, exist_ok = True)
+    if not projdir.exists() or not projdir.is_dir(): return {}
+    universe = projdir / 'universe.js'
     if not universe.is_file():
-        with open(universe, "w") as lujs: json.dump({'initialized': 'from Meemer'}, lujs)
-    model_dir = portf_dir / 'model'
-    if not model_dir.is_dir(): model_dir.mkdir()
-    media_dir = portf_dir / 'media'
-    if not media_dir.is_dir(): media_dir.mkdir()
-    temp_dir = portf_dir / 'temp'
-    if not temp_dir.is_dir(): temp_dir.mkdir()
-    actor_dir = portf_dir / 'actor'
-    if not actor_dir.is_dir(): actor_dir.mkdir()
-    action_dir = portf_dir / 'actor' / 'action'
-    if not action_dir.is_dir(): action_dir.mkdir()
-    coords_dir = portf_dir / 'coords'
-    if not coords_dir.is_dir(): coords_dir.mkdir()
-    stories_dir = portf_dir / 'stories'
-    if not stories_dir.is_dir(): stories_dir.mkdir()
-    rushes_dir = portf_dir / 'rushes'
-    if not rushes_dir.is_dir(): rushes_dir.mkdir()
-    rushtmp_dir = portf_dir / 'rushes' / 'temp'
-    if not rushtmp_dir.is_dir(): rushtmp_dir.mkdir()
-    return 1
+        projectinfo = {"winsize": "500,500", "preview": 1, "fps": "24", "detail": "Universe from template", "expand": 1, "canvas": "500,500"}
+        projectinfo['name'] = projdir.stem
+        retval = projectinfo
+        univ = {'projectinfo': projectinfo, 'namedetail': 'from Meemer'}
+        with open(universe, "w") as lujs: json.dump(univ, lujs)
+    else:
+        with open(universe) as lujs: univ = json.load(lujs)
+        retval = univ['projectinfo']
+    for directory in ['media', 'temp', 'model', 'model/action', 'coords', 'stories', 'video', 'audio', 'rushes', 'rushes/temp']:
+        newdir = projdir / directory
+        newdir.mkdir (parents = False, exist_ok = True)
+    return retval
 
 def check2files (path1=Path('.'), path2=Path('.'), fstem='', suffix1='', suffix2=''):
     if (path1 / (fstem+suffix1)).exists() and (path2 / (fstem+suffix2)).exists(): return 0
@@ -79,90 +76,102 @@ def check2files (path1=Path('.'), path2=Path('.'), fstem='', suffix1='', suffix2
     if not (path1 / (fstem+suffix1)).exists() and (path2 / (fstem+suffix2)).exists(): return 2
     return 3
 
-def create_mediamodel (folderstr = "model/", media_dir = Path('.'), model_dir = Path('.')):
-    retval = {'add': 0, 'rem': 0}
-    os.chdir(folderstr)
-    for file in media_dir.iterdir():
-        if file.suffix in ['.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.tif']:
-            exist = check2files (path1=media_dir, path2=model_dir, fstem=file.stem, suffix1=file.suffix, suffix2='.egg')
-            if exist == 1:
-                print ("Creating model for file", file)
-                cmdstr = "egg-texture-cards -o \"" + file.stem + ".egg\" \"../media/" + file.name + "\""
-                print ("cmdstr", cmdstr)
-                os.system(cmdstr)
-                retval['add'] = retval['add'] + 1
-            if exist == 2:
-                (model_dir / (file.stem+'.egg')).unlink()
-                retval['rem'] = retval['rem'] + 1
-        elif file.suffix in ['.gif', '.mp4', '.mov', '.avi', '.wmv', '.webm']:
-            exist = check2files (path1=media_dir, path2=model_dir, fstem=file.stem, suffix1=file.suffix, suffix2='.egg')
-            if exist == 1:
-                print ("Creating model for file", file)
-                os.mkdir('../media/' + file.stem)
-                cmdstr = "ffprobe -v 0 -of csv=p=0 -select_streams v:0 -show_entries stream=avg_frame_rate ../media/" + file.name
-                avgfps = (subprocess.run(cmdstr, capture_output=True)).stdout.decode('unicode_escape')[:-2]
-                vfps = round(float(avgfps.split('/')[0])/float(avgfps.split('/')[1]))
-                vfps = round(vfps)
-                cmdstr = "ffmpeg -i ../media/" + file.name + " -vf scale=320:-1 -vsync 0 ../media/" + file.stem + "/series%4d.png"
-                os.system(cmdstr)
-                cmdstr = "ffmpeg -i ../media/" + file.name + " -vn -acodec copy ../audio/" + file.stem + ".aac"
-                os.system(cmdstr)
-                shutil.copy(file, Path("../video/"+file.name))
-                cmdstr = "egg-texture-cards -o " + file.stem + ".egg -fps "+str(vfps)+" ../media/" + file.stem + "/series*.png"
-                os.system(cmdstr)
-                retval['add'] = retval['add'] + 1
-            elif exist == 2:
-                (model_dir / (file.stem+'.egg')).unlink()
-                shutil.rmtree('../media/' + file.stem, ignore_errors=True)
-                retval['rem'] = retval['rem'] + 1
-    os.chdir("../../")
+def getpermissiblefps (*args):
+    print (f"getpermissiblefps:\n\targs{args}")
+    for val in args:
+        if isinstance(val, int): return val
+        if isinstance(val, dict) and 'fps' in val and isinstance(val['fps'], int): return val['fps']
+    return 24
+
+def create_movie_frames (ifile = Path(), folder = Path(), owrite = 0):
+    print (f"create_movie_frames:\n\tifile={ifile}\n\tfolder={folder}\n\towrite={owrite}")
+    retval = {'fps': 1, 'frame': 0}
+    cmdstr = "ffprobe -v 0 -of csv=p=0 -select_streams v:0 -show_entries stream=avg_frame_rate \"" + str(ifile) + "\""
+    avgfps = (subprocess.run(cmdstr, capture_output=True)).stdout.decode('unicode_escape')[:-2]
+    retval['fps'] = round(float(avgfps.split('/')[0])/float(avgfps.split('/')[1]))
+    if folder['vid'].exists() and owrite == 0: return retval
+    if folder['vid'].exists():
+        files = folder.glob('*.png')
+        for f in files: f.unlink()
+    else:
+        folder['vid'].mkdir()
+        folder['aud'].mkdir (exist_ok=True)
+    videocmd = "ffmpeg -i \"" + str(ifile) + "\" -vf scale=320:-1 -vsync 0 \"" + str(folder['vid']) + "/frame_%6d.png" + "\" -loglevel error"
+    print ("videocmd:", videocmd)
+    os.system(videocmd)
+    audiocmd = "ffmpeg -i \"" + str(ifile) + "\" -vn -acodec copy \"" + str(folder['aud']) + ".aac" + "\" -y -loglevel error"
+    print ("audiocmd:", audiocmd)
+    os.system(audiocmd)
     return retval
-    
-def getUniverseData (user = '', folder =  '', appset = {}):
-    retval = {'media': {'add': 0, 'rem': 0}, 'model': {'add': 0, 'rem': 0}, 'anims': 0}
-    portf_dir = Path(folder)
-    #Here we expect that the folder have been created as per createProject function
-    universe = portf_dir / 'universe.js'
+
+def create_media_p3dmodel (ifile = Path(), name = '', owrite = 0, appsetup = {}):
+    print (f"create_media_p3dmodel:\n\tifile={ifile}\n\tname={name}\n\towrite={owrite}\n\tappsetup={appsetup}")
+    retval = {'msg': '', 'param': {}}
+    projdir = Path(appsetup['project']['name'])
+    eggfile = projdir / 'model' / (ifile.stem+'.egg')
+    if eggfile.exists() and owrite == 0: return {'return': 'pass', 'reason': "file already exists"}
+    if ifile.parent != projdir / 'media':
+        newfile = projdir/'media'/ifile.name
+        print ("Newfile", newfile, newfile.resolve().exists())
+        if not newfile.exists() or (newfile.exists() and owrite == 1):
+            shutil.copy(ifile, newfile)
+        ifile = newfile
+    asmovie = 0
+    if ifile.suffix in appsetup['movies']:
+        existf = {'vid': projdir/'media'/ifile.stem, 'aud': projdir/'audio'/ifile.stem}
+        cmf = create_movie_frames (ifile = ifile, folder = existf, owrite = owrite)
+        asmovie = 1
+    errorinnamecorrection = ifile.stem.replace(' ', '?')
+    if asmovie == 1:
+        fps = getpermissiblefps (cmf, appsetup, 30)
+        cmdstr = "egg-texture-cards -o \"" + ifile.stem + ".egg\" -fps "+str(fps)+" ../media/" + errorinnamecorrection + "/*.png"
+    else: cmdstr = "egg-texture-cards -o \"" + ifile.stem + ".egg\" ../media/" + errorinnamecorrection + ifile.suffix
+    print (f"create_media_p3dmodel: cmdstr={cmdstr}")
+    try:
+        os.chdir(projdir / 'model')
+        cmdval = os.system(cmdstr)
+    finally: os.chdir('../..')
+    print ("os.getcwd()", os.getcwd())
+    return cmdval
+
+def getUniverseData (name =  '', appsetup = {}):
+    print (f"getUniverseData:\n\tname={name}\n\tappsetup={appsetup}")
+    defaultmove = ['move', 'locate', 'generate']
+    projdir = Path() / name
+    if not projdir.is_dir(): return retval
+    universe = projdir / 'universe.js'
     with universe.open('r') as univjs: univ = json.load(univjs)
     if 'namedetail' not in univ or univ['namedetail'] == '':
-        univ['namedetail'] = 'Basic environment for create at '+appset['project']['folder']+' self initialized'
-    model_dir = portf_dir / 'model'
+        univ['namedetail'] = 'Basic environment for create at '+appset['project']['name']+'. Self initialized'
+    model_dir = projdir / 'model'
     action_dir = model_dir / 'action'
-    media_dir = portf_dir / 'media'
+    media_dir = projdir / 'media'
     # Start checking for models and actions
     if 'actions' not in univ: univ['actions'] = []
     if 'objects' not in univ: univ['objects'] = []
-    ## Conver media files into models
-    fps = appset['project']['fps']
-    ffmopt = "-pix_fmt pal8" if appset['project']['preview'] == 1 else "-pix_fmt pal8"
-    retval['media'] = create_mediamodel (folderstr = folder+"/model", media_dir = media_dir, model_dir = model_dir)
-    # Check for each model now
+    for mfile in media_dir.iterdir():
+        if not mfile.is_file(): continue
+        create_media_p3dmodel (ifile = mfile, owrite = 0, appsetup = appsetup)
+    univobjects = []
     for muniv in univ['objects']:
-        if (model_dir / (muniv['file']+".egg")).exists(): continue
-        muniv['saved'] = 0
-        retval['model']['rem'] = retval['model']['rem'] + 1
+        if (model_dir / (muniv['file']+".egg")).exists(): univobjects.append(muniv)
+    univ['objects'] = univobjects
     for mfile in model_dir.glob('*.egg'):
         if len(list(filter(lambda x : x['file'] == mfile.stem, univ['objects']))) > 0: continue
-        univ['objects'].append({'syns': [mfile.stem], 'move': ['move', 'locate', 'generate'], 'jjrb': [], 'acts': {}, 'joint': '', \
-                            'file': mfile.stem, 'jjrb': []})
-        retval['model']['add'] = retval['model']['add'] + 1
-    univ['objects'] = list(filter(lambda x : 'saved' not in x or x['saved'] == 1, univ['objects']))
-    uactions = []
+        univ['objects'].append({'syns': [mfile.stem], 'move': defaultmove, 'jjrb': [], 'acts': {}, 'joint': '', 'file': mfile.stem})
+    for commact in ['move', 'locate', 'generate', 'draw', 'vanish', 'remove']:
+        if len(list(filter(lambda x : x['func'] == commact, univ['actions']))) == 0:
+            univ['actions'].append({"func": commact, "syns": [commact],"jjrb": []})
     for afile in action_dir.glob('*.egg'):
         actor, anime = afile.stem.split ('__', 1)
-        uactions.append(anime)
         if len(list(filter(lambda x : x['file'] == actor, univ['objects']))) == 0: continue
         if len(list(filter(lambda x : x['func'] == anime, univ['actions']))) == 0:
             univ['actions'].append({'jjrb': [], 'syns': [anime], 'func': anime, 'show': 1})
-            retval['actions']['add'] = retval['actions']['add'] + 1
         mobject = list(filter(lambda x : x['file'] == actor, univ['objects']))[0]
         if anime not in mobject['acts']:
             mobject['acts'][anime] = {"fstart": 1, "flast": -1}
     if 'logicals' not in univ: univ['logicals'] = []
-    if 'functions' not in univ: univ['functions'] = {}
-    # update the values in universe
-    if retval['media']['add']+retval['media']['rem']+retval['model']['add']+retval['model']['rem']+retval['anims'] ==  0:
-        return univ
+    if 'projectinfo' not in univ: univ['projectinfo'] = appsetup['project']
     with universe.open('w') as univjs: json.dump(univ, univjs, indent=4)
     return univ
 
@@ -232,7 +241,6 @@ def updateuniverseforsend (universe = {}, appsetup = {}):
     updatejoints (universe['objects'], joints = appsetup['joint'])
     additionalobj (universe['objects'])
     parselogical (universe['logicals'])
-    print ("universe['logicals']", universe['logicals'])
     return 1
 
 def getscreensize (text, w, h):
@@ -260,20 +268,20 @@ def exec_play_story (entparams = [], appsetup = {}, universe = {}, story = ''):
     updateuniverseforsend (universe = universe, appsetup = appsetup)
     nlu = response_textplay (appsetup['meemerurl'], {'Content-type': 'application/json'}, universe, p3dfunc.storyparse(story), appsetup['democheck'])
     serialized = p3dfunc.serialized (nlu['cmdlets'], nlu['rushobjlst'], universe = universe, appsetup = appsetup, fframe = fframe, fps = fps, winsize = [scrwide, scrhigh])
-    os.system('ppython p3dpreview.py')
+    os.system('ppython p3dpreview.py ' + str(serialized["data"]))
     imgsource = Path(appsetup['project']['name']) / 'rushes' / 'temp/'
     imgdest = Path(appsetup['project']['name']) / 'rushes'
     pngoverwrites (fframe = fframe, overwrite = 1, imgsource = imgsource, imgdest = imgdest)
     return {'code': 0, 'data': 'temp_rushframes'}
 
-def pngoverwrites (fframe = 1, lframe = 9999, imgsource = Path(), imgdest = Path(), overwrite = 0, action = 'move'):
-    print ("fframe, lframe, imgsource, imgdest, overwrite", fframe, lframe, imgsource, imgdest, overwrite)
-    if not os.path.isdir(imgdest): os.mkdir(imgdest)
+def png_overwrites (sframe = 1, fframe = 1, lframe = 999999, imgsrc = Path(), imgdst = Path(), owrite = 0, action = 'move'):
+    print (f"pngoverwrites:\n\tsframe={sframe}\n\tfframe={fframe}\n\tlframe={lframe}\n\timgsrc={imgsrc}\n\timgdst={imgdst}\n\towrite={owrite}\n\taction={action}")
+    if not imgdst.is_dir(): imgdst.mkdir(parents=True, exist_ok=True)
     counts = 0
-    for frid in range(1, lframe+1):
-        if frid+fframe-1 <= 0: continue
-        oldimg = imgsource / ("rush__"+"%04d"%(frid)+".png")
-        newimg = imgdest / ("rush__"+"%04d"%(frid+fframe-1)+".png")
+    for frid in range(fframe, lframe+1):
+        if frid < sframe: continue
+        oldimg = imgsource / ("frame__"+"%04d"%(frid)+".png")
+        newimg = imgdest / ("frame__"+"%04d"%(frid+fframe-1)+".png")
         print ("oldimg, newimg", oldimg, newimg)
         if overwrite == 0 and os.path.isfile(newimg): continue
         try: os.remove(imgdest+newimg)
@@ -288,6 +296,29 @@ def pngoverwrites (fframe = 1, lframe = 9999, imgsource = Path(), imgdest = Path
             except: pass
             finally: counts = counts + 1
     return counts
+
+# def pngoverwrites (fframe = 1, lframe = 9999, imgsource = Path(), imgdest = Path(), overwrite = 0, action = 'move'):
+    # print ("fframe, lframe, imgsource, imgdest, overwrite", fframe, lframe, imgsource, imgdest, overwrite)
+    # if not os.path.isdir(imgdest): os.mkdir(imgdest)
+    # counts = 0
+    # for frid in range(1, lframe+1):
+        # if frid+fframe-1 <= 0: continue
+        # oldimg = imgsource / ("rush__"+"%04d"%(frid)+".png")
+        # newimg = imgdest / ("rush__"+"%04d"%(frid+fframe-1)+".png")
+        # print ("oldimg, newimg", oldimg, newimg)
+        # if overwrite == 0 and os.path.isfile(newimg): continue
+        # try: os.remove(imgdest+newimg)
+        # except: pass
+        # if not os.path.isfile(oldimg): break
+        # if action == 'move':
+            # try: shutil.move(oldimg, newimg)
+            # except: pass
+            # finally: counts = counts + 1
+        # else:
+            # try: shutil.copy(oldimg, newimg)
+            # except: pass
+            # finally: counts = counts + 1
+    # return counts
 
 def exec_save_story (entparams = [], appsetup = {}, story = ''):
     if entparams[0] == '': return 0
@@ -442,13 +473,6 @@ def exec_fork_project (entparams = [], appsetup = {}):
     os.mkdir(entparams[0]+'rushes')
     os.mkdir(entparams[0]+'rushes/temp')
     return 1
-    
-def showstories (portf_dir_str):
-    retval = ''
-    for file in portf_dir.iterdir():
-        if file.suffix != '.txt': continue
-        retval = retval + file.name + "\n"
-    return retval
 
 def response_textplay (animurl, headers, cuniverse, story, democheck):
     if democheck == 1:
@@ -499,89 +523,5 @@ def exec_pic_delete (entparams = [], appsetup = {}):
         files.unlink()
     return 1
 
-def getchanged (laststory, currstory, change):
-    if change == 0: return 0
-    lastarr = laststory.split("\n")
-    currarr = currstory.split("\n")
-    for ix, lasttx in enumerate(lastarr):
-        if currarr[ix].strip() != lasttx.strip(): return ix
-    return ix
-
-def overwrites (imgdest, frindex, frlast, frixdel):
-    for ix in range(1, frlast-frixdel+1):
-        oimg = "pngs_"+"%04d"%(ix)+".png"
-        nimg = "pngs_"+"%04d"%(ix+frixdel)+".png"
-        os.remove(imgdest+nimg)
-        os.rename(imgdest+'/temp/'+oimg, imgdest+nimg)
-
-def savecoordas (fname, coordstxt, portf_dir_str):
-    portf_dir = Path(portf_dir_str)
-    if fname == '': return 1
-    if not fname.startswith('Y_'):
-        fname = 'Y_' + fname
-    if not fname.endswith('.txt'): fname = fname+'.txt'
-    saveas = portf_dir / 'coords' / fname
-    filejs = {'pixel': json.loads(coordstxt), 'coord': []}
-    filejs['pixel'].append (filejs['pixel'][len(filejs['pixel'])-1])
-    with open(saveas, "w") as lpts: json.dump(filejs, lpts)
-    os.system('ppython p3dcoords.py ' + str(saveas))
-    return 1
-
-def readcoordof (fname, portf_dir_str):
-    fromf = Path(portf_dir_str) / 'coords' / fname
-    with open(fromf) as lpts: filestr = json.load(lpts)
-    return filestr['pixel']
-
-def showscoords (portf_dir_str):
-    retval = ''
-    portf_dir = Path(portf_dir_str) / 'coords'
-    for file in portf_dir.iterdir():
-        if not file.name.startswith('X_') and not file.name.startswith('Y_') and not file.name.startswith('Z_'): continue
-        if file.suffix != '.txt': continue
-        retval = retval + file.name + "\n"
-    return retval
-
-def save3dcoord (fname, portf_dir_str):
-    files = fname.split(',')
-    sourcef, addingf = 'portfolio/coords/'+files[0].strip(), 'portfolio/coords/'+files[1].strip()
-    srcnm, addnm = files[0].strip()[:2], files[1].strip()[:2]
-    print(sourcef, addingf, srcnm, addnm)
-    if srcnm not in ['X_', 'Y_', 'Z_'] or addnm not in ['X_', 'Y_', 'Z_']: return 2
-    with open(sourcef) as lpts: srcdata = json.load(lpts)
-    with open(addingf) as lpts: adddata = json.load(lpts)
-    print("AAA", srcdata, adddata)
-    if srcnm == addnm:
-        srcdata['pixel'].extend(adddata['pixel'])
-        srcdata['coord'].extend(adddata['coord'])
-        with open(sourcef, "w") as lpts: json.dump(srcdata, lpts)
-        return 1
-    f3dlist = []
-    for sx, pt3d in enumerate(srcdata['coord']):
-        if sx < len(adddata['coord']):
-            if srcnm == 'X_': f3dlist.append([adddata['coord'][sx][0], srcdata['coord'][sx][0], srcdata['coord'][sx][1]])
-            if srcnm == 'Y_': f3dlist.append([srcdata['coord'][sx][0], adddata['coord'][sx][0], srcdata['coord'][sx][1]])
-            if srcnm == 'Z_': f3dlist.append([srcdata['coord'][sx][0], srcdata['coord'][sx][0], adddata['coord'][sx][0]])
-        else:
-            if srcnm == 'X_': f3dlist.append([0, srcdata['coord'][sx][0], srcdata['coord'][sx][1]])
-            if srcnm == 'Y_': f3dlist.append([srcdata['coord'][sx][0], 0, srcdata['coord'][sx][1]])
-            if srcnm == 'Z_': f3dlist.append([srcdata['coord'][sx][0], srcdata['coord'][sx][0], 0])
-    f3dfile = 'portfolio/coords/3d__' + files[0].strip()[2:][:4] + "__" + files[1].strip()[2:][:4] + '.txt'
-    print(f3dfile)
-    with open(f3dfile, "w") as lpts: json.dump(f3dlist, lpts)
-    return 1
-
 def logit (logtext, inputlog):
-    if isinstance(inputlog, str):
-        logtext.insert('end', inputlog)
-
-def getlvllists (level = 1, boarditems = {}, sel = 0):
-    retval = []
-    print('se', sel)
-    def getlvllists_1 (boarditems = boarditems):
-        retval = []
-        for items in enumerate(boarditems.keys()):
-            retval.append(items)
-            return retval
-    if level == 1: return getlvllists_1 (boarditems = boarditems)
-    return retval
-        
+    logtext.insert('end', pprint.pformat(inputlog))

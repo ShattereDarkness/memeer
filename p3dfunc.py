@@ -81,9 +81,9 @@ def getposlist (bspec = {}, cspec = {}, fcount = 1, basedir = '.'):
 	#print ("getposlist", retval)
 	return retval
 
-def serialized (cmdlets, rushobjlst, universe = {}, appsetup = {'project': {'folder': '.'}}, fframe = 1, fps = 1, winsize = [10, 10]):
+def serialized (cmdlets, rushobjlst, universe = {}, appsetup = {}, fframe = 1, fps = 1, winsize = [10, 10]):
 	print ("cmdlets, rushobjlst, universe, appsetup, fframe", cmdlets, rushobjlst, universe , appsetup, fframe)
-	basedir = Path(appsetup['project']['folder'])
+	basedir = Path(appsetup['project']['name'])
 	preview = appsetup['project']['preview']
 	frameset = {}
 	lastindx = 1
@@ -100,10 +100,7 @@ def serialized (cmdlets, rushobjlst, universe = {}, appsetup = {'project': {'fol
 		posdet = getposlist (bspec = cmdlet['bspec'], cspec = cmdlet['cspec'], fcount = fcount, basedir = basedir)
 		print ("series input (params and posdet)", cmdlet['params'], posdet)
 		series = globals()[cmdlet['func']] (universe = universe, params = cmdlet['params'], posdet = posdet, frames = cmdlet['frames'], rushobjlst = rushobjlst, basedir = basedir)
-		#print ("series:", series)
 		lastindx = mergeanimation (series = series, frames = cmdlet['frames'], frameset = frameset, lastindx = lastindx)
-	#print ("frameset", frameset)
-	#print ("lastindx", lastindx)
 	animes = {}
 	for frid in range(1, fframe+1):
 		if str(frid) in frameset: animes.setdefault('1', []).extend(frameset[str(frid)])
@@ -111,8 +108,8 @@ def serialized (cmdlets, rushobjlst, universe = {}, appsetup = {'project': {'fol
 		if str(frid) in frameset: animes.setdefault(str(frid - fframe + 1), []).extend(frameset[str(frid)])
 	retval = {'animes': animes, 'fframe': fframe, 'rushobjlst': rushobjlst, 'lastindx': lastindx - fframe + 1,
 				'basedir': str(basedir.stem), 'winsize': winsize, 'fps': fps, 'preview': preview}
-	with open("temp_rushframes.js", "w") as lujs: json.dump(retval, lujs, indent=4)
-	return {'code': 0, 'data': 'temp_rushframes'}
+	with open(basedir/"temp/temp_rushframes.js", "w") as lujs: json.dump(retval, lujs, indent=4)
+	return {'code': 0, 'data': basedir/"temp/temp_rushframes.js"}
 
 def createretval (frames = []):
 	retval = {}

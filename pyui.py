@@ -16,39 +16,28 @@ import tkinter
 import tkinter.filedialog
 from tkinter import ttk
 from tkinter import BOTH, END, LEFT
+from tkinter import messagebox 
+from tkinter.messagebox import showinfo
+import tkinter.scrolledtext as scrolledtext
 
 import json    
 import requests
 import os
 import re
 import pprint
+import time
+from pathlib import Path
+from PIL import ImageTk, Image
 
 import p3dfunc
 import pyback
 import imagings
 import pytkui
-from PIL import ImageTk, Image
-from tkinter import messagebox 
-from tkinter.messagebox import showinfo
-import tkinter.scrolledtext as scrolledtext
 
-import threading
-import time
-
-gappvars = {}
-#gappvars['animurl'] = 'http://localhost:5000/getanim'
-gappvars['imgdest'] = ''
-gappvars['laststory'] = ''
-gappvars['rushes'] = {}
-gappvars['linepos'] = []
-gappvars['logtext'] = []
 projvars = {}
 projvars['animurl'] = 'http://localhost:5000/getanim'
-session = {'coords': [], 'stopact': 0}
-#linux_ffmpeg = 'ffmpeg -pattern_type glob -i "*.png" -c:v libx264 -y -filter:v "setpts=2*PTS"  -pix_fmt yuv420p out.mp4'
-#gappvars['animurl'] = 'http://35.229.114.180:8001/getanim'
+session = {'coords': [], 'stopact': 0, 'logtext': None}
 
-#Make the root widget
 root = tkinter.Tk()
 root.geometry("950x650")
 root.resizable(0,0)
@@ -61,6 +50,7 @@ boarditems = [
     {"Co-ord": [{"Save coords": ["Camera Location (3D)", "Camera Looks at/\nWhiteboard Center", "Name"]}, 
         {"Quick coords": ["Camera Location (3D)", "Camera Looks at/\nWhiteboard Center"]}, {"Open coords": ["Name"]}, 
         {"List coords": ["*NAME LIKE*"]}, {"Merge coords": ["X list file", "Y list file", "Z list file"]}, 
+        {"Screen Coordinates": ["Canvas Size (Wide x Height)", "Camera Location (3D)", "Camera Looks at/\nWhiteboard Center"]},
         {"Transform coords": ["Name", "Canvas Size (Wide x Height)", "Screen Size (Wide x Height)"]}, 
         {"Translate coords": ["Name", "Movement to right", "Movement to bottom"]}]},
     {"Audio/ Video": [{"List Audios": ["*NAME LIKE*"]}, {"List Videos": ["*NAME LIKE*"]}, {"Merge Audio+Video": ["Audio file", "Video file", "Output file"]}]},
@@ -97,9 +87,8 @@ frame_conf = pytkui.addstdframe (nb, "Application Setup")
 appsetup = pyback.getappsetup()
 projvars = appsetup['project']
 sessionv = {}
-uielem = {'conf': {}, 'acts': [], 'objs': [], 'logix': [], 'funcs': []}
-pytkui.appuisetup (appset = appsetup, root =  frame_conf, uiset = uielem['conf'])
-lstoryui = {}
+uielem = {'conf': {}, 'acts': [], 'objs': [], 'logix': []}
+pytkui.appuisetup (appsetup = appsetup, root =  frame_conf, uiset = uielem['conf'])
 
 def key_press(event):
     if event.char in ['0', '1', '2', '3', '4', '5']: nb.select(int(event.char))
@@ -121,15 +110,15 @@ lprocsui = pytkui.procsfuncsetup (frame_procs, projvars = projvars, procsitems =
 
 def frame_acts_save ():
     cacts = pytkui.actsuiread(uiset = uielem['acts'], expand = projvars['expand'])
-    pyback.saveuniv(which = 'actions', what = cacts, where = projvars['folder']+'/universe.js')
+    pyback.saveuniv(which = 'actions', what = cacts, where = projvars['name']+'/universe.js')
 
 def frame_objs_save ():
     cobjs = pytkui.objsuiread(uiset = uielem['objs'])
-    pyback.saveuniv(which = 'objects', what = cobjs, where = projvars['folder']+'/universe.js')
+    pyback.saveuniv(which = 'objects', what = cobjs, where = projvars['name']+'/universe.js')
 
 def frame_logix_save ():
     clogix = pytkui.logixuiread(uiset = uielem['logix'])
-    pyback.saveuniv(which = 'logicals', what = clogix, where = projvars['folder']+'/universe.js')
+    pyback.saveuniv(which = 'logicals', what = clogix, where = projvars['name']+'/universe.js')
 
 def refresh_frame_buttons ():
     frame_size = frame_acts.grid_size()
@@ -146,138 +135,30 @@ def frame_conf_save():
     pytkui.port_conf_save (uielem['conf'], appsetup, univ)
 
 def refresh_full_universe():
-    lportui['acts'] = lportui['objs'] = lportui['logix'] = lportui['funcs'] = []
-    if pyback.checkProject (folder = uielem['conf']['folder'].get()) == 1:
+    uielem['acts'] = uielem['objs'] = uielem['logix'] = []
+    if pyback.checkProject (name = uielem['conf']['name'].get()) == 0:
         UREP = messagebox.askquestion("Create New Project", "The project folder does not exists and would be created.\nAre you sure?")
         if UREP == 'no': return 0
-        else: pyback.createProject (uielem['conf']['folder'].get())
-    pytkui.refresh_universe(uielem = uielem, conf_frames = conf_frames, appsetup = appsetup)
+    projectinfo = pyback.createProject (uielem['conf']['name'].get())
     appsetup = pyback.getappsetup()
-    projvars = appsetup['project']
-    global gappvars
-    gappvars['imgdest'] = pyback.getbasedir(lconf['portf_dir'])+'/rushes/'
+    appsetup['project'] = projectinfo
+    pyback.putappsetup(appsetup)
+    pytkui.refresh_universe(uielem = uielem, conf_frames = conf_frames, appsetup = appsetup)
     refresh_frame_buttons ()
 
 btn_conf_save = ttk.Button(frame_conf, text="Save the configuration\n[Project level info]", command=frame_conf_save)
 btn_conf_save.grid(sticky = 'w', column=4, row=5, rowspan = 3)
-btn_conf_open = ttk.Button(frame_conf, text="     Open Workdir          ", command=refresh_full_universe)
+btn_conf_open = ttk.Button(frame_conf, text="Open/ Refresh this project", command=refresh_full_universe)
 btn_conf_open.grid(sticky = 'w', column=4, row=4)
-gappvars['logtext'] = scrolledtext.ScrolledText(frame_conf, undo=True, width=115, height=25, bg="grey")
-gappvars['logtext'].bind('<1>', lambda event: gappvars['logtext'].focus_set())
-gappvars['logtext'].grid(column=1, row=12, sticky='n', columnspan=6)
-pyback.logit (gappvars['logtext'], "Application logging------------------------------------\n")
-
-def frame_story_story():
-    def settext (text):
-        lstoryui['storybox'].delete('1.0', END)
-        lstoryui['storybox'].insert(1.0, text)
-    selection = lstoryui['storycmb'].get()
-    global gappvars
-    if len (selection) < 2: print ("No execution")
-    elif selection == 'Save Story as ...':
-        fname = lstoryui['storyent'].get()
-        storytxt = lstoryui['storybox'].get("1.0",END)
-        pyback.savestoryas (fname, storytxt, lconf['portf_dir'])
-    elif selection == 'Show Story Lists':
-        filelist = pyback.showstories (lconf['portf_dir'])
-        print (filelist)
-        settext(filelist)
-        gappvars['laststory'] = ''
-    elif selection == 'Show Below Story':
-        fname = re.sub("\n", "", lstoryui['storyent'].get())
-        storytext = pyback.showastory (fname, lconf['portf_dir'])
-        settext(storytext)
-        gappvars['laststory'] = ''
-    return 1
-
-def frame_story_edit():
-    return 1
-
-def getstoryanim (change = 0, dest = '', inprod = 0):
-    global gappvars
-    storytext = lstoryui['storybox'].get("1.0",END)
-    from pathlib import Path
-    portf_dir = Path(lconf['portf_dir'])
-    cacts = pytkui.lactsuiread(lportui['acts'])
-    cobjs = pytkui.lobjsuiread(lportui['objs'])
-    clogix = pytkui.llogixuiread(lportui['logix'])
-    cfuncs = pytkui.lfuncsuiread(lportui['funcs'])
-    cuniv = {'actions': cacts, 'objects': cobjs, 'logicals': clogix, 'functions': cfuncs}
-    animation = pyback.response_textplay (gappvars['animurl'], {'Content-type': 'application/json'}, cuniv, storytext)
-    cline = pyback.getchanged (gappvars['laststory'], storytext, change)
-    serialized = p3dfunc.serialize (universe = cuniv, animation = animation, deserial = cline, portfolio = portf_dir.stem)
-    serialized['inprod'] = str(inprod)
-    if inprod == 1:    serialized['imgdest'] = gappvars['imgdest'] + 'pngs' + lstoryui['mprefix'].get()
-    else: serialized['imgdest'] = gappvars['imgdest'] + dest + 'pngs'
-    with open('serial.js', "w") as lujs: json.dump(serialized, lujs)
-    gappvars['laststory'] = storytext
-    return serialized
-
-def frame_play_prod ():
-    storyanim = getstoryanim (change = 0, dest = '', inprod = 1)
-    os.system('ppython p3dpreview.py')
-    global gappvars
-    for keys in ['frindex', 'frlast', 'frixdel']: gappvars['rushes'][keys] = storyanim[keys]
-    print ("Panda3d Execution completed")
-
-def frame_play_full():
-    storyanim = getstoryanim (change = 0, dest = '')
-    os.system('ppython p3dpreview.py')
-    global gappvars
-    for keys in ['frindex', 'frlast', 'frixdel']: gappvars['rushes'][keys] = storyanim[keys]
-    print ("Panda3d Execution completed")
-
-def frame_play_edit():
-    storyanim = getstoryanim (change = 1, dest = 'temp/')
-    os.system('ppython p3dpreview.py')
-    print ("Panda3d Execution completed")
-    global gappvars
-    for keys in ['frindex', 'frlast', 'frixdel']: gappvars['rushes'][keys] = storyanim[keys]
-    pyback.overwrites (gappvars['imgdest'], storyanim['frindex'], storyanim['frlast'], storyanim['frixdel'])
-
-def frame_stop_pngs():
-    frameat = int(lstoryui['frmatent'].get())
-    global gappvars
-    if 'frindex' not in gappvars['rushes'] or 'frlast' not in gappvars['rushes'] or 'frixdel' not in gappvars['rushes']: return 1
-    if frameat < 1 or frameat > gappvars['rushes']['frlast']: return 1
-    lstoryui['canvas'].delete("all")
-    imgpng = gappvars['imgdest']+'pngs_'+"%04d"%(int(frameat))+".png"
-    image = Image.open(imgpng)
-    image = image.resize((500, 500), Image.ANTIALIAS)
-    root.myimg = myimg = ImageTk.PhotoImage(image)
-    lstoryui['canvas'].create_image((0,0), image=myimg, anchor='nw')
-    lstoryui['canvas'].update()
-
-def frame_point_exec():
-    def settext (text):
-        lstoryui['coordbox'].delete('1.0', END)
-        lstoryui['coordbox'].insert(1.0, text)
-    selection = lstoryui['coordcmb'].get()
-    if selection == 'Save coords as':
-        fname = lstoryui['coordent'].get()
-        coordstxt = lstoryui['coordbox'].get("1.0",END)
-        pyback.savecoordas (fname, coordstxt, lconf['portf_dir'])
-        gappvars['linepos'] = []
-        lstoryui['coordbox'].delete('1.0', END)
-    elif selection == 'Load/Trace Below coords':
-        fname = lstoryui['coordent'].get()
-        coords = pyback.readcoordof (fname, lconf['portf_dir'])
-        for ix in range(0, len(coords)-1):
-            lstoryui['canvas'].create_line((coords[ix][0], coords[ix][1], coords[ix+1][0], coords[ix+1][1]))
-            settext(pprint.pformat(coords, indent=2))
-    elif selection == 'Show coords Lists':
-        filelist = pyback.showscoords (lconf['portf_dir'])
-        settext(filelist)
-    elif selection == 'Merge coords with':
-        xcoords = lstoryui['coordbox'].get("1.0",END)
-        fname = lstoryui['coordent'].get()
-        pyback.save3dcoord (fname, lconf['portf_dir'])
-    print(gappvars['linepos'])
+appsetup['logtext'] = scrolledtext.ScrolledText(frame_conf, undo=True, width=115, height=25, bg="grey")
+appsetup['logtext'].bind('<1>', lambda event: appsetup['logtext'].focus_set())
+appsetup['logtext'].grid(column=1, row=12, sticky='n', columnspan=6)
+pyback.logit (appsetup['logtext'], "Application logging------------------------------------")
 
 def exec_play_frame (entparams = [], appsetup = {}, uielem = {}):
     session['stopact'] = 0
     params = pyback.framerunparams (entparams = entparams, appsetup = appsetup)
-    imgdest = appsetup['project']['folder']+'/rushes/'
+    imgdest = appsetup['project']['name']+'/rushes/'
     print ("params", params)
     for frid in range(params['fromfr'], params['tillfr']+1):
         print ("frid", frid)
