@@ -3,11 +3,11 @@
     "secrettxt": "6bef18936ac12a9096e9fe7a8fe1f777ww",
     "democheck": 0,
     "project": {
-        "name": "demo",
-        "winsize": "900x600",
+        "name": "scase001",
+        "winsize": "1280,720",
         "preview": 1,
-        "fps": "48",
-        "detail": "Basic default environment for user ABCDEFGH12345678qwq",
+        "fps": "24",
+        "detail": "Universe from template",
         "expand": 1,
         "canvas": "500x500"
     },

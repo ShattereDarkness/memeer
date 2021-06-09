@@ -196,7 +196,7 @@ def procsfuncsetup (lprocs, projvars = {}, procsitems = []):
     paramlen = 10
     def processfunc(event):
         fncix = flist.current()
-        gifnm = tkinter.PhotoImage(file = 'imgs/earth.gif') #procsitems[fncix]['descimage'])
+        gifnm = tkinter.PhotoImage(file = procsitems[fncix]['descimage'])
         descimg.create_image (0, 0, image = gifnm, anchor='nw')
         for ix in range(0, paramlen):
             param_ent[ix]['label'].grid_remove()
@@ -208,6 +208,12 @@ def procsfuncsetup (lprocs, projvars = {}, procsitems = []):
             param_ent[ix]['entry'].grid()
             modifyentry(entry_elem = param_ent[ix]['entry'], text = '')
             param_ent[ix]['label'].config(text = procsitems[fncix]['params'][ix])
+        if 'additional' in procsitems[fncix]:
+            lastlen = len(procsitems[fncix]['params'])
+            param_ent[lastlen]['label'].grid()
+            param_ent[lastlen]['entry'].grid()
+            modifyentry(entry_elem = param_ent[lastlen]['entry'], text = procsitems[fncix]['additional'])
+            param_ent[lastlen]['label'].config(text = 'Additional parameters for processing: check help for use')
     pitems = []
     for item in procsitems:
         pitems.append(item['fname'] + ": " + item['text'])
@@ -222,7 +228,7 @@ def procsfuncsetup (lprocs, projvars = {}, procsitems = []):
         rowid = 2*ix+1
         plabel = ttk.Label(lprocs, text='Not needed')
         plabel.grid(column=2, row=rowid+1, sticky='nw')
-        pentry = newentry(framep=lprocs, width=20, col=2, row=rowid+2, text='', sticky = 'ne')
+        pentry = newentry(framep=lprocs, width=50, col=2, row=rowid+2, text='', sticky = 'ne')
         param_ent.append({'entry': pentry, 'label': plabel})
     lprocsui = {'flist': flist, 'param_ent': param_ent}
     return lprocsui

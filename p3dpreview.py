@@ -47,10 +47,10 @@ def moveObject (modid = 0, pos = [0, 0, 0, 0, 0, 0, 1, 1, 1]):
     model.setScale(float(pos[6]), float(pos[7]), float(pos[8]))
     return 1
 
-def poseObject (modid = 0, action = '', poseid = 1):
+def poseObject (modid = 0, action = '', poseid = 1, bpart = ''):
     model = rushobjlst[modid]['p3dmod']
-    if 'bpart' not in rushobjlst[modid]: model.pose (action, poseid)
-    else: model.pose (action, poseid, partName = rushobjlst[modid]['bpart'])
+    if bpart == '': model.pose (action, poseid)
+    else: model.pose (action, poseid, partName = bpart)
     return 1
 
 def linesegObj (modid = 0, pfrom = [0, 0, 0], pupto = [0, 0, 0]):
@@ -85,7 +85,7 @@ def defaultTask(task):
     for anim in  anims:
         if anim['what'] == 'loadobj': loadObject (modid = anim['model'], fullanim = anim)
         if anim['what'] == 'moveobj': moveObject (modid = anim['model'], pos = anim['pos'])
-        if anim['what'] == 'poseobj': poseObject (modid = anim['model'], action = anim['action'], poseid = anim['poseid'])
+        if anim['what'] == 'poseobj': poseObject (modid = anim['model'], action = anim['action'], poseid = anim['poseid'], bpart = anim['bpart'])
         if anim['what'] == 'lineseg': linesegObj (modid = anim['model'], pfrom = anim['from'], pupto = anim['upto'])
     return Task.cont
 

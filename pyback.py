@@ -6,6 +6,7 @@ import re
 import shutil
 import p3dfunc
 import subprocess
+from itertools import chain
 
 import requests
 appfile = 'appsetup.js'
@@ -79,8 +80,8 @@ def check2files (path1=Path('.'), path2=Path('.'), fstem='', suffix1='', suffix2
 def getpermissiblefps (*args):
     print (f"getpermissiblefps:\n\targs{args}")
     for val in args:
-        if isinstance(val, int): return val
-        if isinstance(val, dict) and 'fps' in val and isinstance(val['fps'], int): return val['fps']
+        if isinstance(val, int) and val > 0: return val
+        if isinstance(val, dict) and 'fps' in val and isinstance(val['fps'], int) and val['fps']> 0: return val['fps']
     return 24
 
 def create_movie_frames (ifile = Path(), folder = Path(), owrite = 0):
@@ -104,8 +105,8 @@ def create_movie_frames (ifile = Path(), folder = Path(), owrite = 0):
     os.system(audiocmd)
     return retval
 
-def create_media_p3dmodel (ifile = Path(), name = '', owrite = 0, appsetup = {}):
-    print (f"create_media_p3dmodel:\n\tifile={ifile}\n\tname={name}\n\towrite={owrite}\n\tappsetup={appsetup}")
+def create_media_p3dmodel (ifile = Path(), owrite = 0, appsetup = {}, fps = -1):
+    print (f"create_media_p3dmodel:\n\tifile={ifile}\n\towrite={owrite}\n\tappsetup={appsetup}")
     retval = {'msg': '', 'param': {}}
     projdir = Path(appsetup['project']['name'])
     eggfile = projdir / 'model' / (ifile.stem+'.egg')
@@ -116,14 +117,15 @@ def create_media_p3dmodel (ifile = Path(), name = '', owrite = 0, appsetup = {})
         if not newfile.exists() or (newfile.exists() and owrite == 1):
             shutil.copy(ifile, newfile)
         ifile = newfile
-    asmovie = 0
+    asmovie = ifile.is_dir()
+    cmf = None
     if ifile.suffix in appsetup['movies']:
         existf = {'vid': projdir/'media'/ifile.stem, 'aud': projdir/'audio'/ifile.stem}
         cmf = create_movie_frames (ifile = ifile, folder = existf, owrite = owrite)
         asmovie = 1
     errorinnamecorrection = ifile.stem.replace(' ', '?')
     if asmovie == 1:
-        fps = getpermissiblefps (cmf, appsetup, 30)
+        fps = getpermissiblefps (cmf, fps, appsetup, 30)
         cmdstr = "egg-texture-cards -o \"" + ifile.stem + ".egg\" -fps "+str(fps)+" ../media/" + errorinnamecorrection + "/*.png"
     else: cmdstr = "egg-texture-cards -o \"" + ifile.stem + ".egg\" ../media/" + errorinnamecorrection + ifile.suffix
     print (f"create_media_p3dmodel: cmdstr={cmdstr}")
@@ -142,7 +144,7 @@ def getUniverseData (name =  '', appsetup = {}):
     universe = projdir / 'universe.js'
     with universe.open('r') as univjs: univ = json.load(univjs)
     if 'namedetail' not in univ or univ['namedetail'] == '':
-        univ['namedetail'] = 'Basic environment for create at '+appset['project']['name']+'. Self initialized'
+        univ['namedetail'] = 'Basic environment for create at '+appsetup['project']['name']+'. Self initialized'
     model_dir = projdir / 'model'
     action_dir = model_dir / 'action'
     media_dir = projdir / 'media'
@@ -154,21 +156,25 @@ def getUniverseData (name =  '', appsetup = {}):
         create_media_p3dmodel (ifile = mfile, owrite = 0, appsetup = appsetup)
     univobjects = []
     for muniv in univ['objects']:
-        if (model_dir / (muniv['file']+".egg")).exists(): univobjects.append(muniv)
+        if (model_dir / (muniv['file'])).exists(): univobjects.append(muniv)
     univ['objects'] = univobjects
-    for mfile in model_dir.glob('*.egg'):
-        if len(list(filter(lambda x : x['file'] == mfile.stem, univ['objects']))) > 0: continue
-        univ['objects'].append({'syns': [mfile.stem], 'move': defaultmove, 'jjrb': [], 'acts': {}, 'joint': '', 'file': mfile.stem})
+    for mfile in chain(model_dir.glob('*.egg'), model_dir.glob('*.bam'), model_dir.glob('*.gltf')):
+        if len(list(filter(lambda x : x['file'] == mfile.name, univ['objects']))) > 0: continue
+        univ['objects'].append({'syns': [mfile.stem], 'move': defaultmove, 'jjrb': [], 'acts': {}, 'joint': '', 'file': mfile.name})
     for commact in ['move', 'locate', 'generate', 'draw', 'vanish', 'remove']:
         if len(list(filter(lambda x : x['func'] == commact, univ['actions']))) == 0:
             univ['actions'].append({"func": commact, "syns": [commact],"jjrb": []})
-    for afile in action_dir.glob('*.egg'):
+    for afile in chain(action_dir.glob('*.egg'), action_dir.glob('*.bam')):
+        print ("afile", afile)
         actor, anime = afile.stem.split ('__', 1)
-        if len(list(filter(lambda x : x['file'] == actor, univ['objects']))) == 0: continue
+        actorfile = [actor+'.egg', actor+'.bam']
+        if len(list(filter(lambda x : actor in x['syns'], univ['objects']))) == 0: continue
         if len(list(filter(lambda x : x['func'] == anime, univ['actions']))) == 0:
             univ['actions'].append({'jjrb': [], 'syns': [anime], 'func': anime, 'show': 1})
-        mobject = list(filter(lambda x : x['file'] == actor, univ['objects']))[0]
-        if anime not in mobject['acts']:
+        mobjects = list(filter(lambda x : actor in x['syns'], univ['objects']))
+        print ("mobjects and anime: ", mobjects, anime)
+        for mobject in mobjects:
+            if anime in mobject['acts']: continue
             mobject['acts'][anime] = {"fstart": 1, "flast": -1}
     if 'logicals' not in univ: univ['logicals'] = []
     if 'projectinfo' not in univ: univ['projectinfo'] = appsetup['project']
@@ -246,8 +252,9 @@ def updateuniverseforsend (universe = {}, appsetup = {}):
 def getscreensize (text, w, h):
     try:
         winsize = text.replace('X', 'x')
-        scrwide = list(map(int, winsize.split('x')))[0]
-        scrhigh = list(map(int, winsize.split('x')))[1]
+        winsize = text.replace('x', ',')
+        scrwide = list(map(int, winsize.split(',')))[0]
+        scrhigh = list(map(int, winsize.split(',')))[1]
         if scrwide * scrhigh < 20: return w, h
         else: return scrwide, scrhigh
     except: return w, h
@@ -269,56 +276,34 @@ def exec_play_story (entparams = [], appsetup = {}, universe = {}, story = ''):
     nlu = response_textplay (appsetup['meemerurl'], {'Content-type': 'application/json'}, universe, p3dfunc.storyparse(story), appsetup['democheck'])
     serialized = p3dfunc.serialized (nlu['cmdlets'], nlu['rushobjlst'], universe = universe, appsetup = appsetup, fframe = fframe, fps = fps, winsize = [scrwide, scrhigh])
     os.system('ppython p3dpreview.py ' + str(serialized["data"]))
-    imgsource = Path(appsetup['project']['name']) / 'rushes' / 'temp/'
-    imgdest = Path(appsetup['project']['name']) / 'rushes'
-    pngoverwrites (fframe = fframe, overwrite = 1, imgsource = imgsource, imgdest = imgdest)
+    imgsrc = Path(appsetup['project']['name']) / 'rushes' / 'temp/'
+    imgdst = Path(appsetup['project']['name']) / 'rushes'
+    png_overwrites (csframe = 1, tdframe = 1, clframe = 999999, imgsrc = imgsrc, imgdst = imgdst, owrite = 1, action = ['move', 'refresh'])
     return {'code': 0, 'data': 'temp_rushframes'}
 
-def png_overwrites (sframe = 1, fframe = 1, lframe = 999999, imgsrc = Path(), imgdst = Path(), owrite = 0, action = 'move'):
-    print (f"pngoverwrites:\n\tsframe={sframe}\n\tfframe={fframe}\n\tlframe={lframe}\n\timgsrc={imgsrc}\n\timgdst={imgdst}\n\towrite={owrite}\n\taction={action}")
+def png_overwrites (csframe = 1, tdframe = 0, clframe = 999999, imgsrc = Path(), imgdst = Path(), owrite = 0, action = ['append', 'copy']):
+    print (f"png_overwrites:\n\tcsframe={csframe}\n\ttdframe={tdframe}\n\tclframe={clframe}\n\timgsrc={imgsrc}\n\timgdst={imgdst}\n\towrite={owrite}\n\taction={action}")
     if not imgdst.is_dir(): imgdst.mkdir(parents=True, exist_ok=True)
     counts = 0
-    for frid in range(fframe, lframe+1):
-        if frid < sframe: continue
-        oldimg = imgsource / ("frame__"+"%04d"%(frid)+".png")
-        newimg = imgdest / ("frame__"+"%04d"%(frid+fframe-1)+".png")
-        print ("oldimg, newimg", oldimg, newimg)
-        if overwrite == 0 and os.path.isfile(newimg): continue
-        try: os.remove(imgdest+newimg)
-        except: pass
-        if not os.path.isfile(oldimg): break
-        if action == 'move':
-            try: shutil.move(oldimg, newimg)
-            except: pass
-            finally: counts = counts + 1
-        else:
-            try: shutil.copy(oldimg, newimg)
-            except: pass
-            finally: counts = counts + 1
+    if 'append' in action:
+        for frid in range(csframe, clframe+1):
+            oldimg = imgsrc / ("frame__"+"%06d"%(frid)+".png")
+            if oldimg.is_file(): tdframe = -1*frid
+    for frid in range(csframe, clframe+1):
+        if frid < csframe: continue
+        oldimg = imgsrc / ("frame__"+"%06d"%(frid)+".png")
+        newimg = imgdst / ("frame__"+"%06d"%(frid-tdframe)+".png")
+        if not oldimg.is_file(): break
+        if newimg.exists() and owrite == 1: newimg.unlink()
+        if owrite == 0 and newimg.is_file(): continue
+        shutil.copy(oldimg, newimg)
+        if action == 'move': oldimg.unlink()
+        counts = counts + 1
+    if 'refresh' in action:
+        for frid in range(fframe, clframe+1):
+            oldimg = imgsrc / ("frame__"+"%06d"%(frid)+".png")
+            oldimg.unlink()
     return counts
-
-# def pngoverwrites (fframe = 1, lframe = 9999, imgsource = Path(), imgdest = Path(), overwrite = 0, action = 'move'):
-    # print ("fframe, lframe, imgsource, imgdest, overwrite", fframe, lframe, imgsource, imgdest, overwrite)
-    # if not os.path.isdir(imgdest): os.mkdir(imgdest)
-    # counts = 0
-    # for frid in range(1, lframe+1):
-        # if frid+fframe-1 <= 0: continue
-        # oldimg = imgsource / ("rush__"+"%04d"%(frid)+".png")
-        # newimg = imgdest / ("rush__"+"%04d"%(frid+fframe-1)+".png")
-        # print ("oldimg, newimg", oldimg, newimg)
-        # if overwrite == 0 and os.path.isfile(newimg): continue
-        # try: os.remove(imgdest+newimg)
-        # except: pass
-        # if not os.path.isfile(oldimg): break
-        # if action == 'move':
-            # try: shutil.move(oldimg, newimg)
-            # except: pass
-            # finally: counts = counts + 1
-        # else:
-            # try: shutil.copy(oldimg, newimg)
-            # except: pass
-            # finally: counts = counts + 1
-    # return counts
 
 def exec_save_story (entparams = [], appsetup = {}, story = ''):
     if entparams[0] == '': return 0
@@ -450,6 +435,14 @@ def exec_translate_coords (entparams = [], appsetup = {}):
     nfile = 'Tl_' + entparams[0]
     exec_save_coords (entparams = ['', '', nfile], appsetup = appsetup, coord = str(npixels), revert = 0, addxtra = {'tlate': entparams})
     set_multifile_coords (file = nfile, appsetup = appsetup, addlogic = 0)
+
+def exec_screen_coords (entparams = [], appsetup = {}):
+    if entparams[0] == '': entparams[0] = appsetup['project']['winsize']
+    if entparams[1] == '': entparams[1] = '0, -120, 0'
+    if entparams[2] == '': entparams[2] = '0, 0, 0'
+    cmdstr = "python p3dlimits.py \""+str(entparams[2])+"\" \""+str(entparams[1])+"\" \""+str(entparams[0])+"\""
+    retval = (subprocess.run(cmdstr, capture_output=True)).stdout.decode('unicode_escape')
+    return retval
 
 def exec_save_merge (entparams = [], appsetup = {}):
     for ix in range(0,3):

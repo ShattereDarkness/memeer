@@ -48,34 +48,37 @@ boarditems = [
     {"Current rush": [{"Play story": ["FPS", "Screen Size (Wide x Height)", "Play from frame#"]}, {"Replay frames": ["From frame#", "Upto frame#", "FPS"]}, {"Export video": ["Name of video", "FPS", "Frames range"]}, {"Delete rush frames": []}]},
     {"Story": [{"Save story": ["Name"]}, {"Open story": ["Name"]}, {"List stories": ["*NAME LIKE*"]}]},
     {"Co-ord": [{"Save coords": ["Camera Location (3D)", "Camera Looks at/\nWhiteboard Center", "Name"]}, 
-        {"Quick coords": ["Camera Location (3D)", "Camera Looks at/\nWhiteboard Center"]}, {"Open coords": ["Name"]}, 
+        {"Quick coords": ["Camera Location (3D)", "Camera Looks at/\n(Whiteboard Center)"]}, {"Open coords": ["Name"]}, 
         {"List coords": ["*NAME LIKE*"]}, {"Merge coords": ["X list file", "Y list file", "Z list file"]}, 
         {"Screen Coordinates": ["Canvas Size (Wide x Height)", "Camera Location (3D)", "Camera Looks at/\nWhiteboard Center"]},
         {"Transform coords": ["Name", "Canvas Size (Wide x Height)", "Screen Size (Wide x Height)"]}, 
-        {"Translate coords": ["Name", "Movement to right", "Movement to bottom"]}]},
+        {"Translate coords": ["Name", "Movement to right", "Movement to bottom"]},
+        {"Get Screen Coordinates": ["Screen Size (Wide x Height)", "Camera Location (3D)", "Camera Looks at/\n(Whiteboard Center)"]}]},
     {"Audio/ Video": [{"List Audios": ["*NAME LIKE*"]}, {"List Videos": ["*NAME LIKE*"]}, {"Merge Audio+Video": ["Audio file", "Video file", "Output file"]}]},
     {"Project": [{"Fork project": ["Name"]}, {"Go Supernova!": []}]}
 ]
 
 procsitems = [
-       { "fname": "AddAudio", "text": "Add audio upon existing video file", "descimage": "earth.png",
-        "params": ["Video file (with/ without existing audio)", "Name of the audio file to be appended", "Starting time for the audio to be included", "Length of the audio file to addup", "Output file (blank for same video file)"]
-    }, {
-        "fname": "GetContours", "text": "Get image coordinates for doodling", "descimage": "earth.png" ,
-        "params": ["Input image file", "Output file name (image & coordinates", "Camera Location (3D)", "Camera Looks at/ Whiteboard Center"]
-    }, {"fname": "Manipulation", "text": "Basic image manipulation functions", "descimage": "earth.png" ,
+       { "fname": "Audio", "text": "Add audio upon existing video file", "descimage": "imgs/icon.png" ,
+        "params": ["Video file (with/ without existing audio)", "Name of the audio file to be appended", "Starting time for the audio (in milliseconds)", "Length of the audio file to addup", "Output file (blank for same video file)"]
+    }, {"fname": "MediaCreate", "text": "Make text image/video", "descimage": "imgs/icon.png" ,
+        "params": ["File name", "Text", "Font name", "Font size", "As characterwise movie?"],
+        "additional": "'color': (1, 1, 1, 255), 'spacing': 4"
+    }, {"fname": "ModelCreate", "text": "Make Panda3d model for an image/video", "descimage": "imgs/icon.png" ,
+        "params": ["Input file/folder", "Frames range", "FPS"]
+    }, {"fname": "Transform", "text": "Get image coordinates for doodling", "descimage": "imgs/icon.png" ,
+        "params": ["Input image/s", "Output file name of image & coordinates", "Camera Location (3D)", "Camera Looks at/ Whiteboard Center"]
+    }, {"fname": "Manipulate", "text": "Basic image manipulation functions", "descimage": "imgs/icon.png" ,
         "params": ["Input image file", "New name for image", "Resize (Percentage)", "param3"]
-    }, {"fname": "Manipulation", "text": "Advanced image manipulation - Remove background", "descimage": "earth.png" ,
+    }, {"fname": "Manipulation", "text": "Advanced image manipulation - Remove background", "descimage": "imgs/icon.png" ,
         "params": ["Input file (image or gif)", "Output file name (REPLACE?)", "Color to remove/ Removal method", "Additional parameters"]
-    }, {"fname": "MovieCreate", "text": "Make a movie from existing rush frames", "descimage": "earth.png" ,
+    }, {"fname": "MovieCreate", "text": "Make a movie from existing rush frames", "descimage": "imgs/icon.png" ,
         "params": ["First frame", "Last Frame", "Output movie name", "To be reused (default YES)"]
-    }, {"fname": "MovieCreate", "text": "Make a transparent gif from existing rush frames", "descimage": "earth.png" ,
+    }, {"fname": "MovieCreate", "text": "Make a transparent gif from existing rush frames", "descimage": "imgs/icon.png" ,
         "params": ["Final image frame", "Start frame", "Last Frame", "Output movie name"]
-    }, {"fname": "MovieCreate", "text": "Remove blue/ green screen from existing rushes", "descimage": "earth.png" ,
-        "params": ["Start frame", "Last Frame", "Output movie name", "Color to remove\n(Red/Green/Blue/Yellow)"]
-    }, {"fname": "ImageCreate", "text": "Make text image", "descimage": "earth.png" ,
-        "params": ["File name", "Text", "Font name", "Font size"]
-    }, {"fname": "Release", "text": "Prepare stage for release", "descimage": "earth.png" ,
+    }, {"fname": "MovieCreate", "text": "Remove blue/ green screen from existing rushes", "descimage": "imgs/icon.png" ,
+        "params": ["Start frame", "Last Frame", "Output movie name", "Color to remove (Red/Green/Blue/Yellow)"]
+    }, {"fname": "Release", "text": "Prepare stage for release", "descimage": "imgs/icon.png" ,
         "params": ["Movie folder names", "Output Stage Name"]
     }
 ]
@@ -113,7 +116,9 @@ def frame_acts_save ():
     pyback.saveuniv(which = 'actions', what = cacts, where = projvars['name']+'/universe.js')
 
 def frame_objs_save ():
+    print ("i am in")
     cobjs = pytkui.objsuiread(uiset = uielem['objs'])
+    print ("cobjs", cobjs)
     pyback.saveuniv(which = 'objects', what = cobjs, where = projvars['name']+'/universe.js')
 
 def frame_logix_save ():
@@ -150,10 +155,10 @@ btn_conf_save = ttk.Button(frame_conf, text="Save the configuration\n[Project le
 btn_conf_save.grid(sticky = 'w', column=4, row=5, rowspan = 3)
 btn_conf_open = ttk.Button(frame_conf, text="Open/ Refresh this project", command=refresh_full_universe)
 btn_conf_open.grid(sticky = 'w', column=4, row=4)
-appsetup['logtext'] = scrolledtext.ScrolledText(frame_conf, undo=True, width=115, height=25, bg="grey")
-appsetup['logtext'].bind('<1>', lambda event: appsetup['logtext'].focus_set())
-appsetup['logtext'].grid(column=1, row=12, sticky='n', columnspan=6)
-pyback.logit (appsetup['logtext'], "Application logging------------------------------------")
+session['logtext'] = scrolledtext.ScrolledText(frame_conf, undo=True, width=115, height=25, bg="grey")
+session['logtext'].bind('<1>', lambda event: appsetup['logtext'].focus_set())
+session['logtext'].grid(column=1, row=12, sticky='n', columnspan=6)
+pyback.logit (session['logtext'], "Application logging------------------------------------")
 
 def exec_play_frame (entparams = [], appsetup = {}, uielem = {}):
     session['stopact'] = 0
@@ -231,6 +236,12 @@ def frame_story_cmd ():
         retv = pyback.exec_transform_coords (entparams = entparams, appsetup = appsetup)
     if option1.lower() == "Co-ord".lower() and option2.lower() == "Translate coords".lower():
         retv = pyback.exec_translate_coords (entparams = entparams, appsetup = appsetup)
+    if option1.lower() == "Co-ord".lower() and option2.lower() == "Get Screen Coordinates".lower():
+        retv = pyback.exec_screen_coords (entparams = entparams, appsetup = appsetup)
+        UREP = messagebox.askquestion("Visible screen limits/ coordniates", retv + "\n\nCopy to clipboard?")
+        if UREP == 'yes':
+            root.clipboard_clear()
+            root.clipboard_append(retv)
     if option1.lower() == "Audio/ Video".lower() and option2.lower() == "List Audios".lower():
         retv = pyback.exec_list_filesets (entparams = entparams, appsetup = appsetup, folder = 'coords', suffix = ['.aac', '.mp3'])
         lstoryui['coordbox'].delete('1.0', END)
@@ -261,6 +272,10 @@ def frame_procs_cmd ():
     print ("entparams", entparams)
     if fncix == 'AddAudio: Add audio upon existing video file':
         retv = imagings.addaudiotovideo (videoentparams)
+    if fncix == 'MediaCreate: Make text image/video':
+        retv = imagings.ui_text_image_creation (entparams = entparams, appsetup = appsetup)
+    if fncix == 'ModelCreate: Make Panda3d model for an image/video':
+        retv = imagings.ui_p3dmodel_creation (entparams = entparams, appsetup = appsetup)
     if fncix == 'GetContours: Get image coordinates for doodling':
         retv = imagings.ui_find_image_contours (entparams = entparams, appsetup = appsetup)
     if fncix == 'Manipulation: Basic image manipulation functions':
@@ -273,8 +288,6 @@ def frame_procs_cmd ():
         retv = imagings.ui_transparent_movie_creation (entparams = entparams, appsetup = appsetup)
     if fncix == 'MovieCreate: Remove blue/ green screen from existing rushes':
         retv = imagings.ui_remove_background_movie (entparams = entparams, appsetup = appsetup)
-    if fncix == 'ImageCreate: Make text image':
-        retv = imagings.ui_text_image_creation (entparams = entparams, appsetup = appsetup)
     if fncix == 'Release: Prepare stage for release':
         retv = imagings.ui_prepare_stage (entparams = entparams, appsetup = appsetup)
     return 1

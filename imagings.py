@@ -9,22 +9,161 @@ import os
 import matplotlib.font_manager
 import numpy
 import random
+import math
 
 import json
 import pyback
 import copy
 import shutil
+import time
+import ast
 
-def ui_addaudiotovideo (params):
-    if params[2] == '': params[2] = '00:00:10'
-    if params[4] == '': params[4] = params[0]
-    rval = f_add_audio_video_timewise (vfile = params[0], afile = params[1], startt = params[2], tlen = params[3], outfile = params[4])
-    return rval
+yes_synos = ['y', 'yea', 'yeah', 'yo', 'yes', 'aye', 'aaye', 'ya', 'yup', 'yaap']
+nah_synos = ['n', 'no', 'nop', 'nope', 'nay', 'ei', 'not']
+def_imgsize = (2000, 2000)
 
+def confirm_file (filestr, ftype = 'video', fback = '', appsetup = {}, isnew = 0):
+    print (f"confirm_file:\n\tfilestr={filestr}\n\tftype={ftype}\n\tfback={fback}\n\tisnew={isnew}")
+    if isnew == 1 and filestr == '' and fback != '':
+        if (ftype != 'folder' and fback.suffix != '') or (ftype == 'folder'):
+            nfile = Path(appsetup['project']['name']) / 'temp' / 'tempcreation_'+time.time()+fback.suffix
+            return nfile, []
+    elif isnew == 0 and filestr != '':
+        nfile = Path(appsetup['project']['name']) / filestr
+        if (ftype != 'folder' and nfile.is_file()) or (ftype == 'folder' and nfile.is_dir()): return nfile, []
+    elif isnew == 1 and filestr != '':
+        nfile = Path(appsetup['project']['name']) / filestr
+        if nfile.suffix == '' and ftype == 'model': nfile = Path(appsetup['project']['name']) / (filestr+'.egg')
+        if nfile.suffix == '' and ftype == 'image': nfile = Path(appsetup['project']['name']) / (filestr+'.png')
+        if nfile.suffix == '' and ftype == 'video': nfile = Path(appsetup['project']['name']) / (filestr+'.mp4')
+        if nfile.parent == appsetup['project']['name']:
+            if ftype in ['video', 'image']: nfile = Path(appsetup['project']['name']) / 'video' / filestr
+            if ftype == 'model': nfile = Path(appsetup['project']['name']) / 'model' / filestr
+            if nfile.is_file():
+                fnfile = Path(nfile.parent) / nfile.stem+time.time()+nfile.suffix
+                return fnfile, ['WARNING', "The file mentioned already exists, new file name have been changed"]
+        else: return nfile, []
+    return '', []
+
+def parse_additionals (strtext = ''):
+    if strtext == '': return {}
+    try: return ast.literal_eval('{' + strtext + '}')
+    except: return {}
+
+def check_system_fonts (fontlike = '', fontsize = 16):
+    '''Returns the font file for the given name - best match for the name'''
+    if fontlike == '':
+        ffont = ImageFont.load_default()
+        return ffont
+    inputt = fontlike.lower().split(' ')
+    flist = matplotlib.font_manager.findSystemFonts(fontpaths=None, fontext='ttf')
+    maxmatch = 0
+    exptdfname = ''
+    for fname in flist:
+        fontname = matplotlib.font_manager.FontProperties(fname=fname).get_name()
+        fontpath = Path(fname)
+        if fontname == fontlike or fontpath.stem.lower() == fontlike:
+            exptdfname = fname
+            break
+        names = fontname.lower().split(' ') + [fontpath.stem.lower()]
+        match = len(list(set(names) & set(inputt)))
+        if match > maxmatch:
+            exptdfname = fname
+            maxmatch = match
+    if exptdfname == '': ffont = ImageFont.load_default()
+    else: ffont = ImageFont.truetype(exptdfname, fontsize)
+    return ffont
+
+def ui_addaudiotovideo (entparams = [], appsetup = {}):
+    print (f"ui_addaudiotovideo:\n\tentparams={entparams}\n\tappsetup={appsetup}")
+    vidfile, _X = confirm_file (entparams[0], ftype = 'video', appsetup = appsetup, isnew = 0)
+    audfile, _X = confirm_file (entparams[1], ftype = 'audio', isnew = 0)
+    vistart = pyback.forceint(entparams[2], 0)
+    austart = pyback.forceint(entparams[3], 0)
+    alength = pyback.forceint(entparams[4], -1)
+    outfile, _X = confirm_file (entparams[5], ftype = 'video', fback = 'tempcreation_'+str(time.time())+vidfile.suffix, isnew = 1)
+    if vidfile == '' or audfile == '' or outfile == '': return ['ERROR', 'The command could not be executed as files are not found']
+    if austart != 0:
+        newaudfile = Path(audfile.parent) / (vidfile.stem+"__"+str(austart)+vidfile.suffix)
+        cmdstr = f"ffmpeg -i {audfile} -ss {austart} -to {austart+alength} -c copy -y {newaudfile}"
+        audfile = newaudfile
+    cmdstr = f"ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 {vidfile}"
+    audcod = (subprocess.run(cmdstr, capture_output=True)).stdout.decode('unicode_escape')
+    if audcod == '':
+        cmdstr = f"ffmpeg -i {vidfile} -itsoffset {vistart} -t {vistart+alength} -i {audfile} -map 0:v:0 -map 1:a:0 -async 1 -y {outfile}"
+    else:
+        cmdstr = f"ffmpeg -i {vidfile} -itsoffset {vistart} -t {vistart+alength} -i {audfile}  -filter_complex amix -map 0:v -map 0:a -map 1:a -async 1 -y {outfile}"
+    try: os.system(cmdstr)
+    except: return ['ERROR', 'The command could not be executed!']
+    if outfile.parent == 'temp':
+        vidfile.rename(Path(vidfile.parent) / (vidfile.stem+int(time.time())+vidfile.suffix))
+        outfile.rename(vidfile)
+    return []
+
+def ui_text_image_creation (entparams = [], appsetup = {}):
+    print (f"ui_text_image_creation:\n\tentparams={entparams}\n\tappsetup={appsetup}")
+    is_single = 1
+    if entparams[4].lower() in yes_synos:
+        imgfile, _Xtra = confirm_file (entparams[0], ftype = 'folder', appsetup = appsetup, isnew = 1)
+        imgfile.mkdir()
+        is_single = 0
+    else: imgfile, _Xtra = confirm_file (entparams[0], ftype = 'image', appsetup = appsetup, isnew = 1)
+    textstr = entparams[1]
+    ffont = check_system_fonts (fontlike = entparams[2], fontsize = pyback.forceint (entparams[3], 16))
+    if imgfile == '' or textstr == '': return ['ERROR', 'Image file or text string is invalid']
+    paramadd = parse_additionals (strtext = entparams[5])
+    imgsize = def_imgsize
+    print ("ffont", ffont)
+    if is_single == 1:
+        create_image_fortext (file = imgfile, imgsize=imgsize, text = textstr, font = ffont, paramadd = paramadd)
+    else:
+        maxsize = create_image_fortext (file = None, imgsize=imgsize, text = textstr, font = ffont, paramadd = paramadd)
+        for ix in range(len(textstr)+1):
+            thistext = textstr[:ix]
+            framefile = imgfile / ("frame__"+"%06d"%(ix)+".png")
+            create_image_fortext (file = framefile, imgsize=maxsize, text = thistext, font = ffont, paramadd = paramadd, nocrop = 1)
+    return _Xtra
+
+def create_image_fortext (file = (), imgsize=def_imgsize, text = '', font = None, paramadd = None, nocrop = 0):
+    cmdkeys = {'fill': (1, 1, 1, 255), 'anchor': None, 'spacing': 4, 'direction': None, 'features': None,
+        'language': None, 'stroke_width': 0, 'stroke_fill': None, 'embedded_color': False}
+    image = Image.new('RGBA', imgsize, color = (255, 255, 255, 0))
+    draw = ImageDraw.Draw(image)
+    for param in cmdkeys.keys():
+        if param in paramadd: cmdkeys[param] = paramadd[param]
+    draw.text((0,0), text, font=font, fill=cmdkeys['fill'], anchor=cmdkeys['anchor'], spacing=cmdkeys['spacing'],
+        direction=cmdkeys['direction'], features=cmdkeys['features'], language=cmdkeys['language'], stroke_width=cmdkeys['stroke_width'],
+        stroke_fill=cmdkeys['stroke_fill'], embedded_color=cmdkeys['embedded_color'])
+    imageBox = image.getbbox()
+    if nocrop == 1: cropped=image
+    else: cropped = image.crop(imageBox)
+    if file == None: return (2*cropped.size[0], 2*cropped.size[1])
+    cropped.save(file)
+    return 1
+
+def ui_p3dmodel_creation (entparams = [], appsetup = {}):
+    imgfile, _Xtra = confirm_file (entparams[0], ftype = 'image', appsetup = appsetup, isnew = 0)
+    modfile = None
+    fps = -1
+    if imgfile == '':
+        imgfile, _Xtra = confirm_file (entparams[0], ftype = 'folder', appsetup = appsetup, isnew = 0)
+        if not imgfile.exists(): return ['ERROR', 'No available information on mentioned file']
+        csframe = pyback.forceint(entparams[1].split(",")[0], 1)
+        clframe = pyback.forceint(entparams[1].split(",")[0], 999999)
+        fps = pyback.forceint(entparams[2], -1)
+        if str(Path(imgfile.parent)) != str(Path(appsetup['project']['name']) / 'model'):
+            imgdst = Path(appsetup['project']['name']) / 'media' / imgfile.name
+            pyback.png_overwrites (csframe = csframe, tdframe = 0, clframe = clframe, imgsrc = imgfile, imgdst = imgdst, owrite = 1, action = ['copy'])
+            imgfile = imgdst
+    pyback.create_media_p3dmodel (ifile = imgfile, owrite = 1, appsetup = appsetup, fps = fps)
+    return _Xtra
+    
 def ui_prepare_stage (entparams = [], appsetup = {}):
     inputlst = entparams[0]
     output = entparams[1]
     for idir in inputlist:
+        ipath = Path(appsetup['project']['name']) / 'video' / idir
+        if not ipath.is_dir(): continue
         pyback.pngoverwrites (fframe = 1, lframe = 9999, imgsource = sourcep, imgdest = destmed, overwrite = 1, action='copy')
 
 def ui_mrcnn_objects (params):
@@ -167,24 +306,6 @@ def ui_remove_background_movie (entparams = [], appsetup = {}):
     os.system(cmdstr)
     os.chdir('../..')
 
-def ui_text_image_creation (entparams = [], appsetup = {}):
-    if entparams[0] == '': return 1
-    if entparams[1] == '': return 1
-    file = Path(appsetup['project']['name']) / 'media' / entparams[0]
-    if file.suffix != '.png': file = Path(appsetup['project']['name']) / 'media' / (entparams[0]+'.png')
-    imgsize = pyback.getscreensize (appsetup['project']['winsize'], 500, 500)
-    font = check_system_fonts (entparams[2])
-    fontsize = pyback.forceint (entparams[3], 16)
-    text_as_image (file = file, imgsize=(imgsize), color = (1, 1, 1, 255), pixloc = (0,0), text = entparams[1], font = font, fontsize = fontsize, align = 'left')
-    os.chdir(Path(appsetup['project']['name']) / 'model')
-    print ("os.getcwd()", os.getcwd())
-    cmdstr = "egg-texture-cards -o " + file.stem + ".egg -fps "+str(appsetup['project']['fps'])+" ../media/" + file.stem + ".png"
-    os.system(cmdstr)
-    print ("cmdstr", cmdstr)
-    os.chdir('../..')
-    print ("os.getcwd()", os.getcwd())
-    return 1
-
 def image_bgscreen_removal (ifile = Path(), ofile = Path(), color = 'green'):
     limits = {'blue': {'lower': [0, 0, 100], 'upper': [120, 120, 255]},
               'green': {'lower': [0, 100, 0], 'upper': [120, 255, 120]},
@@ -240,12 +361,6 @@ def pixwise_removal (ifile = Path(), ofile = Path(), bstate = [], trans = [0,0,0
     ximg.putdata(newData)
     ximg.save(str(ofile), "PNG")
     return 1
-
-def f_add_audio_video_timewise (vfile = '', afile = '', startt = '', tlen = '', outfile = ''):
-    ''' Example is ffmpeg -ss 00:00:10  -t 5 -i "video.mp4" -ss 0:00:01 -t 5 -i "music.m4a" -map 0:v:0 -map 1:a:0 -y out.mp4 '''
-    cmdstr = 'ffmpeg -i ' + vfile + ' -ss ' + startt + ' -t ' +  tlen + ' -i ' + afile + ' -map 0:v:0 -map 1:a:0 -y ' + outfile
-    rval = os.system(cmdstr)
-    return rval
 
 def f_ibrt__OPHoperHPO (ifile = '', ofiles = '', color = '', params = '', appsetup = ''):
     os.chdir("ibrt")
@@ -340,33 +455,6 @@ def image_resize (ifile = '', ofile = '', nsize = 100):
     nimage.save(ofile)
     return 0
     
-def check_system_fonts (fontlike):
-    '''Returns the font file for the given name - best match for the name'''
-    inputt = fontlike.lower().split(' ')
-    flist = matplotlib.font_manager.findSystemFonts(fontpaths=None, fontext='ttf')
-    maxmatch = 0
-    retval = ''
-    for fname in flist:
-        fontname = matplotlib.font_manager.FontProperties(fname=fname).get_name()
-        fontpath = Path(fname)
-        if fontname == fontlike or fontpath.stem.lower() == fontlike: return fname
-        names = fontname.lower().split(' ') + [fontpath.stem.lower()]
-        match = len(list(set(names) & set(inputt)))
-        if match > maxmatch:
-            retval = fname
-            maxmatch = match
-    return retval
-
-def text_as_image (file = Path(), imgsize=(500,500), color = (1, 1, 1, 255), pixloc = (10,10), text = '', font = '', fontsize = 10, align = 'left'):
-    '''Black background converts to transparent - BINARY'''
-    image = Image.new('RGBA', imgsize, color = (255, 255, 255, 0))
-    if font == '': ffont = ImageFont.load_default()
-    else: ffont = ImageFont.truetype(font, fontsize)
-    draw = ImageDraw.Draw(image)
-    draw.text((0,0), text, font=ffont, fill=color)
-    image.save(str(file), "PNG")
-    return 1
-
 def find_image_contours (ifile = '', ofile = '', thresh = 100):
     random.seed(12345)
     if thresh > 255: thresh = 255
