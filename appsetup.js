@@ -85,7 +85,7 @@
         ".wmv",
         ".webm"
     ],
-    "pictures": [
+    "images": [
         ".png",
         ".jpg",
         ".jpeg",

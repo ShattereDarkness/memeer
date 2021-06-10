@@ -44,7 +44,7 @@ class YourClass(ShowBase):
 
 bcenter = list(map(int, str(sys.argv[1]).split(',')))
 campos = list(map(int, str(sys.argv[2]).split(',')))
-scrsize = list(map(int, str(sys.argv[3]).split(',')))
+scrsize = list(map(int, str(sys.argv[3]).lower().split(',')))
 pvector = [bcenter[0]-campos[0], bcenter[1]-campos[1], bcenter[2]-campos[2]]
 YourClass()
 props = WindowProperties( )

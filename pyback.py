@@ -92,12 +92,12 @@ def create_movie_frames (ifile = Path(), folder = Path(), owrite = 0):
     retval['fps'] = round(float(avgfps.split('/')[0])/float(avgfps.split('/')[1]))
     if folder['vid'].exists() and owrite == 0: return retval
     if folder['vid'].exists():
-        files = folder.glob('*.png')
+        files = folder['vid'].glob('*.png')
         for f in files: f.unlink()
     else:
         folder['vid'].mkdir()
         folder['aud'].mkdir (exist_ok=True)
-    videocmd = "ffmpeg -i \"" + str(ifile) + "\" -vf scale=320:-1 -vsync 0 \"" + str(folder['vid']) + "/frame_%6d.png" + "\" -loglevel error"
+    videocmd = "ffmpeg -i \"" + str(ifile) + "\" -vf scale=320:-1 -vsync 0 \"" + str(folder['vid']) + "/frame__%6d.png" + "\" -loglevel error"
     print ("videocmd:", videocmd)
     os.system(videocmd)
     audiocmd = "ffmpeg -i \"" + str(ifile) + "\" -vn -acodec copy \"" + str(folder['aud']) + ".aac" + "\" -y -loglevel error"
@@ -115,7 +115,7 @@ def create_media_p3dmodel (ifile = Path(), owrite = 0, appsetup = {}, fps = -1):
         newfile = projdir/'media'/ifile.name
         print ("Newfile", newfile, newfile.resolve().exists())
         if not newfile.exists() or (newfile.exists() and owrite == 1):
-            shutil.copy(ifile, newfile)
+            shutil.copytree(ifile, newfile)
         ifile = newfile
     asmovie = ifile.is_dir()
     cmf = None
@@ -300,9 +300,7 @@ def png_overwrites (csframe = 1, tdframe = 0, clframe = 999999, imgsrc = Path(),
         if action == 'move': oldimg.unlink()
         counts = counts + 1
     if 'refresh' in action:
-        for frid in range(fframe, clframe+1):
-            oldimg = imgsrc / ("frame__"+"%06d"%(frid)+".png")
-            oldimg.unlink()
+        for file in imgsrc.iterdir(): file.unlink()
     return counts
 
 def exec_save_story (entparams = [], appsetup = {}, story = ''):

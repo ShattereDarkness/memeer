@@ -59,27 +59,33 @@ boarditems = [
 ]
 
 procsitems = [
-       { "fname": "Audio", "text": "Add audio upon existing video file", "descimage": "imgs/icon.png" ,
-        "params": ["Video file (with/ without existing audio)", "Name of the audio file to be appended", "Starting time for the audio (in milliseconds)", "Length of the audio file to addup", "Output file (blank for same video file)"]
-    }, {"fname": "MediaCreate", "text": "Make text image/video", "descimage": "imgs/icon.png" ,
-        "params": ["File name", "Text", "Font name", "Font size", "As characterwise movie?"],
+       { "fname": "MovieCreate", "text": "Add audio upon existing video file", "descimage": "imgs/icon.png",
+        "function": "ui_addaudiotovideo", "xtraprocess": {},
+        "params": ["Video file (with/ without existing audio)", "Name of the audio file to be appended",
+        "Starting time within video (seconds, default 0)", "Starting time for the audio (seconds, default 0)", "Length of the audio file to addup (seconds, default 0)",
+        "Output file (blank for same video file)"]
+    }, {"fname": "MediaCreate", "text": "Make image/video for a Text or Subtitle", "descimage": "imgs/icon.png" ,
+        "function": "ui_text_image_creation", "xtraprocess": {},
+        "params": ["Output file name", "Text to be imaged", "Font name (atleast 4 characters)", "Font size (default 16)", "As characterwise frames (1 char per frame, default NO)?"],
         "additional": "'color': (1, 1, 1, 255), 'spacing': 4"
-    }, {"fname": "ModelCreate", "text": "Make Panda3d model for an image/video", "descimage": "imgs/icon.png" ,
-        "params": ["Input file/folder", "Frames range", "FPS"]
-    }, {"fname": "Transform", "text": "Get image coordinates for doodling", "descimage": "imgs/icon.png" ,
-        "params": ["Input image/s", "Output file name of image & coordinates", "Camera Location (3D)", "Camera Looks at/ Whiteboard Center"]
-    }, {"fname": "Manipulate", "text": "Basic image manipulation functions", "descimage": "imgs/icon.png" ,
-        "params": ["Input image file", "New name for image", "Resize (Percentage)", "param3"]
-    }, {"fname": "Manipulation", "text": "Advanced image manipulation - Remove background", "descimage": "imgs/icon.png" ,
-        "params": ["Input file (image or gif)", "Output file name (REPLACE?)", "Color to remove/ Removal method", "Additional parameters"]
-    }, {"fname": "MovieCreate", "text": "Make a movie from existing rush frames", "descimage": "imgs/icon.png" ,
-        "params": ["First frame", "Last Frame", "Output movie name", "To be reused (default YES)"]
-    }, {"fname": "MovieCreate", "text": "Make a transparent gif from existing rush frames", "descimage": "imgs/icon.png" ,
+    }, {"fname": "ModelCreate", "text": "Make Panda3d model for frameset/video", "descimage": "imgs/icon.png" ,
+        "function": "ui_p3dmodel_creation", "xtraprocess": {},
+        "params": ["Input file/folder", "Output file name", "Frames range (default is all frames)", "FPS (leave blank for using video's default)"]
+    }, {"fname": "Pre-process", "text": "Basic image manipulation functions", "descimage": "imgs/icon.png",
+        "function": "ui_image_manipulation_basic", "xtraprocess": {},
+        "params": ["Input image file", "Output file name", "Feature of the Image to be changed\n('contrast'/'color'/'brightness'/'sharpness'/'invert')", "New value (number)\n Or type 'range' for values from 0 to 100 (100 images)"]
+    }, {"fname": "Pre-process", "text": "Advanced image manipulation - Background processing", "descimage": "imgs/icon.png" ,
+        "function": "ui_image_manipulation_rmback", "xtraprocess": {},
+        "params": ["Input image file", "Output file name", "Background removal method (mrcnn / ibrt / screen / color)", "Color if method is 'screen' or 'color'"]
+    }, {"fname": "Pre-process", "text": "Generate illustrations from existing image/s", "descimage": "imgs/icon.png" ,
+        "function": "ui_image_manipulation_craft", "xtraprocess": {},
+        "params": ["Input image/s", "Output file name", "Special effect type (doodle / cartoon / pencil sketch)"]
+    }, {"fname": "Pre-process", "text": "Make a transparent movie from manipulated rush frames", "descimage": "imgs/icon.png" ,
+        "function": "image_manual_bgremoval", "xtraprocess": {},
         "params": ["Final image frame", "Start frame", "Last Frame", "Output movie name"]
-    }, {"fname": "MovieCreate", "text": "Remove blue/ green screen from existing rushes", "descimage": "imgs/icon.png" ,
-        "params": ["Start frame", "Last Frame", "Output movie name", "Color to remove (Red/Green/Blue/Yellow)"]
     }, {"fname": "Release", "text": "Prepare stage for release", "descimage": "imgs/icon.png" ,
-        "params": ["Movie folder names", "Output Stage Name"]
+        "function": "ui_prepare_stage", "xtraprocess": {},
+        "params": ["Movie folder names (comma separated list)", "Output Stage Name", "Movie format (mp4, mov etc.)"]
     }
 ]
 
@@ -167,7 +173,7 @@ def exec_play_frame (entparams = [], appsetup = {}, uielem = {}):
     print ("params", params)
     for frid in range(params['fromfr'], params['tillfr']+1):
         print ("frid", frid)
-        imgfile = imgdest+"rush__"+"%04d"%(frid)+".png"
+        imgfile = imgdest+"frame__"+"%06d"%(frid)+".png"
         if not os.path.isfile(imgfile): break
         image = Image.open(imgfile)
         image = image.resize((params['scrwide'], params['scrhigh']), Image.ANTIALIAS)
@@ -270,26 +276,9 @@ def frame_procs_cmd ():
     for entry in lprocsui['param_ent']:
         entparams.append(entry['entry'].get())
     print ("entparams", entparams)
-    if fncix == 'AddAudio: Add audio upon existing video file':
-        retv = imagings.addaudiotovideo (videoentparams)
-    if fncix == 'MediaCreate: Make text image/video':
-        retv = imagings.ui_text_image_creation (entparams = entparams, appsetup = appsetup)
-    if fncix == 'ModelCreate: Make Panda3d model for an image/video':
-        retv = imagings.ui_p3dmodel_creation (entparams = entparams, appsetup = appsetup)
-    if fncix == 'GetContours: Get image coordinates for doodling':
-        retv = imagings.ui_find_image_contours (entparams = entparams, appsetup = appsetup)
-    if fncix == 'Manipulation: Basic image manipulation functions':
-        retv = imagings.ui_image_manipulation_basic (entparams = entparams, appsetup = appsetup)
-    if fncix == 'Manipulation: Advanced image manipulation - Remove background':
-        retv = imagings.ui_image_manipulation ('settransparent', entparams = entparams, appsetup = appsetup)
-    if fncix == 'MovieCreate: Make a movie from existing rush frames':
-        retv = imagings.ui_basic_movie_creation (entparams = entparams, appsetup = appsetup)
-    if fncix == 'MovieCreate: Make a transparent gif from existing rush frames':
-        retv = imagings.ui_transparent_movie_creation (entparams = entparams, appsetup = appsetup)
-    if fncix == 'MovieCreate: Remove blue/ green screen from existing rushes':
-        retv = imagings.ui_remove_background_movie (entparams = entparams, appsetup = appsetup)
-    if fncix == 'Release: Prepare stage for release':
-        retv = imagings.ui_prepare_stage (entparams = entparams, appsetup = appsetup)
+    for cmbuitem in procsitems:
+        if cmbuitem['fname'] + ": " + cmbuitem['text'] == fncix:
+            imagings.base_function (cmbuitem['function'], entparams = entparams, appsetup = appsetup)
     return 1
 
 btn_procs_procs = ttk.Button(frame_procs, text="Execute the command (Selected Options)", command=frame_procs_cmd).grid(column=2, row=18, sticky="w")
