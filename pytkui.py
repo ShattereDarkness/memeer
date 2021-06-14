@@ -296,7 +296,7 @@ def objsuisetup (root = {}, objects = []):
         rownum = rownum + 3
         for afile, actdet in model['acts'].items():
             lobjfui = {'afile': afile}
-            scrllabel (framep = root, text = 'Model '+model['file']+', Action file: '+afile, column=0, row=rownum, sticky='ne')
+            scrllabel (framep = root, text = 'Action file: '+afile, column=0, row=rownum, sticky='ne')
             lobjfui['fstart'] = newentry (framep=root, width=10, col=3, row=rownum, text=actdet['fstart'], lbltext='Play between frames', sticky='nw')
             lobjfui['flast'] = newentry (framep=root, width=10, col=3, row=rownum, text=actdet['flast'], sticky='ne')
             lobjui['acts'].append(lobjfui)

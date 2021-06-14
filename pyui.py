@@ -64,13 +64,16 @@ procsitems = [
         "params": ["Video file (with/ without existing audio)", "Name of the audio file to be appended",
         "Starting time within video (seconds, default 0)", "Starting time for the audio (seconds, default 0)", "Length of the audio file to addup (seconds, default 0)",
         "Output file (blank for same video file)"]
+    }, { "fname": "MovieCreate", "text": "Move my rushes to new or existing set", "descimage": "imgs/icon.png",
+        "function": "ui_moverushstaging", "xtraprocess": {},
+        "params": ["Output name of the stage", "Frame range (1,-1)"]
     }, {"fname": "MediaCreate", "text": "Make image/video for a Text or Subtitle", "descimage": "imgs/icon.png" ,
         "function": "ui_text_image_creation", "xtraprocess": {},
         "params": ["Output file name", "Text to be imaged", "Font name (atleast 4 characters)", "Font size (default 16)", "As characterwise frames (1 char per frame, default NO)?"],
-        "additional": "'color': (1, 1, 1, 255), 'spacing': 4"
+        "additional": "'fill': (1, 1, 1, 255), 'spacing': 4"
     }, {"fname": "ModelCreate", "text": "Make Panda3d model for frameset/video", "descimage": "imgs/icon.png" ,
         "function": "ui_p3dmodel_creation", "xtraprocess": {},
-        "params": ["Input file/folder", "Output file name", "Frames range (default is all frames)", "FPS (leave blank for using video's default)"]
+        "params": ["Input file/folder", "Output file name", "Frames range (default is all frames: 1,-1)", "FPS (leave blank for using video's default)"]
     }, {"fname": "Pre-process", "text": "Basic image manipulation functions", "descimage": "imgs/icon.png",
         "function": "ui_image_manipulation_basic", "xtraprocess": {},
         "params": ["Input image file", "Output file name", "Feature of the Image to be changed\n('contrast'/'color'/'brightness'/'sharpness'/'invert')", "New value (number)\n Or type 'range' for values from 0 to 100 (100 images)"]
@@ -85,7 +88,10 @@ procsitems = [
         "params": ["Final image frame", "Start frame", "Last Frame", "Output movie name"]
     }, {"fname": "Release", "text": "Prepare stage for release", "descimage": "imgs/icon.png" ,
         "function": "ui_prepare_stage", "xtraprocess": {},
-        "params": ["Movie folder names (comma separated list)", "Output Stage Name", "Movie format (mp4, mov etc.)"]
+        "params": ["Stage folder names (comma separated list)", "Output Stage Name", "Movie format (mp4, mov etc.)"]
+    }, {"fname": "Release", "text": "Add watermark picture onto given movie", "descimage": "imgs/icon.png" ,
+        "function": "ui_prepare_watermark", "xtraprocess": {},
+        "params": ["Watermark image", "Input Movie name", "Watermark position (in pixels)", "Output file name"]
     }
 ]
 

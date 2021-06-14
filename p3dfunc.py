@@ -188,10 +188,12 @@ def object_does (universe = {},  params = {}, posdet = [], frames = [], rushobjl
         appendmovements (frames = frames, retval = retval, posdet = posdet, append = {'what': 'moveobj', 'model': params['modid'], 'pos': []})
     if params['func'] in ['move', 'locate', 'draw']: return retval
     if params['type'] == 'acts':
-        fstart, flast = p3dmodel['acts'][params['func']]['fstart'], p3dmodel['acts'][params['func']]['flast']
+        actreduce, fstart, flast = 0, p3dmodel['acts'][params['func']]['fstart'], p3dmodel['acts'][params['func']]['flast']
         for frid in range(frames[0], frames[1]+1):
-            if params['repeat'] == 0 and flast != -1 and (frid - frames[0]) > flast: break
-            retval[str(frid)].append({'what': 'poseobj', 'model': params['modid'], 'action': params['func'], 'poseid': frid, 'repeat': params['repeat'], 'bpart': ''})
+            poseid = fstart + frid - frames[0] - actreduce
+            if flast != -1 and poseid >= flast: actreduce = actreduce +1 + flast - fstart
+            if params['repeat'] == 0 and (frid - frames[0]) > flast: break
+            retval[str(frid)].append({'what': 'poseobj', 'model': params['modid'], 'action': params['func'], 'poseid': poseid, 'repeat': params['repeat'], 'bpart': ''})
     return retval
 
 def bodypart_act (universe = {},  params = {}, posdet = [], frames = [], rushobjlst = [], basedir = Path('.')):

@@ -7,6 +7,7 @@ import shutil
 import p3dfunc
 import subprocess
 from itertools import chain
+import copy
 
 import requests
 appfile = 'appsetup.js'
@@ -16,6 +17,7 @@ def port_conf_save (appsetup):
     appfile = 'appsetup.js'
     print ("writng", appsetup)
     putUniverseJS (appsetup, appfile)
+    saveuniv (which = 'projectinfo', what = appsetup['project'], where = appsetup['project']['name']+'/universe.js')
 
 def saveuniv(which = 'XXX', what = [], where = 'XXX'):
     nuniv = getUniverseJS (where)
@@ -131,10 +133,22 @@ def create_media_p3dmodel (ifile = Path(), owrite = 0, appsetup = {}, fps = -1):
     print (f"create_media_p3dmodel: cmdstr={cmdstr}")
     try:
         os.chdir(projdir / 'model')
+        print ("before: os.getcwd()", os.getcwd())
         cmdval = os.system(cmdstr)
     finally: os.chdir('../..')
-    print ("os.getcwd()", os.getcwd())
+    print ("after: os.getcwd()", os.getcwd())
     return cmdval
+
+def reverse_file_check (univ={}, appsetup={}, model_dir = Path(), action_dir = Path()):
+    for mobject in univ['objects']:
+        newacts = {}
+        for msyn in mobject['syns']:
+            for mact, mactd in mobject['acts'].items():
+                objactf = [action_dir / (msyn+"__"+mact+".bam"), action_dir / (msyn+"__"+mact+".egg")]
+                if (objactf[0].is_file() or objactf[1].is_file()) and mact not in newacts: newacts[mact] = mactd
+        mobject['acts'] = copy.deepcopy(newacts)
+    print (f"reverse_file_check univ: {univ}")
+    return univ['objects']
 
 def getUniverseData (name =  '', appsetup = {}):
     print (f"getUniverseData:\n\tname={name}\n\tappsetup={appsetup}")
@@ -161,11 +175,12 @@ def getUniverseData (name =  '', appsetup = {}):
     for mfile in chain(model_dir.glob('*.egg'), model_dir.glob('*.bam'), model_dir.glob('*.gltf')):
         if len(list(filter(lambda x : x['file'] == mfile.name, univ['objects']))) > 0: continue
         univ['objects'].append({'syns': [mfile.stem], 'move': defaultmove, 'jjrb': [], 'acts': {}, 'joint': '', 'file': mfile.name})
-    for commact in ['move', 'locate', 'generate', 'draw', 'vanish', 'remove']:
+    for commact in ['move', 'locate', 'generate', 'draw']:
         if len(list(filter(lambda x : x['func'] == commact, univ['actions']))) == 0:
             univ['actions'].append({"func": commact, "syns": [commact],"jjrb": []})
     for afile in chain(action_dir.glob('*.egg'), action_dir.glob('*.bam')):
         print ("afile", afile)
+        if '__' not in afile.stem: continue
         actor, anime = afile.stem.split ('__', 1)
         actorfile = [actor+'.egg', actor+'.bam']
         if len(list(filter(lambda x : actor in x['syns'], univ['objects']))) == 0: continue
@@ -175,7 +190,9 @@ def getUniverseData (name =  '', appsetup = {}):
         print ("mobjects and anime: ", mobjects, anime)
         for mobject in mobjects:
             if anime in mobject['acts']: continue
-            mobject['acts'][anime] = {"fstart": 1, "flast": -1}
+            mobject['acts'][anime] = {"fstart": 1, "flast": 9999}
+    univ['objects'] = reverse_file_check(univ=univ, appsetup=appsetup, model_dir = model_dir, action_dir = action_dir)
+    print (f"Now the univ is: {univ}")
     if 'logicals' not in univ: univ['logicals'] = []
     if 'projectinfo' not in univ: univ['projectinfo'] = appsetup['project']
     with universe.open('w') as univjs: json.dump(univ, univjs, indent=4)
@@ -286,13 +303,16 @@ def png_overwrites (csframe = 1, tdframe = 0, clframe = 999999, imgsrc = Path(),
     if not imgdst.is_dir(): imgdst.mkdir(parents=True, exist_ok=True)
     counts = 0
     if 'append' in action:
-        for frid in range(csframe, clframe+1):
-            oldimg = imgsrc / ("frame__"+"%06d"%(frid)+".png")
+        for frid in range(1, 999999):
+            oldimg = imgdst / ("frame__"+"%06d"%(frid)+".png")
             if oldimg.is_file(): tdframe = -1*frid
+            else: break
+        print (f"tdframe: {tdframe}")
     for frid in range(csframe, clframe+1):
         if frid < csframe: continue
         oldimg = imgsrc / ("frame__"+"%06d"%(frid)+".png")
-        newimg = imgdst / ("frame__"+"%06d"%(frid-tdframe)+".png")
+        if 'append' in action: newimg = imgdst / ("frame__"+"%06d"%(frid-tdframe-csframe+1)+".png")
+        else: newimg = imgdst / ("frame__"+"%06d"%(frid-tdframe)+".png")
         if not oldimg.is_file(): break
         if newimg.exists() and owrite == 1: newimg.unlink()
         if owrite == 0 and newimg.is_file(): continue
@@ -301,6 +321,7 @@ def png_overwrites (csframe = 1, tdframe = 0, clframe = 999999, imgsrc = Path(),
         counts = counts + 1
     if 'refresh' in action:
         for file in imgsrc.iterdir(): file.unlink()
+    print ("PNG COPY COMPLETED")
     return counts
 
 def exec_save_story (entparams = [], appsetup = {}, story = ''):
@@ -497,7 +518,7 @@ def exec_pic_export (entparams = [], appsetup = {}, rushes = "rushes"):
     if flast != -1:
         vlen = (flast+1 - fstart)/fps
         cmdstr = cmdstr + " -t " + str(vlen) + " "
-    cmdstr = cmdstr + " -i " + str(rushes) + "/rush__%04d.png "
+    cmdstr = cmdstr + " -i " + str(rushes) + "/frame__%06d.png "
     print ("filenm", filenm, filenm.suffix, filenm.stem)
     if filenm.suffix in ['.mp4', '.mov']: cmdstr = cmdstr + " -pix_fmt yuv420p "
     cmdstr = cmdstr + str(filenm) + " -y"

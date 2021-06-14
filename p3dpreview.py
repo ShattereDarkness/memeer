@@ -42,7 +42,8 @@ def moveObject (modid = 0, pos = [0, 0, 0, 0, 0, 0, 1, 1, 1]):
     model = rushobjlst[modid]['p3dmod']
     model.setPos(float(pos[0]), float(pos[1]), float(pos[2]))
     if len(pos) < 4: return 1
-    model.setHpr(float(pos[3]), float(pos[4]), float(pos[5]))
+    if modid != 0: model.setHpr(float(pos[3]), float(pos[4]), float(pos[5]))
+    else: model.setHpr(float(pos[3]), float(pos[4]), float(pos[5]))
     if modid == 0 or len(pos) < 7: return 1
     model.setScale(float(pos[6]), float(pos[7]), float(pos[8]))
     return 1
@@ -73,6 +74,7 @@ ShowBase()
 base.disableMouse()
 camera.setPos(0, -120, 0)
 camera.setHpr(0, 0, 0)
+rushobjlst[0]['p3dmod'] = camera
 statements = OnscreenText(text=" ", pos=(-1.0, 0.9), scale=0.08, align=0, wordwrap=30)
 if preview == 1: textbasics = OnscreenText(text=" ", pos=(-1.0, -0.95), scale=0.08, align=0, wordwrap=30)
 def defaultTask(task):

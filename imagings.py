@@ -11,6 +11,7 @@ import numpy
 import random
 import math
 from tkinter import messagebox
+import ast
 
 import json
 import pyback
@@ -52,7 +53,7 @@ def confirm_file (filestr, ftype = 'input', fback = '', appsetup = {}, isnew = 0
         else:
             nfile = projdir / filestr
             if ftype == 'model':
-                if nfile.suffix != '.egg': return projdir / 'model' / (fnames[-1:]+'.egg')
+                if nfile.suffix != '.egg': return projdir / 'model' / (fnames[-1]+'.egg')
                 else: return projdir / 'model' / (fnames[-1:])
             else:
                 if fnames[0] == 'model': return ''
@@ -101,7 +102,7 @@ def ui_addaudiotovideo (entparams = [], appsetup = {}):
     vistart = pyback.forceint(entparams[2], 0)
     austart = pyback.forceint(entparams[3], 0)
     alength = pyback.forceint(entparams[4], 0)
-    outfile = confirm_file (entparams[5], ftype = 'video', fback = 'temp/'+str(time.time())+vidfile.name, isnew = 1, appsetup = appsetup)
+    outfile = confirm_file (entparams[5], ftype = 'video', fback = vidfile.name, isnew = 1, appsetup = appsetup)
     if isinstance(vidfile, str) or not vidfile.exists() or isinstance(audfile, str) or not audfile.exists():
         localmessage (mtype = 'error', title = 'Input files are missing', message = f"Input Audio ({audfile}) or Video ({vidfile}) is missing, kindly check path")
         return -1
@@ -126,6 +127,19 @@ def ui_addaudiotovideo (entparams = [], appsetup = {}):
         outfile.rename(vidfile)
     return []
 
+def ui_prepare_watermark (entparams = [], appsetup = {}):
+    print (f"ui_addaudiotovideo:\n\tentparams={entparams}\n\tappsetup={appsetup}")
+    imgfile = confirm_file (entparams[0], ftype = 'image', appsetup = appsetup, isnew = 0)
+    vidfile = confirm_file (entparams[1], ftype = 'video', appsetup = appsetup, isnew = 0)
+    outfile = confirm_file (entparams[3], ftype = 'video', fback = 'temp/'+str(time.time())+vidfile.name, isnew = 1, appsetup = appsetup)
+    pixels = entparams[2].split(',')
+    wpixel = pyback.forceint(pixels[0], 100)
+    hpixel = 100 if len(pixels) < 2 else pyback.forceint(pixels[1], 100)
+    cmdstr = f"ffmpeg -i {vidfile} -i {imgfile} -filter_complex \"overlay={wpixel}:{hpixel}\" {outfile} -loglevel error"
+    print (f"cmdstr: {cmdstr}")
+    try: os.system(cmdstr)
+    except: return ['ERROR', 'The command could not be executed!']
+
 def ui_text_image_creation (entparams = [], appsetup = {}):
     print (f"ui_text_image_creation:\n\tentparams={entparams}\n\tappsetup={appsetup}")
     is_single = 1
@@ -140,6 +154,7 @@ def ui_text_image_creation (entparams = [], appsetup = {}):
         messagebox (mtype = 'error', title = 'Missing usable parameters', message = f"New file ({imgfile}) or Text ({textstr}) could not be used")
         return -1
     paramadd = parse_additionals (strtext = entparams[5])
+    print (f"paramadd: {paramadd}")
     imgsize = def_imgsize
     print ("ffont", ffont)
     if is_single == 1:
@@ -158,7 +173,10 @@ def create_image_fortext (file = (), imgsize=def_imgsize, text = '', font = None
     image = Image.new('RGBA', imgsize, color = (255, 255, 255, 0))
     draw = ImageDraw.Draw(image)
     for param in cmdkeys.keys():
+        print (f"updating for {param}")
         if param in paramadd: cmdkeys[param] = paramadd[param]
+        print (f"updated for {param}: cmdkeys[param]: {cmdkeys[param]}")
+    print (f"final cmdkeys: {cmdkeys} and paramadd was {paramadd}")
     draw.text((0,0), text, font=font, fill=cmdkeys['fill'], anchor=cmdkeys['anchor'], spacing=cmdkeys['spacing'],
         direction=cmdkeys['direction'], features=cmdkeys['features'], language=cmdkeys['language'], stroke_width=cmdkeys['stroke_width'],
         stroke_fill=cmdkeys['stroke_fill'], embedded_color=cmdkeys['embedded_color'])
@@ -171,6 +189,7 @@ def create_image_fortext (file = (), imgsize=def_imgsize, text = '', font = None
 
 def create_output_path (param0 = None, param1 = None, appsetup = {}, outfolder = 1, getfps = 0):
     inpfile = confirm_file (param0, ftype = 'input', appsetup = appsetup, isnew = 0)
+    cmf = {'fps': appsetup['project']['fps']}
     if inpfile.suffix in appsetup['movies']:
         newfolder = inpfile.parent / inpfile.stem
         if newfolder.is_dir():
@@ -179,25 +198,29 @@ def create_output_path (param0 = None, param1 = None, appsetup = {}, outfolder =
         existf = {'vid': newfolder, 'aud': Path(appsetup['project']['name'])/'temp'/inpfile.stem}
         cmf = pyback.create_movie_frames (ifile = inpfile, folder = existf, owrite = 1)
         inpfile = newfolder
-    outfile = confirm_file (param1, ftype = 'input', appsetup = appsetup, isnew = 1, fback = str(inpfile.parent))
+    outfile = confirm_file (param1, ftype = 'input', appsetup = appsetup, isnew = 1, fback = str(inpfile.parent.stem))
+    print ("outfile:", outfile)
     if not outfile.parent.is_dir():
         UREP = localmessage (mtype = 'error', title = 'Output Folder not valid', message = f"The folder with name {outfile} could not be created")
+        print ("NOK")
         return None, None
     if outfile.exists():
         UREP = localmessage (mtype = 'ask', title = 'Path already exists', message = f"There is already a filepath with name {outfile}. Overwrite its content?")
         if UREP == 'cancel': return None, None
     if inpfile.is_dir() or outfolder == 1:
         if outfile.exists(): shutil.rmtree(outfile)
+        cmf = {'fps': appsetup['project']['fps']}
         outfile.mkdir()
     if getfps == 1: return inpfile, outfile, cmf['fps']
     return inpfile, outfile
 
 def ui_p3dmodel_creation (entparams = [], appsetup = {}):
+    if '/' not in entparams[1]: entparams[1] = 'media/' + entparams[1]
     inpfile, outfile, curfps = create_output_path (param0 = entparams[0], param1 = entparams[1], appsetup = appsetup, outfolder = 1, getfps = 1)
     if inpfile == None or outfile == None: return -1
     csframe = pyback.forceint(entparams[2].split(",")[0], 1)
     clframe = pyback.forceint(entparams[2].split(",")[1], 999999) if len(entparams[2].split(",")) > 1 else 999999
-    curfps = curfps if pyback.forceint(entparams[2], curfps) < 1 else pyback.forceint(entparams[2], curfps)
+    curfps = curfps if pyback.forceint(entparams[3], curfps) < 1 else pyback.forceint(entparams[3], curfps)
     pyback.png_overwrites (csframe = csframe, tdframe = csframe-1, clframe = clframe, imgsrc = inpfile, imgdst = outfile, owrite = 1, action = ['copy'])
     pyback.create_media_p3dmodel (ifile = outfile, owrite = 1, appsetup = appsetup, fps = curfps)
     return 1
@@ -222,7 +245,7 @@ def image_createillustration (ifile = '', ofile = '', method = '', islist = 0, a
         def thresh_callback(val):
             threshold = val
             canny_output = cv2.Canny(src_gray, threshold, threshold * 2)
-            contours, hierarchy = cv2.findContours(canny_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+            contours, hierarchy = cv2.findContours(canny_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
             drawing = numpy.zeros((canny_output.shape[0], canny_output.shape[1], 3), dtype=numpy.uint8)
             for ix in range(len(contours)):
                 cv2.drawContours(drawing, contours, ix, (255,255,255), 2, cv2.LINE_8, hierarchy, 0)
@@ -230,7 +253,6 @@ def image_createillustration (ifile = '', ofile = '', method = '', islist = 0, a
             return contours
         src = cv2.imread(ifile)
         src_gray = cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)
-        src_gray = cv2.blur(src_gray, (3,3))
         max_thresh = 255
         contours = thresh_callback(thresh)
         return contours
@@ -442,7 +464,23 @@ def ui_prepare_stage (entparams = [], appsetup = {}):
     movfile = Path(outfile.parent) / (outfile.name+entparams[3])
     pyback.exec_pic_export (entparams = [movfile.name, appsetup['project']['fps'], "1, -1"], appsetup = appsetup, rushes = outfile)
 
-def image_manual_bgremoval (ipath = Path(), opath = Path(), basefile = Path(), trans = [0,0,0], keeps = [255,255,255], alpha = 255):
+def image_manual_bgremoval (entparams = [], appsetup = {}):
+    ipath = Path(appsetup['project']['name']) / 'rushes'
+    opath = confirm_file (entparams[3], ftype = 'input', fback = '', appsetup = appsetup, isnew = 1)
+    if opath.exists():
+        UREP = localmessage (mtype = 'ask', title = 'Path already exists', message = f"There is already a filepath with name {outfile}. Overwrite its content?")
+        if UREP == 'cancel': return -1
+        else:
+            shutil.rmtree(opath)
+            opath.mkdir()
+    else: opath.mkdir()
+    basefile = ipath / ("frame__"+"%06d"%(pyback.forceint(entparams[0], 2))+".png")
+    trans = [0,0,0]
+    keeps = [255,255,255]
+    alpha = 255
+    bimg = Image.open(basefile)
+    bimg = bimg.convert("RGBA")
+    bstate = bimg.getdata()
     def pixwise_removal (ifile = Path(), ofile = Path(), bstate = [], trans = [0,0,0], keeps = [255,255,255], alpha = 255):
         ximg = Image.open(str(ifile))
         ximg = ximg.convert("RGBA")
@@ -462,10 +500,17 @@ def image_manual_bgremoval (ipath = Path(), opath = Path(), basefile = Path(), t
         ximg.putdata(newData)
         ximg.save(str(ofile), "PNG")
         return 1
-    bimg = Image.open(basefile)
-    bimg = bimg.convert("RGBA")
-    bstate = bimg.getdata()
     for file in ipath.iterdir():
         if file.name == basefile.name: continue
         pixwise_removal (ifile = file, ofile = opath / file.name, bstate = bstate, trans = trans, keeps = keeps, alpha = alpha)
+    return 1
+
+def ui_moverushstaging (entparams = [], appsetup = {}):
+    inpfile = Path(appsetup['project']['name']) / 'rushes'
+    outfile = confirm_file (entparams[0], ftype = 'input', fback = 'video/'+str(time.time())+"__blank__", isnew = 1, appsetup = appsetup)
+    frames = entparams[1].split(',')
+    fframe = pyback.forceint(frames[0], 1)
+    lframe = 999999 if len(frames) < 2 else pyback.forceint(frames[1], 999999)
+    if lframe < fframe: lframe = 999999 
+    pyback.png_overwrites (csframe = fframe, clframe = lframe, imgsrc = inpfile, imgdst = outfile, owrite = 0, action = ['append', 'copy'])
     return 1
