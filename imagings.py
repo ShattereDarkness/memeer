@@ -1,9 +1,5 @@
 from pathlib import Path
 from PIL import Image, ImageEnhance, ImageOps, ImageDraw, ImageFont
-# import mrcnn
-# import mrcnn.config
-# import mrcnn.model
-# import mrcnn.visualize
 import cv2
 import os
 import matplotlib.font_manager
@@ -23,6 +19,18 @@ import subprocess
 yes_synos = ['y', 'yea', 'yeah', 'yo', 'yes', 'aye', 'aaye', 'ya', 'yup', 'yaa', 'jaa']
 nah_synos = ['n', 'no', 'nop', 'nope', 'nay', 'ei', 'not']
 def_imgsize = (2000, 2000)
+colorcode = {
+    'white': [255,255,255],
+    'black': [0,0,0],
+    'red': [255, 0, 0],
+    'green': [0,255,0],
+    'blue': [0,0,255],
+    'all white': [[170,0,200], [190,20,255]],
+    'all black': [[0,0,0], [10,200,10]],
+    'all red': [[0,50,100], [15,255,255]],
+    'all green': [[45,50,100], [75,255,255]],
+    'all blue': [[105,50,100], [135,255,255]]
+}
 
 def base_function (funcname, entparams = {}, appsetup = {}):
     retval = globals()[funcname] (entparams = entparams, appsetup = appsetup)
@@ -108,17 +116,18 @@ def ui_addaudiotovideo (entparams = [], appsetup = {}):
         return -1
     if austart != 0:
         newaudfile = Path(audfile.parent) / (vidfile.stem+"__"+str(austart)+audfile.suffix)
-        cmdstr = f"ffmpeg -i {audfile} -ss {austart} -to {austart+alength} -c copy -y {newaudfile} -loglevel error"
+        cmdstr = f"ffmpeg -i \"{audfile}\" -ss {austart} -to {austart+alength} -c copy -y \"{newaudfile}\" -loglevel error"
+        print (f"executing command: {cmdstr}")
         try: os.system(cmdstr)
         except: return ['ERROR', 'The command could not be executed!']
         audfile = newaudfile
-    cmdstr = f"ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 {vidfile} -loglevel error"
+    cmdstr = f"ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 \"{vidfile}\" -loglevel error"
     print (f"executing command: {cmdstr}")
     audcod = (subprocess.run(cmdstr, capture_output=True)).stdout.decode('unicode_escape')
     if audcod == '':
-        cmdstr = f"ffmpeg -i {vidfile} -itsoffset {vistart} -t {vistart+alength} -i {audfile} -map 0:v:0 -map 1:a:0 -async 1 -y {outfile} -loglevel error"
+        cmdstr = f"ffmpeg -i \"{vidfile}\" -itsoffset {vistart} -t {vistart+alength} -i \"{audfile}\" -map 0:v:0 -map 1:a:0 -async 1 -y \"{outfile}\" -loglevel error"
     else:
-        cmdstr = f"ffmpeg -i {vidfile} -itsoffset {vistart} -t {vistart+alength} -i {audfile}  -filter_complex amix -map 0:v -map 0:a -map 1:a -async 1 -y {outfile} -loglevel error"
+        cmdstr = f"ffmpeg -i \"{vidfile}\" -itsoffset {vistart} -t {vistart+alength} -i \"{audfile}\"  -filter_complex amix -map 0:v -map 0:a -map 1:a -async 1 -y \"{outfile}\" -loglevel error"
     print (f"executing command: {cmdstr}")
     try: os.system(cmdstr)
     except: return ['ERROR', 'The command could not be executed!']
@@ -148,10 +157,14 @@ def ui_text_image_creation (entparams = [], appsetup = {}):
         imgfile.mkdir()
         is_single = 0
     else: imgfile = confirm_file (entparams[0], ftype = 'image', appsetup = appsetup, isnew = 1)
+    print (f"FINAL FILE NAME: {imgfile}")
+    if imgfile.exists():
+        localmessage (mtype = 'error', title = 'Such file already exist', message = f"New file ({imgfile}) exists, kindly delete it or rename this file")
+        return -1
     textstr = entparams[1]
     ffont = check_system_fonts (fontlike = entparams[2], fontsize = pyback.forceint (entparams[3], 16))
     if imgfile == '' or textstr == '':
-        messagebox (mtype = 'error', title = 'Missing usable parameters', message = f"New file ({imgfile}) or Text ({textstr}) could not be used")
+        localmessage (mtype = 'error', title = 'Missing usable parameters', message = f"New file ({imgfile}) or Text ({textstr}) could not be used")
         return -1
     paramadd = parse_additionals (strtext = entparams[5])
     print (f"paramadd: {paramadd}")
@@ -165,6 +178,8 @@ def ui_text_image_creation (entparams = [], appsetup = {}):
             thistext = textstr[:ix]
             framefile = imgfile / ("frame__"+"%06d"%(ix)+".png")
             create_image_fortext (file = framefile, imgsize=maxsize, text = thistext, font = ffont, paramadd = paramadd, nocrop = 1)
+    if not imgfile.exists():
+        messagebox (mtype = 'error', title = 'File could not be created', message = f"New file ({imgfile}) or Text ({textstr}) could not be used")
     return 1
 
 def create_image_fortext (file = (), imgsize=def_imgsize, text = '', font = None, paramadd = None, nocrop = 0):
@@ -209,7 +224,7 @@ def create_output_path (param0 = None, param1 = None, appsetup = {}, outfolder =
         if UREP == 'cancel': return None, None
     if inpfile.is_dir() or outfolder == 1:
         if outfile.exists(): shutil.rmtree(outfile)
-        cmf = {'fps': appsetup['project']['fps']}
+        if 'fps' not in cmf: cmf = {'fps': appsetup['project']['fps']}
         outfile.mkdir()
     if getfps == 1: return inpfile, outfile, cmf['fps']
     return inpfile, outfile
@@ -217,6 +232,7 @@ def create_output_path (param0 = None, param1 = None, appsetup = {}, outfolder =
 def ui_p3dmodel_creation (entparams = [], appsetup = {}):
     if '/' not in entparams[1]: entparams[1] = 'media/' + entparams[1]
     inpfile, outfile, curfps = create_output_path (param0 = entparams[0], param1 = entparams[1], appsetup = appsetup, outfolder = 1, getfps = 1)
+    print ("create_output_path returned:", inpfile, outfile, curfps, isinstance(curfps, str))
     if inpfile == None or outfile == None: return -1
     csframe = pyback.forceint(entparams[2].split(",")[0], 1)
     clframe = pyback.forceint(entparams[2].split(",")[1], 999999) if len(entparams[2].split(",")) > 1 else 999999
@@ -347,19 +363,23 @@ def enhance_image_basic (ifile = '', ofile = '', param = '', nval = 1.0):
 
 # Below function is for internal consumption only
 def _image_resize (ifile = '', ofile = '', nsize = 100):
-    image = Image.open(ifile)
-    cwide, chigh = image.size
-    if pyback.forceint(nsize, default = -1) != -1:
-        nwide, nhigh = int(cwide*int(nsize)/100), int(chigh*int(nsize)/100)
-    else:
-        nwide, nhigh = pyback.getscreensize (nsize, cwide, chigh)
-    nimage = image.resize((nwide, nhigh), Image.ANTIALIAS)
-    nimage.save(ofile)
+    if ifile.suffix in appsetup['pictures']:
+        image = Image.open(ifile)
+        cwide, chigh = image.size
+        if pyback.forceint(nsize, default = -1) != -1:
+            nwide, nhigh = int(cwide*int(nsize)/100), int(chigh*int(nsize)/100)
+        else:
+            nwide, nhigh = pyback.getscreensize (nsize, cwide, chigh)
+        nimage = image.resize((nwide, nhigh), Image.ANTIALIAS)
+        nimage.save(ofile)
+    elif ifile.suffix in appsetup['movies']:
+        cmdstr = f"ffmpeg -i \"{ifile}\" -filter:v \"crop=960:1080:480:0\" \"{ofile}\""
+        os.system(cmdstr)
     return 0
 
 def ui_image_manipulation_rmback (entparams = [], appsetup = {}):
-    permissibles = ['mrcnn', 'ibrt', 'screen']
-    if entparams[2] not in permissibles:
+    permissibles = ['ibrt', 'static']
+    if entparams[2].lower() not in permissibles:
         localmessage (mtype = 'error', title = 'Incorrect action type', message = f"The feature to be modified should be one of: {', '.join(permissibles)}")
         return -1
     inpfile, outfile = create_output_path (param0 = entparams[0], param1 = entparams[1], appsetup = appsetup, outfolder = 0)
@@ -367,54 +387,27 @@ def ui_image_manipulation_rmback (entparams = [], appsetup = {}):
         for ifile in inpfile.iterdir():
             if not ifile.suffix in appsetup['images']: continue
             ofile = outfile / ifile.name
-            image_removebackground (ifile = str(ifile), ofile = str(ofile), method = entparams[2], params = entparams[3])
-    else: image_removebackground (ifile = str(ifile), ofile = str(ofile), method = entparams[2], params = entparams[3])
+            image_removebackground (ifile = ifile, ofile = ofile, method = entparams[2].lower(), params = entparams[3].lower(), appsetup = appsetup)
+    else: image_removebackground (ifile = inpfile, ofile = outfile, method = entparams[2].lower(), params = entparams[3].lower(), appsetup = appsetup)
     return 1
 
-def image_removebackground (ifile = '', ofile = '', method = 'mrcnn', params = 'green'):
-    def mrcnn_removebackground (ifile = '', ofile = ''):
-        CLASS_NAMES = ['BG', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush']
-        class SimpleConfig(mrcnn.config.Config):
-            NAME = "coco_inference"
-            GPU_COUNT = 1
-            IMAGES_PER_GPU = 1
-            PRE_NMS_LIMIT = 6000
-            NUM_CLASSES = len(CLASS_NAMES)
-        model = mrcnn.model.MaskRCNN(mode="inference", config=SimpleConfig(), model_dir=os.getcwd())
-        model.load_weights(filepath="Trained/Mask_RCNN/mask_rcnn_coco.h5", by_name=True)
-        image = cv2.imread(ifile)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        r = model.detect([image], verbose=0)
-        r = r[0]
-        mask = r['masks']
-        mask = mask.astype(int)
-        mask.shape
-        for i in range(mask.shape[2]):
-            temp = cv2.imread(ifile)
-            for j in range(temp.shape[2]):
-                temp[:,:,j] = temp[:,:,j] * mask[:,:,i]
-            cv2.imwrite((str(i)+"__"+ofile), temp)
-        return 1
+def image_removebackground (ifile = '', ofile = '', method = 'mrcnn', params = 'green', appsetup = {}):
     def ibrt_removebackground (ifile = '', ofile = ''):
         appdir = os.getcwd()
         try:
             os.chdir("ibrt")
-            cmdstr = f'ppython main.py -i "{ifile.resolve()}" -o "{ofile.resolve()}"  -m u2net'
+            cmdstr = f'ppython main.py -i "{ifile}" -o "{ofile}"  -m u2net'
             rval = os.system(cmdstr)
         finally: os.chdir(appdir)
         return 1
-    def screen_removebackground (ifile = '', ofile = '', color = 'green'):
-        limits = {'blue': {'lower': [0, 0, 100], 'upper': [120, 120, 255]},
-                  'green': {'lower': [0, 100, 0], 'upper': [120, 255, 120]},
-                  'red': {'lower': [100, 0, 0], 'upper': [255, 120, 120]},
-                  'yellow': {'lower': [100, 0, 0], 'upper': [255, 120, 120]}
-        }
-        image = cv2.imread(str(ifile))
+    def screen_removebackground (ifile = '', ofile = '', crange = None):
+        print (f"Crange: {crange}")
+        image = cv2.imread(ifile)
         image_copy = numpy.copy(image)
-        image_copy = cv2.cvtColor(image_copy, cv2.COLOR_BGR2RGB)
-        mask = cv2.inRange(image_copy, numpy.array(limits[color]['lower']), numpy.array(limits[color]['upper']))
+        image_copy = cv2.cvtColor(image_copy, cv2.COLOR_BGR2HSV)
+        mask = cv2.inRange(image_copy, numpy.array(crange[0]), numpy.array(crange[1]))
         cv2.imwrite('temp/image_bgscreen_removal_mask.png',mask)
-        ximg = Image.open(str(ifile))
+        ximg = Image.open(ifile)
         ximg = ximg.convert("RGBA")
         xstate = ximg.getdata()
         mimg = Image.open('temp/image_bgscreen_removal_mask.png')
@@ -444,14 +437,20 @@ def image_removebackground (ifile = '', ofile = '', method = 'mrcnn', params = '
                 newData.append(item)
         img.putdata(newData)
         img.save(ofile, "PNG")
-    if method == 'mrcnn': mrcnn_removebackground (ifile = ifile, ofile = ofile)
-    elif method == 'ibrt': ibrt_removebackground (ifile = ifile, ofile = ofile)
-    elif method == 'screen':
-        if params in ['blue', 'green', 'red', 'yellow']: screen_removebackground (ifile = ifile, ofile = ofile, color = params)
-        else: putmessagebox ("The screen to be modified should be one of: 'blue', 'green', 'red', 'yellow'")
-    elif method == 'color':
-        if params in list(appsetup['colorcode'].keys()): screen_removebackground (ifile = ifile, ofile = ofile, color = appsetup['colorcode'][params])
-        else: putmessagebox (f"The screen to be modified should be one of: {', '.join(list(appsetup['colorcode'].keys()))}")
+    def canberange(params):
+        rtl, rth = params.split(';', 1)
+        rtlv, rthv = list(map (int, rtl.split(','))), list(map (int, rth.split(',')))
+        return [rtlv,rthv]
+    print (f"params are {params} and method is {method}")
+    if method == 'ibrt': ibrt_removebackground (ifile = ifile.resolve(), ofile = ofile.resolve())
+    elif method == 'static':
+        if params in colorcode and params[:3] != 'all': color_removebackground (ifile = str(ifile), ofile = str(ofile), color = colorcode[params])
+        elif params in colorcode and params[:3] == 'all': screen_removebackground (ifile = str(ifile), ofile = str(ofile), crange = colorcode[params])
+        else:
+            try:
+                crange = canberange(params)
+                screen_removebackground (ifile = str(ifile), ofile = str(ofile), crange = crange)
+            except: localmessage (mtype = 'error', title = 'Incorrect color', message = "Please check documentation for correct color name/ range.")
     return 1
     
 def ui_prepare_stage (entparams = [], appsetup = {}):

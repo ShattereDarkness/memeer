@@ -28,6 +28,7 @@ def loadObject (modid = 0, fullanim = {}):
             model.makeSubpart(jname, jparts['include'], jparts['exclude'])
     elif modfile['file'] not in ['line']:
         model = loader.loadModel(modfile['filenm'])
+        if 'movie' in modfile['syns']: model.find('**/+SequenceNode').node().play()
         ##model.find('**/+SequenceNode').node().play() - enable for like "play bird loading once"?
     else: return 1
     model.reparentTo(render)

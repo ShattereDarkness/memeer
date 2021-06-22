@@ -86,7 +86,7 @@ def getpermissiblefps (*args):
         if isinstance(val, dict) and 'fps' in val and isinstance(val['fps'], int) and val['fps']> 0: return val['fps']
     return 24
 
-def create_movie_frames (ifile = Path(), folder = Path(), owrite = 0):
+def create_movie_frames (ifile = Path(), folder = Path(), owrite = 0, resize=320):
     print (f"create_movie_frames:\n\tifile={ifile}\n\tfolder={folder}\n\towrite={owrite}")
     retval = {'fps': 1, 'frame': 0}
     cmdstr = "ffprobe -v 0 -of csv=p=0 -select_streams v:0 -show_entries stream=avg_frame_rate \"" + str(ifile) + "\""
@@ -99,7 +99,8 @@ def create_movie_frames (ifile = Path(), folder = Path(), owrite = 0):
     else:
         folder['vid'].mkdir()
         folder['aud'].mkdir (exist_ok=True)
-    videocmd = "ffmpeg -i \"" + str(ifile) + "\" -vf scale=320:-1 -vsync 0 \"" + str(folder['vid']) + "/frame__%6d.png" + "\" -loglevel error"
+    if resize == 0: videocmd = "ffmpeg -i \"" + str(ifile) + "\" -vf scale=320:-1 -vsync 0 \"" + str(folder['vid']) + "/frame__%6d.png" + "\" -loglevel error"
+    else: videocmd = "ffmpeg -i \"" + str(ifile) + "\" \"" + str(folder['vid']) + "/frame__%6d.png" + "\" -loglevel error"
     print ("videocmd:", videocmd)
     os.system(videocmd)
     audiocmd = "ffmpeg -i \"" + str(ifile) + "\" -vn -acodec copy \"" + str(folder['aud']) + ".aac" + "\" -y -loglevel error"
@@ -123,7 +124,7 @@ def create_media_p3dmodel (ifile = Path(), owrite = 0, appsetup = {}, fps = -1):
     cmf = None
     if ifile.suffix in appsetup['movies']:
         existf = {'vid': projdir/'media'/ifile.stem, 'aud': projdir/'audio'/ifile.stem}
-        cmf = create_movie_frames (ifile = ifile, folder = existf, owrite = owrite)
+        cmf = create_movie_frames (ifile = ifile, folder = existf, owrite = owrite, resize=appsetup['vidtoimg'])
         asmovie = 1
     errorinnamecorrection = ifile.stem.replace(' ', '?')
     if asmovie == 1:

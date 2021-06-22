@@ -39,8 +39,8 @@ def defaultTask(task):
 tstat = []
 gframe = 0
 lastplay = 0
-sid=13
-for nid in range (26, 29):
+sid=81
+for nid in range (18, 19):
     fname = "basemodel/actions/A20GFLC-A20g%02d_%02d" %(sid, nid)
     print ("fname", fname)
     if not path.isfile(fname+".egg"): continue

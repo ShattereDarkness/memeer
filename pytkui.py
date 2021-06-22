@@ -192,12 +192,14 @@ def storyroomsetup (lstory, projvars = {}, boarditems = [], session = {}):
     lstoryui = {'storybox': storybox, 'canvas': canvas, 'coordbox': coordbox, 'lbox1': listboxl1, 'lbox2': listboxl2, 'param_ent': param_ent}
     return lstoryui
 
-def procsfuncsetup (lprocs, projvars = {}, procsitems = []):
+def procsfuncsetup (lprocs, projvars = {}, procsitems = [], root=None):
     paramlen = 10
     def processfunc(event):
         fncix = flist.current()
-        gifnm = tkinter.PhotoImage(file = procsitems[fncix]['descimage'])
-        descimg.create_image (0, 0, image = gifnm, anchor='nw')
+        descfile = Image.open(procsitems[fncix]['descimage'])
+        descfile = descfile.resize((550,550), Image.ANTIALIAS)
+        root.descrip = descrip = ImageTk.PhotoImage(descfile)
+        descimg.create_image ((275, 275), image = descrip, anchor='center')
         for ix in range(0, paramlen):
             param_ent[ix]['label'].grid_remove()
             param_ent[ix]['entry'].grid_remove()
