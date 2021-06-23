@@ -47,7 +47,7 @@ def localmessage (mtype = 'info', title = '', message = ''):
 def confirm_file (filestr, ftype = 'input', fback = '', appsetup = {}, isnew = 0):
     print ("filestr, ftype, fback, isnew", filestr, ftype, fback, isnew)
     projdir = Path(appsetup['project']['name'])
-    filestr = filestr.replace('\\', '/')
+    filestr = filestr.replace('\\', '/').strip()
     fnames = filestr.split('/')
     toorel = 1 if fnames[0] not in ['model', 'media', 'audio', 'video', 'temp'] else 0
     if isnew == 0:
@@ -452,16 +452,16 @@ def image_removebackground (ifile = '', ofile = '', method = 'mrcnn', params = '
                 screen_removebackground (ifile = str(ifile), ofile = str(ofile), crange = crange)
             except: localmessage (mtype = 'error', title = 'Incorrect color', message = "Please check documentation for correct color name/ range.")
     return 1
-    
+
 def ui_prepare_stage (entparams = [], appsetup = {}):
-    inputlst = entparams[0]
-    outfile, _Xtra = confirm_file (entparams[1], ftype = 'dunno', appsetup = appsetup, isnew = 1)
-    for idir in inputlist.split(','):
-        ipath, _Xtra = confirm_file (idir, ftype = 'dunno', appsetup = appsetup, isnew = 0)
+    outfile = confirm_file (entparams[1], ftype = 'input', fback = '', appsetup = appsetup, isnew = 1)
+    for idir in entparams[0].split(','):
+        ipath = confirm_file (idir, ftype = 'input', fback = '', appsetup = appsetup, isnew = 0)
+        print (f"copying over data for {ipath}")
         if not ipath.is_dir(): continue
-        pyback.png_overwrites (fframe = 1, lframe = 9999, imgsource = ipath, imgdest = outfile, overwrite = 0, action='copy')
-    movfile = Path(outfile.parent) / (outfile.name+entparams[3])
-    pyback.exec_pic_export (entparams = [movfile.name, appsetup['project']['fps'], "1, -1"], appsetup = appsetup, rushes = outfile)
+        pyback.png_overwrites (csframe = 1, clframe = 999999, imgsrc = ipath, imgdst = outfile, owrite = 0, action=['copy', 'append'])
+    movfile = outfile.name+'.'+entparams[2]
+    pyback.exec_pic_export (entparams = [movfile, appsetup['project']['fps'], "1, -1"], appsetup = appsetup, rushes = outfile, secon = 1)
 
 def image_manual_bgremoval (entparams = [], appsetup = {}):
     ipath = Path(appsetup['project']['name']) / 'rushes'

@@ -90,7 +90,9 @@ def create_movie_frames (ifile = Path(), folder = Path(), owrite = 0, resize=320
     print (f"create_movie_frames:\n\tifile={ifile}\n\tfolder={folder}\n\towrite={owrite}")
     retval = {'fps': 1, 'frame': 0}
     cmdstr = "ffprobe -v 0 -of csv=p=0 -select_streams v:0 -show_entries stream=avg_frame_rate \"" + str(ifile) + "\""
+    print (f"cmdstr: {cmdstr}")
     avgfps = (subprocess.run(cmdstr, capture_output=True)).stdout.decode('unicode_escape')[:-2]
+    print (f"avgfps: {avgfps}")
     retval['fps'] = round(float(avgfps.split('/')[0])/float(avgfps.split('/')[1]))
     if folder['vid'].exists() and owrite == 0: return retval
     if folder['vid'].exists():
@@ -506,12 +508,13 @@ def framerunparams (entparams = [], appsetup = {}):
     retval['scrwide'], retval['scrhigh'] = int(retval['scrwide']*500/maxscr), int(retval['scrhigh']*500/maxscr)
     return retval
 
-def exec_pic_export (entparams = [], appsetup = {}, rushes = "rushes"):
+def exec_pic_export (entparams = [], appsetup = {}, rushes = "rushes", secon = 0):
+    print (f"exec_pic_export:\n\tentparams={entparams}\n\trushes={rushes}")
     if entparams[0] == '': return 1
     filenm = Path(appsetup['project']['name']) / 'video' / entparams[0]
     if filenm.suffix == '': filenm = Path(appsetup['project']['name']) / 'video' / (entparams[0] + '.gif')
     fps = appsetup['project']['fps'] if forceint(entparams[1]) == -1 else forceint(entparams[1])
-    rushes = Path(appsetup['project']['name']) / rushes
+    rushes = Path(appsetup['project']['name']) / rushes if secon == 0 else rushes
     frange = entparams[2].split(",")
     fstart = int(frange[0].strip())
     flast = -1 if len(frange) == 1 else int(frange[1].strip())

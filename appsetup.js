@@ -3,9 +3,9 @@
     "secrettxt": "6bef18936ac12a9096e9fe7a8fe1f777ww",
     "democheck": 0,
     "project": {
-        "winsize": "500,500",
-        "preview": 1,
-        "fps": "24",
+        "winsize": "480,320",
+        "preview": 0,
+        "fps": "30",
         "detail": "Universe from template",
         "expand": 1,
         "canvas": "500,500",
