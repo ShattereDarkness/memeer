@@ -85,7 +85,7 @@ procsitems = [
     }, {"fname": "Pre-process", "text": "Make a transparent movie from manipulated rush frames", "descimage": "imgs/icon.png" ,
         "function": "image_manual_bgremoval", "xtraprocess": {},
         "params": ["Final image frame", "Start frame", "Last Frame", "Output movie name"]
-    }, {"fname": "Release", "text": "Prepare stage for release", "descimage": "imgs/icon.png" ,
+    }, {"fname": "Release", "text": "Prepare stage for release", "descimage": "imgs/stage2release.png" ,
         "function": "ui_prepare_stage", "xtraprocess": {},
         "params": ["Stage folder names (comma separated list)", "Output Stage Name", "Movie format (mp4, mov etc.)"]
     }, {"fname": "Release", "text": "Add watermark picture onto given movie", "descimage": "imgs/icon.png" ,
