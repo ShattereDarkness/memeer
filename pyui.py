@@ -70,21 +70,21 @@ procsitems = [
         "function": "ui_text_image_creation", "xtraprocess": {},
         "params": ["Output file name", "Text to be imaged", "Font name (atleast 4 characters)", "Font size (default 16)", "As characterwise frames (1 char per frame, default NO)?"],
         "additional": "'fill': (1, 1, 1, 255), 'spacing': 4, 'stroke_width': 1"
-    }, {"fname": "ModelCreate", "text": "Make Panda3d model for frameset/video", "descimage": "imgs/icon.png" ,
+    }, {"fname": "ModelCreate", "text": "Make Panda3d model for frameset/video", "descimage": "imgs/createp3dmodel.png" ,
         "function": "ui_p3dmodel_creation", "xtraprocess": {},
-        "params": ["Input file/folder", "Output file name", "Frames range (default is all frames: 1,-1)", "FPS (leave blank for using video's default)"]
+        "params": ["Input file/folder", "Output file name", "Frames range (default is all frames: 1,-1)", "FPS (leave blank for using video's default)", "Final count of frames to be included in model file"]
     }, {"fname": "Pre-process", "text": "Basic image manipulation functions", "descimage": "imgs/basicmanipul.png",
         "function": "ui_image_manipulation_basic", "xtraprocess": {},
         "params": ["Input image file", "Output file name", "Feature of the Image to be changed\n('contrast'/'color'/'brightness'/'sharpness'/'invert')", "New value (number)\n Or type 'range' for values from 0 to 100 (100 images)"]
     }, {"fname": "Pre-process", "text": "Advanced image manipulation - Background processing", "descimage": "imgs/bgremove.png" ,
         "function": "ui_image_manipulation_rmback", "xtraprocess": {},
-        "params": ["Input image file", "Output file name", "Background removal method\n(AI Based) ibrt / static (static color removal)", "Color name (white/black/red/green/blue/yellow) OR\nRange of color in specified format (see left)"]
+        "params": ["Input image file", "Output file name", "Background removal method\n(AI Based) ibrt / static (static color removal)", "Color name (white/black/red/green/blue/yellow/panda3d)\nOR Range of color in specified format (see left)"]
     }, {"fname": "Pre-process", "text": "Generate illustrations from existing image/s", "descimage": "imgs/icon.png" ,
         "function": "ui_image_manipulation_craft", "xtraprocess": {},
-        "params": ["Input image/s", "Output file name", "Special effect type (doodle / cartoon / pencil sketch)"]
-    }, {"fname": "Pre-process", "text": "Make a transparent movie from manipulated rush frames", "descimage": "imgs/icon.png" ,
+        "params": ["Input image/s", "Output file name", "Special effect type (doodle / cartoon / sketch)"]
+    }, {"fname": "Pre-process", "text": "Make a transparent movie from manipulated rush frames", "descimage": "imgs/transmovfromrush.png" ,
         "function": "image_manual_bgremoval", "xtraprocess": {},
-        "params": ["Final image frame", "Start frame", "Last Frame", "Output movie name"]
+        "params": ["Final image frame", "Output movie name", "Color of pen used - default black\n(options: white/black/red/green/blue/yellow/panda3d)"]
     }, {"fname": "Release", "text": "Prepare stage for release", "descimage": "imgs/stage2release.png" ,
         "function": "ui_prepare_stage", "xtraprocess": {},
         "params": ["Stage folder names (comma separated list)", "Output Stage Name", "Movie format (mp4, mov etc.)"]

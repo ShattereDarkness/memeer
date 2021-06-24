@@ -25,11 +25,13 @@ colorcode = {
     'red': [255, 0, 0],
     'green': [0,255,0],
     'blue': [0,0,255],
+    'panda3d': [105,105,105],
     'all white': [[170,0,200], [190,20,255]],
     'all black': [[0,0,0], [10,200,10]],
     'all red': [[0,50,100], [15,255,255]],
     'all green': [[45,50,100], [75,255,255]],
-    'all blue': [[105,50,100], [135,255,255]]
+    'all blue': [[105,50,100], [135,255,255]],
+    'all panda3d': [[0,0,35], [0,0,50]]
 }
 
 def base_function (funcname, entparams = {}, appsetup = {}):
@@ -204,7 +206,7 @@ def create_image_fortext (file = (), imgsize=def_imgsize, text = '', font = None
 
 def create_output_path (param0 = None, param1 = None, appsetup = {}, outfolder = 1, getfps = 0):
     inpfile = confirm_file (param0, ftype = 'input', appsetup = appsetup, isnew = 0)
-    cmf = {'fps': appsetup['project']['fps']}
+    cmf = {'fps': int(appsetup['project']['fps'])}
     if inpfile.suffix in appsetup['movies']:
         newfolder = inpfile.parent / inpfile.stem
         if newfolder.is_dir():
@@ -230,14 +232,41 @@ def create_output_path (param0 = None, param1 = None, appsetup = {}, outfolder =
     return inpfile, outfile
 
 def ui_p3dmodel_creation (entparams = [], appsetup = {}):
+    def get_filemapping (dirp = None, start = 1, last = 999999, tcount = 1):
+        fcount = len(list(dirp.glob('frame__??????.png')))
+        if fcount > last: fcount = last
+        if start > 1: fcount = fcount - start + 1
+        if (dirp / 'frame__000000.png').exists(): fcount = fcount - 1
+        mapls = pyback.fixinitemlist (lfrom = fcount-1, linto = tcount)
+        retval = [x + start for x in mapls]
+        return retval
+    def filemapcopy (cmap = [], imgsrc = None, imgdst = None):
+        if not imgdst.is_dir(): imgdst.mkdir(parents=True, exist_ok=True)
+        for ix, frid in enumerate(cmap):
+            print (f"copying file {frid} as {ix}")
+            oldimg = imgsrc / ("frame__"+"%06d"%(frid)+".png")
+            newimg = imgdst / ("frame__"+"%06d"%(ix)+".png")
+            if newimg.exists(): newimg.unlink()
+            shutil.copy(oldimg, newimg)
+        print ("PNG COPY COMPLETED")
     if '/' not in entparams[1]: entparams[1] = 'media/' + entparams[1]
     inpfile, outfile, curfps = create_output_path (param0 = entparams[0], param1 = entparams[1], appsetup = appsetup, outfolder = 1, getfps = 1)
+    if isinstance(curfps, str): curfps = appsetup['project']['fps']
+    thinned = pyback.forceint(entparams[4], 0)
     print ("create_output_path returned:", inpfile, outfile, curfps, isinstance(curfps, str))
-    if inpfile == None or outfile == None: return -1
+    if inpfile == None or outfile == None or inpfile == outfile:
+        localmessage(mtype = 'error', title = 'Input & Output path error', message = "Input or Output path are incorrect or same")
+        return -1
     csframe = pyback.forceint(entparams[2].split(",")[0], 1)
     clframe = pyback.forceint(entparams[2].split(",")[1], 999999) if len(entparams[2].split(",")) > 1 else 999999
-    curfps = curfps if pyback.forceint(entparams[3], curfps) < 1 else pyback.forceint(entparams[3], curfps)
-    pyback.png_overwrites (csframe = csframe, tdframe = csframe-1, clframe = clframe, imgsrc = inpfile, imgdst = outfile, owrite = 1, action = ['copy'])
+    if clframe < csframe: clframe = 999999
+    curfps = curfps if pyback.forceint(entparams[3], curfps) < 1 else pyback.forceint(entparams[3], curfps) 
+    if thinned == 0:
+        pyback.png_overwrites (csframe = csframe, tdframe = csframe-1, clframe = clframe, imgsrc = inpfile, imgdst = outfile, owrite = 1, action = ['copy'])
+    else:
+        copymap = get_filemapping (dirp = inpfile, start = csframe, last = clframe, tcount = thinned)
+        filemapcopy (cmap = copymap, imgsrc = inpfile, imgdst = outfile)
+        print (f"copymap: {copymap}")
     pyback.create_media_p3dmodel (ifile = outfile, owrite = 1, appsetup = appsetup, fps = curfps)
     return 1
 
@@ -304,11 +333,12 @@ def image_createillustration (ifile = '', ofile = '', method = '', islist = 0, a
         contours = create_image_doodle (ifile = str(ifile), ofile = str(ofile))
         if islist == 1: return 1
         campos, bcenter = '0, -120, 0', '0, 0, 0'
-        pwide, phigh = Image.open(ifile).size
-        logictxt, thisf, lastf, groups = '', 1, 1, [0]
-        canwide, canhigh = 500, 500
-        diffw, diffh = int((canwide-pwide)/2), int((canhigh-phigh)/2)
-        pxdata = []
+        # pwide, phigh = Image.open(ifile).size
+        # logictxt, thisf, lastf, groups = '', 1, 1, [0]
+        # canwide, canhigh = 500, 500
+        # diffw, diffh = int((canwide-pwide)/2), int((canhigh-phigh)/2)
+        diffw, diffh = 0, 0
+        groups, pxdata = [0], []
         for ix, contour in enumerate(contours):
             for jx, item in enumerate(contour):
                 if jx-1 > len(contour)/2: break
@@ -432,7 +462,6 @@ def image_removebackground (ifile = '', ofile = '', method = 'mrcnn', params = '
         for ix, item in enumerate(datas):
             if item[0] == color[0] and item[1] == color[1] and item[2] == color[2]:
                 newData.append((item[0],item[1],item[2], 0))
-                print (ix)
             else:
                 newData.append(item)
         img.putdata(newData)
@@ -441,7 +470,6 @@ def image_removebackground (ifile = '', ofile = '', method = 'mrcnn', params = '
         rtl, rth = params.split(';', 1)
         rtlv, rthv = list(map (int, rtl.split(','))), list(map (int, rth.split(',')))
         return [rtlv,rthv]
-    print (f"params are {params} and method is {method}")
     if method == 'ibrt': ibrt_removebackground (ifile = ifile.resolve(), ofile = ofile.resolve())
     elif method == 'static':
         if params in colorcode and params[:3] != 'all': color_removebackground (ifile = str(ifile), ofile = str(ofile), color = colorcode[params])
@@ -465,16 +493,16 @@ def ui_prepare_stage (entparams = [], appsetup = {}):
 
 def image_manual_bgremoval (entparams = [], appsetup = {}):
     ipath = Path(appsetup['project']['name']) / 'rushes'
-    opath = confirm_file (entparams[3], ftype = 'input', fback = '', appsetup = appsetup, isnew = 1)
+    opath = confirm_file (entparams[1], ftype = 'video', fback = '', appsetup = appsetup, isnew = 1)
     if opath.exists():
-        UREP = localmessage (mtype = 'ask', title = 'Path already exists', message = f"There is already a filepath with name {outfile}. Overwrite its content?")
+        UREP = localmessage (mtype = 'ask', title = 'Path already exists', message = f"There is already a filepath with name {opath}. Overwrite its content?")
         if UREP == 'cancel': return -1
         else:
             shutil.rmtree(opath)
             opath.mkdir()
     else: opath.mkdir()
     basefile = ipath / ("frame__"+"%06d"%(pyback.forceint(entparams[0], 2))+".png")
-    trans = [0,0,0]
+    trans = colorcode[entparams[2]] if entparams[2] in colorcode else colorcode['black']
     keeps = [255,255,255]
     alpha = 255
     bimg = Image.open(basefile)
@@ -489,10 +517,7 @@ def image_manual_bgremoval (entparams = [], appsetup = {}):
         for ix in range(0, pcount):
             bitem, xitem = bstate[ix], xstate[ix]
             if (xitem[0] == trans[0] and xitem[1] == trans[1] and xitem[2] == trans[1]):
-                if (bitem[0] == keeps[0] and bitem[1] == keeps[1] and bitem[2] == keeps[2]):
-                    toappend = (bitem[0], bitem[1], bitem[2], 0)
-                else:
-                    toappend = (bitem[0], bitem[1], bitem[2], alpha)
+                toappend = (bitem[0], bitem[1], bitem[2], alpha)
             else:
                 toappend = (xitem[0], xitem[1], xitem[2], 0)
             newData.append(toappend)
@@ -500,7 +525,7 @@ def image_manual_bgremoval (entparams = [], appsetup = {}):
         ximg.save(str(ofile), "PNG")
         return 1
     for file in ipath.iterdir():
-        if file.name == basefile.name: continue
+        if file.name[:7] != 'frame__' or file.suffix != '.png' or not file.is_file(): continue
         pixwise_removal (ifile = file, ofile = opath / file.name, bstate = bstate, trans = trans, keeps = keeps, alpha = alpha)
     return 1
 

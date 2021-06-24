@@ -1,0 +1,76 @@
+http://colorizer.org/
+
+Video by <a href="https://pixabay.com/users/reginaferreira5-8963564/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=30446">Regina Ferreira Regina Ferreira 5</a> from <a href="https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=30446">Pixabay</a>
+
+Video by <a href="https://pixabay.com/users/engin_akyurt-3656355/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=24924">Engin Akyurt</a> from <a href="https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=24924">Pixabay</a>
+
+Image by <a href="https://pixabay.com/users/laurentmarx-2651758/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1421167">laurent marx</a> from <a href="https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1421167">Pixabay</a>
+
+Video by <a href="https://pixabay.com/users/mds524680-21129732/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=77507">mds524680</a> from <a href="https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=77507">Pixabay</a>
+
+Video by <a href="https://pixabay.com/users/engin_akyurt-3656355/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=31461">Engin Akyurt</a> from <a href="https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=31461">Pixabay</a>
+
+Video by <a href="https://pixabay.com/users/jeremiah7-388072/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=14561">Johnson Cherian</a> from <a href="https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=14561">Pixabay</a>
+
+Video by Artem Podrez from Pexels
+
+Video by <a href="https://pixabay.com/users/luiz-jorge-artista-2114853/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=2936">Luiz Jorge de Miranda Neto- Luiz Jorge Artista</a> from <a href="https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=2936">Pixabay</a>
+
+Video by <a href="https://pixabay.com/users/juwel123-14494051/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=78341">juwel123</a> from <a href="https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=78341">Pixabay</a>
+
+Video by <a href="https://pixabay.com/users/ambient_nature_atmosphere-12967658/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=38678">Ambient_ Nature_Atmosphere</a> from <a href="https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=38678">Pixabay</a>
+
+Image by <a href="https://pixabay.com/users/wikiimages-1897/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=60615">WikiImages</a> from <a href="https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=60615">Pixabay</a>
+
+Video by <a href="https://pixabay.com/users/hrlsuleman-17191494/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=44088">Suleman Jan</a> from <a href="https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=44088">Pixabay</a>
+
+second screen @(0,-0.2,0,0,0,0,114.32,1,64.31) #151-#451
+river @(0,-0.1,0,0,0,0,114.32,1,64.31) #151-#451
+
+from pathlib import Path
+from PIL import Image, ImageEnhance, ImageOps, ImageDraw, ImageFont
+import cv2
+import os
+import matplotlib.font_manager
+import numpy
+import random
+import math
+from tkinter import messagebox
+import ast
+
+import json
+import pyback
+import copy
+import shutil
+import time
+import subprocess
+
+
+'all green': [[43,50,100], [75,255,255]],
+'all blue': [[90,120,170], [110,255,255]],
+
+    
+ifile='scase003/video/Tree/frame__000001.png'
+ofile='scase003/video/test11.png'
+image = cv2.imread(str(ifile))
+image_copy = numpy.copy(image)
+image_copy = cv2.cvtColor(image_copy, cv2.COLOR_BGR2HSV)
+mask = cv2.inRange(image_copy, (90,120,170), (110,255,255))
+cv2.imwrite('temp/image_bgscreen_removal_mask.png',mask)
+ximg = Image.open(str(ifile))
+ximg = ximg.convert("RGBA")
+xstate = ximg.getdata()
+mimg = Image.open('temp/image_bgscreen_removal_mask.png')
+mimg = mimg.convert("RGBA")
+mstate = mimg.getdata()
+pcount = ximg.size[0] * ximg.size[1]
+newData = []
+for ix in range(0, pcount):
+    mitem, xitem = mstate[ix], xstate[ix]
+    if mitem[0] == 0 and mitem[1] == 0 and mitem[2] == 0:
+        toappend = (xitem[0], xitem[1], xitem[2], 255)
+    else: toappend = (xitem[0], xitem[1], xitem[2], 0)
+    newData.append(toappend)
+
+ximg.putdata(newData)
+ximg.save(str(ofile), "PNG")

@@ -6,6 +6,7 @@ import os.path
 from pathlib import Path
 import json
 import copy
+import pyback
 
 def mergeposition (base = [], addit = []):
     if len(addit) < 3: return base
@@ -25,14 +26,6 @@ def readposfile (filenm, basedir):
     with open(filedat) as lujs: allpos = json.load(lujs)
     return allpos['coord']
 
-def fixinitemlist (lfrom = 1, linto = 1):
-    retval = [0]
-    for ix in range(1, linto):
-        fix = round(ix*(lfrom/(linto-1)), 0)
-        retval.append(int(fix))
-    print ("fixinitemlist", retval)
-    return retval
-
 def generatedefposts (fcount = 1, baseloc = [], locrange = '', basedir = '.'):
     retval = []
     if len(baseloc) == 0: baseloc = [0,0,0,0,0,0,1,1,1]
@@ -40,7 +33,7 @@ def generatedefposts (fcount = 1, baseloc = [], locrange = '', basedir = '.'):
         if len(baseloc) == 0: baseloc = [0,0,0]
         coords = readposfile (locrange['locfile'], basedir)
         if coords == [[]]: return [baseloc]
-        itemls = fixinitemlist (lfrom = len(coords)-1, linto = fcount)
+        itemls = pyback.fixinitemlist (lfrom = len(coords)-1, linto = fcount)
         lastix = -1
         print("baseloc, itemls, coords", baseloc, itemls, coords)
         for ix, item in enumerate(itemls):

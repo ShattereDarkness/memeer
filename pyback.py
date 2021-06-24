@@ -320,7 +320,7 @@ def png_overwrites (csframe = 1, tdframe = 0, clframe = 999999, imgsrc = Path(),
         if newimg.exists() and owrite == 1: newimg.unlink()
         if owrite == 0 and newimg.is_file(): continue
         shutil.copy(oldimg, newimg)
-        if action == 'move': oldimg.unlink()
+        if  'move' in action: oldimg.unlink()
         counts = counts + 1
     if 'refresh' in action:
         for file in imgsrc.iterdir(): file.unlink()
@@ -538,6 +538,14 @@ def exec_pic_delete (entparams = [], appsetup = {}):
     for files in tempr.glob('*.png'):
         files.unlink()
     return 1
+
+def fixinitemlist (lfrom = 1, linto = 1):
+    retval = [0]
+    for ix in range(1, linto):
+        fix = round(ix*(lfrom/(linto-1)), 0)
+        retval.append(int(fix))
+    print ("fixinitemlist", retval)
+    return retval
 
 def logit (logtext, inputlog):
     logtext.insert('end', pprint.pformat(inputlog))

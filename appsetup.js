@@ -3,13 +3,13 @@
     "secrettxt": "6bef18936ac12a9096e9fe7a8fe1f777ww",
     "democheck": 0,
     "project": {
-        "winsize": "480,320",
-        "preview": 0,
-        "fps": "30",
+        "winsize": "1280,720",
+        "preview": 1,
+        "fps": "60",
         "detail": "Universe from template",
         "expand": 1,
         "canvas": "500,500",
-        "name": "scase003"
+        "name": "scase001"
     },
     "meemerurl": "http://localhost:5000/getanim",
     "havegpu": 0,
