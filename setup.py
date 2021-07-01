@@ -30,7 +30,12 @@ file_copyadd = [
     {'file': 'p3dcoords.py'}
 ]
 
-shortcuts = [{'from': 'pyui.py', 'exec': 'Memeer.lnk'}]
+execution = [{'dir': 'ibrt', 'cmdstr': 'pip3 install -r requirements.txt'},
+             {'dir': 'ibrt/tools', 'cmdstr': 'python setup.py'}]
+
+shortcuts = [{'from': 'pyui.py', 'exec': 'Memeer.lnk', 'icon': 'imgs/logo.ico'}]
+
+currwdir = Path().resolve()
 
 def install(package):
     subprocess.check_call([sys.executable, "-m", "pip", "install", package])
@@ -58,6 +63,12 @@ for file_item in file_copyadd:
 
 print ("Installation is completed!")
 python_path = sys.executable
+
+for execmd in execution:
+    if 'dir' in execmd: os.chdir(install_path / execmd['dir'])
+    cmdval = os.system(execmd['cmdstr'])
+    if 'dir' in execmd: os.chdir(currwdir)
+
 for filename in shortcuts:
     if platform.system() == ['Linux', 'Darwin']:    #Set this as binary
         file = install_path / filename['exec']
@@ -72,7 +83,7 @@ for filename in shortcuts:
         target = python_path
         args = ' ' + str(install_path / filename['from'])
         wDir = str(install_path)
-        icon = str(install_path / 'imgs/logo.ico')
+        icon = str(install_path / filename['icon'])
         shell = Dispatch("WScript.Shell")
         shortcut = shell.CreateShortCut(path)
         shortcut.Targetpath = target
