@@ -213,7 +213,7 @@ def create_output_path (param0 = None, param1 = None, appsetup = {}, outfolder =
             UREP = localmessage (mtype = 'ask', title = 'Folder already exists', message = f"There is already a folder with name {newfolder}. Overwrite its content?")
             if UREP == 'cancel': return None, None
         existf = {'vid': newfolder, 'aud': Path(appsetup['project']['name'])/'temp'/inpfile.stem}
-        cmf = pyback.create_movie_frames (ifile = inpfile, folder = existf, owrite = 1)
+        cmf = pyback.create_movie_frames (ifile = inpfile, folder = existf, owrite = 1, resize = appsetup['vidtoimg'])
         inpfile = newfolder
     outfile = confirm_file (param1, ftype = 'input', appsetup = appsetup, isnew = 1, fback = str(inpfile.parent.stem))
     print ("outfile:", outfile)

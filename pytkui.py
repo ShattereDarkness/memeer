@@ -114,11 +114,16 @@ def appuisetup (appsetup = {}, root = {}, uiset = {}, retry=1):
     uiset['expand'] = newchkbox (root = root, text = 'Expansion for Verb Synonyms', value = appsetup['project']['expand'], column=2, row=11)
 
 def port_conf_save (uielems, appsetup, univ):
+    def check_winsize(winsize):
+        scrsize = pyback.getscreensize (winsize, 0, 0)
+        if scrsize[0] == 0 or scrsize[1] == 0 or scrsize[0] % 2 != 0 or scrsize[1] % 2 != 0:
+            messagebox.showerror (title="Incorrect Size screen text", message="This may not be a valid screen size, Please type comma separated even integers only!")
     appsetup['user_idnt'] = uielems['auser'].get()
     appsetup['secrettxt'] = uielems['apkey'].get()
     appsetup['project']['name'] = uielems['name'].get()
     appsetup['project']['detail'] = uielems['detail'].get()
-    appsetup['project']['winsize'] = uielems['winsize'].get()
+    winsize = appsetup['project']['winsize'] = uielems['winsize'].get()
+    check_winsize(winsize)
     appsetup['project']['fps'] = uielems['fps'].get()
     appsetup['project']['preview'] = 1 if uielems['preview'].instate(['selected']) else 0
     appsetup['project']['expand'] = 1 if uielems['expand'].instate(['selected']) else 0

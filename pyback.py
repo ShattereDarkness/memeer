@@ -86,7 +86,7 @@ def getpermissiblefps (*args):
         if isinstance(val, dict) and 'fps' in val and isinstance(val['fps'], int) and val['fps']> 0: return val['fps']
     return 24
 
-def create_movie_frames (ifile = Path(), folder = Path(), owrite = 0, resize=320):
+def create_movie_frames (ifile = Path(), folder = Path(), owrite = 0, resize = 0):
     print (f"create_movie_frames:\n\tifile={ifile}\n\tfolder={folder}\n\towrite={owrite}")
     retval = {'fps': 1, 'frame': 0}
     cmdstr = "ffprobe -v 0 -of csv=p=0 -select_streams v:0 -show_entries stream=avg_frame_rate \"" + str(ifile) + "\""
@@ -102,7 +102,7 @@ def create_movie_frames (ifile = Path(), folder = Path(), owrite = 0, resize=320
         folder['vid'].mkdir()
         folder['aud'].mkdir (exist_ok=True)
     if resize == 0: videocmd = "ffmpeg -i \"" + str(ifile) + "\" -vf scale=320:-1 -vsync 0 \"" + str(folder['vid']) + "/frame__%6d.png" + "\" -loglevel error"
-    else: videocmd = "ffmpeg -i \"" + str(ifile) + "\" \"" + str(folder['vid']) + "/frame__%6d.png" + "\" -loglevel error"
+    else: videocmd = "ffmpeg -i \"" + str(ifile) + "\" -vsync 0 \"" + str(folder['vid']) + "/frame__%6d.png" + "\" -loglevel error"
     print ("videocmd:", videocmd)
     os.system(videocmd)
     audiocmd = "ffmpeg -i \"" + str(ifile) + "\" -vn -acodec copy \"" + str(folder['aud']) + ".aac" + "\" -y -loglevel error"
@@ -131,8 +131,8 @@ def create_media_p3dmodel (ifile = Path(), owrite = 0, appsetup = {}, fps = -1):
     errorinnamecorrection = ifile.stem.replace(' ', '?')
     if asmovie == 1:
         fps = getpermissiblefps (cmf, fps, appsetup, 30)
-        cmdstr = "egg-texture-cards -o \"" + ifile.stem + ".egg\" -fps "+str(fps)+" ../media/" + errorinnamecorrection + "/*.png"
-    else: cmdstr = "egg-texture-cards -o \"" + ifile.stem + ".egg\" ../media/" + errorinnamecorrection + ifile.suffix
+        cmdstr = "egg-texture-cards -o \"" + ifile.stem + ".egg\" -b -p 10,10 -fps "+str(fps)+" ../media/" + errorinnamecorrection + "/*.png"
+    else: cmdstr = "egg-texture-cards -o \"" + ifile.stem + ".egg\" -b -p 10,10 ../media/" + errorinnamecorrection + ifile.suffix
     print (f"create_media_p3dmodel: cmdstr={cmdstr}")
     try:
         os.chdir(projdir / 'model')
@@ -413,14 +413,17 @@ def exec_transform_coords (entparams = [], appsetup = {}):
     canw, canh = getscreensize (entparams[1], 500, 500)
     winw, winh = getscreensize (entparams[2], 500, 500)
     nratio = max(winw, winh)/min(winw, winh)
-    pixels = exec_open_coords (entparams = entparams, appsetup = appsetup, jskey = 'pixel')
+    coordfdata = exec_open_coords (entparams = entparams, appsetup = appsetup, jskey = 'all')
+    campos = coordfdata['campos']
+    bcenter = coordfdata['bcenter']
+    pixels = coordfdata['pixel']
     npixels = []
     for pixel in pixels:
         rwpix, rhpix = 250+int((pixel[0]-250)*nratio), 250+int((pixel[1]-250)*nratio)
         print ("from pixel to rwpix, rhpix", pixel, rwpix, rhpix)
         npixels.append([rwpix, rhpix])
     nfile = 'T_' + entparams[0]
-    exec_save_coords (entparams = ['', '', nfile], appsetup = appsetup, coord = str(npixels), revert = 0, addxtra = {'tform': entparams})
+    exec_save_coords (entparams = [campos, bcenter, nfile], appsetup = appsetup, coord = str(npixels), revert = 0, addxtra = {'tform': entparams})
 
 def set_multifile_coords (file = '', appsetup = {}, addlogic = 0):
     ifile = Path(appsetup['project']['name']) / 'coords' / file
@@ -450,12 +453,15 @@ def exec_translate_coords (entparams = [], appsetup = {}):
     entparams[1] = 0 if entparams[1] == '' else forceint(entparams[1], default = 0)
     entparams[2] = 0 if entparams[2] == '' else forceint(entparams[2], default = 0)
     if entparams[1] == 0 and entparams[2] == 0: return 1
-    pixels = exec_open_coords (entparams = entparams, appsetup = appsetup, jskey = 'pixel')
+    coordfdata = exec_open_coords (entparams = entparams, appsetup = appsetup, jskey = 'all')
+    campos = coordfdata['campos']
+    bcenter = coordfdata['bcenter']
+    pixels = coordfdata['pixel']
     npixels = []
     for pixel in pixels:
         npixels.append([pixel[0]+entparams[1], pixel[1]+entparams[2]])
     nfile = 'Tl_' + entparams[0]
-    exec_save_coords (entparams = ['', '', nfile], appsetup = appsetup, coord = str(npixels), revert = 0, addxtra = {'tlate': entparams})
+    exec_save_coords (entparams = [campos, bcenter, nfile], appsetup = appsetup, coord = str(npixels), revert = 0, addxtra = {'tlate': entparams})
     set_multifile_coords (file = nfile, appsetup = appsetup, addlogic = 0)
 
 def exec_screen_coords (entparams = [], appsetup = {}):

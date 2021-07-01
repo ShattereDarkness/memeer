@@ -74,6 +74,14 @@ def getposlist (bspec = {}, cspec = {}, fcount = 1, basedir = '.'):
     #print ("getposlist", retval)
     return retval
 
+def getstatements (sttmts):
+    subtext = ""
+    for sttmt in sttmts:
+        sttext = sttmt[1:][:-1]
+        if len(sttext) > 0: subtext = subtext + sttext + "\n"
+    subtext = subtext[:-1]
+    return {'what': 'loadsub', 'subtxt': subtext}
+            
 def serialized (cmdlets, rushobjlst, universe = {}, appsetup = {}, fframe = 1, fps = 1, winsize = [10, 10]):
     print ("cmdlets, rushobjlst, universe, appsetup, fframe", cmdlets, rushobjlst, universe , appsetup, fframe)
     basedir = Path(appsetup['project']['name'])
@@ -93,6 +101,8 @@ def serialized (cmdlets, rushobjlst, universe = {}, appsetup = {}, fframe = 1, f
         posdet = getposlist (bspec = cmdlet['bspec'], cspec = cmdlet['cspec'], fcount = fcount, basedir = basedir)
         print ("series input (cmdlet and posdet)", cmdlet, posdet)
         series = globals()[cmdlet['func']] (universe = universe, params = cmdlet['params'], posdet = posdet, frames = cmdlet['frames'], rushobjlst = rushobjlst, basedir = basedir)
+        if len(cmdlet['bspec']['sttmts']) > 0:
+            series[str(cmdlet['frames'][0])].append(getstatements (cmdlet['bspec']['sttmts']))
         lastindx = mergeanimation (series = series, frames = cmdlet['frames'], frameset = frameset, lastindx = lastindx)
     animes = {}
     for frid in range(1, fframe+1):

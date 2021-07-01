@@ -3,17 +3,17 @@
     "secrettxt": "6bef18936ac12a9096e9fe7a8fe1f777ww",
     "democheck": 0,
     "project": {
-        "winsize": "1280,720",
+        "winsize": "500,500",
         "preview": 1,
-        "fps": "60",
+        "fps": "24",
         "detail": "Universe from template",
         "expand": 1,
         "canvas": "500,500",
-        "name": "scase001"
+        "name": "basicproject"
     },
     "meemerurl": "http://localhost:5000/getanim",
     "havegpu": 0,
-    "vidtoimg": 0,
+    "vidtoimg": 1,
     "OSType": "Windows",
     "joint": {
         "makehuman_cmumb": {

@@ -39,7 +39,7 @@ projvars['animurl'] = 'http://localhost:5000/getanim'
 session = {'coords': [], 'stopact': 0, 'logtext': None}
 
 root = tkinter.Tk()
-root.geometry("950x650")
+root.geometry('%dx%d+%d+%d' % (950, 650, 20, 20))
 root.resizable(0,0)
 root.iconphoto(False, tkinter.PhotoImage(file='imgs/icon.png'))
 root.title("Meme'er")
