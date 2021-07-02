@@ -17,7 +17,7 @@ import time
 import subprocess
 
 yes_synos = ['y', 'yea', 'yeah', 'yo', 'yes', 'aye', 'aaye', 'ya', 'yup', 'yaa', 'jaa']
-nah_synos = ['n', 'no', 'nop', 'nope', 'nay', 'ei', 'not']
+nah_synos = ['n', 'no', 'nah', 'nope', 'nay', 'ei', 'not']
 def_imgsize = (2000, 2000)
 colorcode = {
     'white': [255,255,255],
@@ -35,8 +35,12 @@ colorcode = {
 }
 
 def base_function (funcname, entparams = {}, appsetup = {}):
-    retval = globals()[funcname] (entparams = entparams, appsetup = appsetup)
-    return retval
+    try:
+        globals()[funcname] (entparams = entparams, appsetup = appsetup)
+        localmessage (mtype = 'info', title = 'Complete', message = 'Function completed successfully')
+    except:
+        localmessage (mtype = 'error', title = 'Failure', message = 'Function failed to execute, please check log or contact us if it persists!')
+    return 1
 
 def localmessage (mtype = 'info', title = '', message = ''):
     UREP = 'cancel'
