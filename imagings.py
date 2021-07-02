@@ -17,7 +17,7 @@ import time
 import subprocess
 
 yes_synos = ['y', 'yea', 'yeah', 'yo', 'yes', 'aye', 'aaye', 'ya', 'yup', 'yaa', 'jaa']
-nah_synos = ['n', 'no', 'nop', 'nope', 'nay', 'ei', 'not']
+nah_synos = ['n', 'no', 'nah', 'nope', 'nay', 'ei', 'not']
 def_imgsize = (2000, 2000)
 colorcode = {
     'white': [255,255,255],
@@ -35,8 +35,12 @@ colorcode = {
 }
 
 def base_function (funcname, entparams = {}, appsetup = {}):
-    retval = globals()[funcname] (entparams = entparams, appsetup = appsetup)
-    return retval
+    try:
+        globals()[funcname] (entparams = entparams, appsetup = appsetup)
+        localmessage (mtype = 'info', title = 'Complete', message = 'Function completed successfully')
+    except:
+        localmessage (mtype = 'error', title = 'Failure', message = 'Function failed to execute, please check log or contact us if it persists!')
+    return 1
 
 def localmessage (mtype = 'info', title = '', message = ''):
     UREP = 'cancel'
@@ -213,7 +217,7 @@ def create_output_path (param0 = None, param1 = None, appsetup = {}, outfolder =
             UREP = localmessage (mtype = 'ask', title = 'Folder already exists', message = f"There is already a folder with name {newfolder}. Overwrite its content?")
             if UREP == 'cancel': return None, None
         existf = {'vid': newfolder, 'aud': Path(appsetup['project']['name'])/'temp'/inpfile.stem}
-        cmf = pyback.create_movie_frames (ifile = inpfile, folder = existf, owrite = 1)
+        cmf = pyback.create_movie_frames (ifile = inpfile, folder = existf, owrite = 1, resize = appsetup['vidtoimg'])
         inpfile = newfolder
     outfile = confirm_file (param1, ftype = 'input', appsetup = appsetup, isnew = 1, fback = str(inpfile.parent.stem))
     print ("outfile:", outfile)

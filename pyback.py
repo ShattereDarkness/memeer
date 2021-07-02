@@ -86,7 +86,7 @@ def getpermissiblefps (*args):
         if isinstance(val, dict) and 'fps' in val and isinstance(val['fps'], int) and val['fps']> 0: return val['fps']
     return 24
 
-def create_movie_frames (ifile = Path(), folder = Path(), owrite = 0, resize=320):
+def create_movie_frames (ifile = Path(), folder = Path(), owrite = 0, resize = 0):
     print (f"create_movie_frames:\n\tifile={ifile}\n\tfolder={folder}\n\towrite={owrite}")
     retval = {'fps': 1, 'frame': 0}
     cmdstr = "ffprobe -v 0 -of csv=p=0 -select_streams v:0 -show_entries stream=avg_frame_rate \"" + str(ifile) + "\""
@@ -102,7 +102,7 @@ def create_movie_frames (ifile = Path(), folder = Path(), owrite = 0, resize=320
         folder['vid'].mkdir()
         folder['aud'].mkdir (exist_ok=True)
     if resize == 0: videocmd = "ffmpeg -i \"" + str(ifile) + "\" -vf scale=320:-1 -vsync 0 \"" + str(folder['vid']) + "/frame__%6d.png" + "\" -loglevel error"
-    else: videocmd = "ffmpeg -i \"" + str(ifile) + "\" \"" + str(folder['vid']) + "/frame__%6d.png" + "\" -loglevel error"
+    else: videocmd = "ffmpeg -i \"" + str(ifile) + "\" -vsync 0 \"" + str(folder['vid']) + "/frame__%6d.png" + "\" -loglevel error"
     print ("videocmd:", videocmd)
     os.system(videocmd)
     audiocmd = "ffmpeg -i \"" + str(ifile) + "\" -vn -acodec copy \"" + str(folder['aud']) + ".aac" + "\" -y -loglevel error"
@@ -131,8 +131,8 @@ def create_media_p3dmodel (ifile = Path(), owrite = 0, appsetup = {}, fps = -1):
     errorinnamecorrection = ifile.stem.replace(' ', '?')
     if asmovie == 1:
         fps = getpermissiblefps (cmf, fps, appsetup, 30)
-        cmdstr = "egg-texture-cards -o \"" + ifile.stem + ".egg\" -fps "+str(fps)+" ../media/" + errorinnamecorrection + "/*.png"
-    else: cmdstr = "egg-texture-cards -o \"" + ifile.stem + ".egg\" ../media/" + errorinnamecorrection + ifile.suffix
+        cmdstr = "egg-texture-cards -o \"" + ifile.stem + ".egg\" -b -p 10,10 -fps "+str(fps)+" ../media/" + errorinnamecorrection + "/*.png"
+    else: cmdstr = "egg-texture-cards -o \"" + ifile.stem + ".egg\" -b -p 10,10 ../media/" + errorinnamecorrection + ifile.suffix
     print (f"create_media_p3dmodel: cmdstr={cmdstr}")
     try:
         os.chdir(projdir / 'model')
@@ -275,7 +275,7 @@ def getscreensize (text, w, h):
         winsize = text.replace('x', ',')
         scrwide = list(map(int, winsize.split(',')))[0]
         scrhigh = list(map(int, winsize.split(',')))[1]
-        if scrwide * scrhigh < 20: return w, h
+        if scrwide * scrhigh < 90: return w, h
         else: return scrwide, scrhigh
     except: return w, h
     return 500, 500
@@ -293,7 +293,7 @@ def exec_play_story (entparams = [], appsetup = {}, universe = {}, story = ''):
     fframe = 1 if forceint(entparams[2]) == -1 else forceint(entparams[2])
     print ("fps, scrwide, scrhigh, frame", fps, scrwide, scrhigh, fframe)
     updateuniverseforsend (universe = universe, appsetup = appsetup)
-    nlu = response_textplay (appsetup['meemerurl'], {'Content-type': 'application/json'}, universe, p3dfunc.storyparse(story), appsetup['democheck'])
+    nlu = response_textplay (appsetup['meemerurl'], {'Content-type': 'application/json'}, universe, p3dfunc.storyparse(story), appsetup)
     serialized = p3dfunc.serialized (nlu['cmdlets'], nlu['rushobjlst'], universe = universe, appsetup = appsetup, fframe = fframe, fps = fps, winsize = [scrwide, scrhigh])
     os.system('ppython p3dpreview.py ' + str(serialized["data"]))
     imgsrc = Path(appsetup['project']['name']) / 'rushes' / 'temp/'
@@ -413,14 +413,17 @@ def exec_transform_coords (entparams = [], appsetup = {}):
     canw, canh = getscreensize (entparams[1], 500, 500)
     winw, winh = getscreensize (entparams[2], 500, 500)
     nratio = max(winw, winh)/min(winw, winh)
-    pixels = exec_open_coords (entparams = entparams, appsetup = appsetup, jskey = 'pixel')
+    coordfdata = exec_open_coords (entparams = entparams, appsetup = appsetup, jskey = 'all')
+    campos = coordfdata['campos']
+    bcenter = coordfdata['bcenter']
+    pixels = coordfdata['pixel']
     npixels = []
     for pixel in pixels:
         rwpix, rhpix = 250+int((pixel[0]-250)*nratio), 250+int((pixel[1]-250)*nratio)
         print ("from pixel to rwpix, rhpix", pixel, rwpix, rhpix)
         npixels.append([rwpix, rhpix])
     nfile = 'T_' + entparams[0]
-    exec_save_coords (entparams = ['', '', nfile], appsetup = appsetup, coord = str(npixels), revert = 0, addxtra = {'tform': entparams})
+    exec_save_coords (entparams = [campos, bcenter, nfile], appsetup = appsetup, coord = str(npixels), revert = 0, addxtra = {'tform': entparams})
 
 def set_multifile_coords (file = '', appsetup = {}, addlogic = 0):
     ifile = Path(appsetup['project']['name']) / 'coords' / file
@@ -450,12 +453,15 @@ def exec_translate_coords (entparams = [], appsetup = {}):
     entparams[1] = 0 if entparams[1] == '' else forceint(entparams[1], default = 0)
     entparams[2] = 0 if entparams[2] == '' else forceint(entparams[2], default = 0)
     if entparams[1] == 0 and entparams[2] == 0: return 1
-    pixels = exec_open_coords (entparams = entparams, appsetup = appsetup, jskey = 'pixel')
+    coordfdata = exec_open_coords (entparams = entparams, appsetup = appsetup, jskey = 'all')
+    campos = coordfdata['campos']
+    bcenter = coordfdata['bcenter']
+    pixels = coordfdata['pixel']
     npixels = []
     for pixel in pixels:
         npixels.append([pixel[0]+entparams[1], pixel[1]+entparams[2]])
     nfile = 'Tl_' + entparams[0]
-    exec_save_coords (entparams = ['', '', nfile], appsetup = appsetup, coord = str(npixels), revert = 0, addxtra = {'tlate': entparams})
+    exec_save_coords (entparams = [campos, bcenter, nfile], appsetup = appsetup, coord = str(npixels), revert = 0, addxtra = {'tlate': entparams})
     set_multifile_coords (file = nfile, appsetup = appsetup, addlogic = 0)
 
 def exec_screen_coords (entparams = [], appsetup = {}):
@@ -489,10 +495,10 @@ def exec_fork_project (entparams = [], appsetup = {}):
     os.mkdir(entparams[0]+'rushes/temp')
     return 1
 
-def response_textplay (animurl, headers, cuniverse, story, democheck):
-    if democheck == 1:
+def response_textplay (animurl, headers, cuniverse, story, appsetup):
+    if appsetup['democheck'] == 1:
         return {'cmdlets': [{'bspec': {'locupto': [], 'locfrom': [], 'locpos': [0.0, 2.0, 7.0, 0.0, 0.0, 0.0, 75.0, 50.0, 50.0], 'locfile': '', 'sttmts': [], 'frames': [1, 120], 'oid': 303}, 'cspec': {'locfile': '', 'locfrom': [], 'locupto': [], 'locpos': [], 'frames': []}, 'func': 'object_named', 'params': {'modid': 1, 'weight': 1, 'isnew': 1}, 'frames': [1, 120]}, {'bspec': {'locupto': [], 'locfrom': [], 'locpos': [], 'locfile': 'somelist1', 'sttmts': [], 'frames': [61, 120], 'oid': 304}, 'cspec': {'locfile': '', 'locfrom': [], 'locupto': [], 'locpos': [], 'frames': []}, 'func': 'object_exists', 'params': {'modid': 2, 'weight': 1, 'isnew': 1}, 'frames': [61, 120]}, {'bspec': {'locupto': [], 'locfrom': [], 'locpos': [], 'locfile': '', 'sttmts': [], 'frames': [121, 150], 'oid': 310}, 'cspec': {'locfile': '', 'locfrom': [], 'locupto': [], 'locpos': [], 'frames': []}, 'func': 'object_exists', 'params': {'modid': 1, 'weight': 4, 'isnew': 0}, 'frames': [121, 150]}, {'bspec': {'locupto': [], 'locfrom': [], 'locpos': [], 'locfile': '', 'sttmts': [], 'frames': [], 'oid': 306}, 'cspec': {'locfile': '', 'locfrom': [], 'locupto': [], 'locpos': [], 'frames': []}, 'func': 'object_named', 'params': {'modid': 3, 'weight': 1, 'isnew': 1}, 'frames': [151, 271]}, {'bspec': {'locupto': [21.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0], 'locfrom': [-21.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0], 'locpos': [], 'locfile': '', 'sttmts': [], 'frames': [61, 120], 'oid': 307}, 'cspec': {'locfile': '', 'locfrom': [], 'locupto': [], 'locpos': [], 'frames': []}, 'func': 'object_does', 'params': {'modid': 3, 'weight': 6, 'isnew': 0, 'type': 'acts', 'func': 'run', 'repeat': 0}, 'frames': [61, 120]}, {'bspec': {'locupto': [], 'locfrom': [], 'locpos': [], 'locfile': 'Y_driveaway', 'sttmts': [], 'frames': [1, 60], 'oid': 308}, 'cspec': {'locfile': '', 'locfrom': [], 'locupto': [], 'locpos': [], 'frames': []}, 'func': 'object_does', 'params': {'modid': 4, 'weight': 4, 'isnew': 1, 'type': 'move', 'func': 'move', 'repeat': 0}, 'frames': [1, 60]}, {'bspec': {'locupto': [], 'locfrom': [], 'locpos': [-21.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0], 'locfile': '', 'sttmts': [], 'frames': [], 'oid': 309}, 'cspec': {'locfile': '', 'locfrom': [], 'locupto': [], 'locpos': [], 'frames': []}, 'func': 'object_exists', 'params': {'modid': 5, 'weight': 2, 'isnew': 1}, 'frames': [272, 392]}], 'rushobjlst': [{'file': 'camera', 'acts': {}, 'syns': ['camera'], 'jjrb': [], 'move': ['move', 'locate', 'looks'], 'joint': '', 'type': 'move'}, {'file': 'earth', 'acts': {}, 'syns': ['earth'], 'jjrb': [], 'move': ['move', 'locate', 'l'], 'joint': '', 'rname': 'Mypicture'}, {'file': 'line', 'acts': {}, 'syns': ['line'], 'jjrb': [], 'move': ['draw'], 'joint': ''}, {'file': 'lady', 'acts': {'run': {'fstart': 1, 'flast': -1}}, 'syns': ['lady'], 'jjrb': [], 'move': ['move', 'moving', 'moved', 'locate', 'located', 'locating', 'vanish', 'vanished', 'vanishing'], 'joint': {'legs': {'include': ['LHipJoint', 'RHipJoint'], 'exclude': []}, 'hand': {'include': ['LeftShoulder', 'RightShoulder'], 'exclude': []}, 'head': {'include': ['Neck'], 'exclude': ['LHipJoint', 'RHipJoint']}}, 'rname': 'Ruchika'}, {'file': 'SUVfront', 'acts': {}, 'syns': ['SUV'], 'jjrb': ['front', 'front facing'], 'move': ['move', 'locate', 'l'], 'joint': ''}, {'file': 'SUVfront', 'acts': {}, 'syns': ['SUV'], 'jjrb': ['front', 'front facing'], 'move': ['move', 'locate', 'l'], 'joint': ''}]}
-    mydata=json.dumps({'story': story, 'universe': cuniverse})
+    mydata=json.dumps({'story': story, 'universe': cuniverse, 'user': {'user': appsetup['user_idnt'], 'pass': appsetup['secrettxt']}})
     response = requests.post(animurl, headers=headers, data=mydata)
     animation = json.loads(response.text)
     return animation
