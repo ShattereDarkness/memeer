@@ -11,7 +11,7 @@
         "canvas": "500,500",
         "name": "basicproject"
     },
-    "meemerurl": "https://nluserve-ug6ph2hn3q-de.a.run.app",
+    "meemerurl": "http://localhost:5000/getanim",
     "havegpu": 0,
     "vidtoimg": 1,
     "OSType": "Windows",

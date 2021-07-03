@@ -39,7 +39,7 @@ projvars['animurl'] = 'http://localhost:5000/getanim'
 session = {'coords': [], 'stopact': 0, 'logtext': None}
 
 root = tkinter.Tk()
-root.geometry("950x650")
+root.geometry('%dx%d+%d+%d' % (950, 650, 20, 20))
 root.resizable(0,0)
 root.iconphoto(False, tkinter.PhotoImage(file='imgs/icon.png'))
 root.title("Meme'er")
@@ -127,7 +127,6 @@ def frame_acts_save ():
     pyback.saveuniv(which = 'actions', what = cacts, where = projvars['name']+'/universe.js')
 
 def frame_objs_save ():
-    print ("i am in")
     cobjs = pytkui.objsuiread(uiset = uielem['objs'])
     print ("cobjs", cobjs)
     pyback.saveuniv(which = 'objects', what = cobjs, where = projvars['name']+'/universe.js')
@@ -207,6 +206,7 @@ def frame_story_cmd ():
     retv = -1
     if option1.lower() == "Current rush".lower() and option2.lower() == "Play story".lower():
         retv = pyback.exec_play_story (entparams = entparams, appsetup = appsetup, universe = universe, story = storytext)
+        if retv['code'] == -1: messagebox.showerror (title='Invalid connection', message="The connection could not succeed at this time")
     if option1.lower() == "Current rush".lower() and option2.lower() == "Replay frames".lower():
         retv = exec_play_frame (entparams = entparams, appsetup = appsetup, uielem = lstoryui)
     if option1.lower() == "Current rush".lower() and option2.lower() == "Export video".lower():

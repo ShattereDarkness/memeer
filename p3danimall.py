@@ -39,13 +39,19 @@ def defaultTask(task):
 tstat = []
 gframe = 0
 lastplay = 0
-sid=81
-for nid in range (18, 19):
-    fname = "basemodel/actions/A20GFLC-A20g%02d_%02d" %(sid, nid)
+sid = int(input ("Enter Subject ID (INTEGER): "))
+print ("Enter Range of action files to preview (ex. 20, 28). Leave blank for 1, 1000")
+nrange = str(input ("Enter Range: "))
+if nrange == '': nrange = '1,200'
+nidf, nidl = int(nrange.split(',')[0].strip()), int(nrange.split(',')[1].strip())
+actdir = str(input ("Enter action directory (default is 'actions'): "))
+if actdir == '': actdir = 'actions'
+for nid in range (nidf, nidl):
+    fname = "basemodels/"+actdir+"/A20GFLC-A20g%02d_%02d" %(sid, nid)
     print ("fname", fname)
     if not path.isfile(fname+".egg"): continue
     print ("Working for file: ", fname+".egg")
-    actor = Actor('humans/bam files/lady_mini_01.bam', {'anim': fname})
+    actor = Actor('basemodels/bam files/humanbase.bam', {'anim': fname})
     ac = actor.getAnimControl('anim')
     animlen = ac.getNumFrames()
     animdat = {'object': actor, 'modegg': 'A05GFEA', 'fname': fname, 'start': gframe, 'end': gframe+animlen, 'finally': 'destroy',
@@ -55,14 +61,13 @@ for nid in range (18, 19):
               }
     gframe = gframe + animlen
     tstat.append (animdat)
-    print ("tstat", tstat)
 
 ShowBase()
+scene = loader.loadModel("openmodels/BeachTerrain")
+scene.reparentTo(render)
 base.disableMouse()
-camera.setPos(0, -120, 10)
+camera.setPos(0, -60, 12)
 camera.setHpr(0, 0, 0)
 textObject = OnscreenText(text=" ", pos=(-1.2, 0.9), scale=0.07, align=0)
 taskMgr.add(defaultTask, "defaultTask")
-# namePrefix = "fullreview/fr_sid%03d" %(sid)
-# base.movie(namePrefix=namePrefix, duration=100000, fps=24, format='png')
 base.run()

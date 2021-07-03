@@ -24,12 +24,12 @@ def loadObject (modid = 0, fullanim = {}):
     print ("modfile", modfile)
     if modfile['acts'] != {}:
         model = Actor(modfile['filenm'], modfile['action'])
-        for jname, jparts in modfile['joint'].items():
-            model.makeSubpart(jname, jparts['include'], jparts['exclude'])
+        if isinstance(modfile['joint'], dict) and modfile['joint'] != {}:
+            for jname, jparts in modfile['joint'].items():
+                model.makeSubpart(jname, jparts['include'], jparts['exclude'])
     elif modfile['file'] not in ['line']:
         model = loader.loadModel(modfile['filenm'])
         if 'movie' in modfile['jjrb']: model.find('**/+SequenceNode').node().play()
-        ##model.find('**/+SequenceNode').node().play() - enable for like "play bird loading once"?
     else: return 1
     model.reparentTo(render)
     if 'posnow' in fullanim and 'pos' in fullanim and fullanim['posnow'] == 1:
@@ -44,7 +44,7 @@ def moveObject (modid = 0, pos = [0, 0, 0, 0, 0, 0, 1, 1, 1]):
     model.setPos(float(pos[0]), float(pos[1]), float(pos[2]))
     if len(pos) < 4: return 1
     if modid != 0: model.setHpr(float(pos[3]), float(pos[4]), float(pos[5]))
-    else: model.setHpr(float(pos[3]), float(pos[4]), float(pos[5]))
+    else: model.lookAt(float(pos[3]), float(pos[4]), float(pos[5]))
     if modid == 0 or len(pos) < 7: return 1
     model.setScale(float(pos[6]), float(pos[7]), float(pos[8]))
     return 1
@@ -63,6 +63,9 @@ def linesegObj (modid = 0, pfrom = [0, 0, 0], pupto = [0, 0, 0]):
     np.reparentTo(render)
     return 1
 
+def loadSubtxt (subtext):
+    statements.text = subtext
+
 with open(sys.argv[1]) as lujs: animdat = json.load(lujs)
 animes, fframe, rushobjlst, lastindx = animdat['animes'], animdat['fframe'], animdat['rushobjlst'], animdat['lastindx']
 basedir, winsize, fps, preview = animdat['basedir'], animdat['winsize'], animdat['fps'], animdat['preview']
@@ -76,8 +79,8 @@ base.disableMouse()
 camera.setPos(0, -120, 0)
 camera.setHpr(0, 0, 0)
 rushobjlst[0]['p3dmod'] = camera
-statements = OnscreenText(text=" ", pos=(-1.0, 0.9), scale=0.08, align=0, wordwrap=30)
-if preview == 1: textbasics = OnscreenText(text=" ", pos=(-1.0, -0.95), scale=0.08, align=0, wordwrap=30)
+statements = OnscreenText(text=" ", pos=(-0.9, -0.6), scale=0.08, align=0, wordwrap=25)
+if preview == 1: textbasics = OnscreenText(text=" ", pos=(-1.0, -0.95), scale=0.08, align=0, wordwrap=25)
 def defaultTask(task):
     if preview == 1: textbasics.text = 'Frame#: '+str(fframe+task.frame-1)
     if lastindx <= task.frame:
@@ -85,7 +88,9 @@ def defaultTask(task):
     if str(task.frame) not in animes: return Task.cont
     anims = animes[str(task.frame)]
     print ("anims", anims)
-    for anim in  anims:
+    subtext = "\n".join(list(map(lambda x: x['subtxt'], list(filter(lambda x: x['what'] == 'loadsub', anims)))))
+    loadSubtxt (subtext)
+    for anim in anims:
         if anim['what'] == 'loadobj': loadObject (modid = anim['model'], fullanim = anim)
         if anim['what'] == 'moveobj': moveObject (modid = anim['model'], pos = anim['pos'])
         if anim['what'] == 'poseobj': poseObject (modid = anim['model'], action = anim['action'], poseid = anim['poseid'], bpart = anim['bpart'])

@@ -56,9 +56,9 @@ def scrllabel (framep = {}, text = '<MISSING>', column=1, row=1, columnspan=1, s
     if scroll == 1: newlbl.bind('<MouseWheel>', lambda eff: on_canvas_mousewheel (eff, lvl=2))
     return newlbl
 
-def newentry (framep='', width=0, col=0, row=0, colspan=1, text='', lbltext = '', sticky='nw', retlbl = 0):
+def newentry (framep='', width=0, col=0, row=0, colspan=1, text='', lbltext = '', sticky='nw', retlbl = 0, ispass = 0):
     if lbltext != '': label = scrllabel (framep = framep, text = lbltext, column=col-1, row=row, sticky='ne')
-    entry_text= ttk.Entry(framep, width=width)
+    entry_text = ttk.Entry(framep, width=width) if ispass == 0 else ttk.Entry(framep, width=width, show='*')
     entry_text.grid(column=col, row=row, sticky=sticky, columnspan=colspan)
     entry_text.bind('<MouseWheel>', lambda eff: on_canvas_mousewheel (eff, lvl=2))
     entry_text.insert(0, text)
@@ -105,7 +105,7 @@ def newchkbox (root = {}, text = '<MISSING>', value = 0, column=0, row=0):
 def appuisetup (appsetup = {}, root = {}, uiset = {}, retry=1):
     ttk.Label(root, text="\t\t\t").grid(column=2, row=1)
     uiset['auser'] = newentry (framep=root, width=90, col=3, row=2, text=appsetup['user_idnt'], lbltext = 'User Identity')
-    uiset['apkey'] = newentry (framep=root, width=90, col=3, row=3, text=appsetup['secrettxt'], lbltext = 'Secret Passkey')
+    uiset['apkey'] = newentry (framep=root, width=90, col=3, row=3, text=appsetup['secrettxt'], lbltext = 'Secret Passkey', ispass = 1)
     uiset['name'] = newentry (framep=root, width=90, col=3, row=4, text=appsetup['project']['name'], lbltext = 'Project Name')
     uiset['detail'] = newentry (framep=root, width=90, col=3, row=5, text=appsetup['project']['detail'], lbltext = 'Project Description')
     uiset['winsize'] = newentry (framep=root, width=10, col=3, row=6, text=appsetup['project']['winsize'], lbltext = 'Screen resolution')
@@ -114,11 +114,16 @@ def appuisetup (appsetup = {}, root = {}, uiset = {}, retry=1):
     uiset['expand'] = newchkbox (root = root, text = 'Expansion for Verb Synonyms', value = appsetup['project']['expand'], column=2, row=11)
 
 def port_conf_save (uielems, appsetup, univ):
+    def check_winsize(winsize):
+        scrsize = pyback.getscreensize (winsize, 0, 0)
+        if scrsize[0] == 0 or scrsize[1] == 0 or scrsize[0] % 2 != 0 or scrsize[1] % 2 != 0:
+            messagebox.showerror (title="Incorrect Size screen text", message="This may not be a valid screen size, Please type comma separated even integers only!")
     appsetup['user_idnt'] = uielems['auser'].get()
     appsetup['secrettxt'] = uielems['apkey'].get()
     appsetup['project']['name'] = uielems['name'].get()
     appsetup['project']['detail'] = uielems['detail'].get()
-    appsetup['project']['winsize'] = uielems['winsize'].get()
+    winsize = appsetup['project']['winsize'] = uielems['winsize'].get()
+    check_winsize(winsize)
     appsetup['project']['fps'] = uielems['fps'].get()
     appsetup['project']['preview'] = 1 if uielems['preview'].instate(['selected']) else 0
     appsetup['project']['expand'] = 1 if uielems['expand'].instate(['selected']) else 0

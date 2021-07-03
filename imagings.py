@@ -185,7 +185,7 @@ def ui_text_image_creation (entparams = [], appsetup = {}):
             framefile = imgfile / ("frame__"+"%06d"%(ix)+".png")
             create_image_fortext (file = framefile, imgsize=maxsize, text = thistext, font = ffont, paramadd = paramadd, nocrop = 1)
     if not imgfile.exists():
-        messagebox (mtype = 'error', title = 'File could not be created', message = f"New file ({imgfile}) or Text ({textstr}) could not be used")
+        localmessage (mtype = 'error', title = 'File could not be created', message = f"New file ({imgfile}) or Text ({textstr}) could not be used")
     return 1
 
 def create_image_fortext (file = (), imgsize=def_imgsize, text = '', font = None, paramadd = None, nocrop = 0):
