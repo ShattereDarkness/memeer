@@ -88,7 +88,8 @@ def processscreentext (cmdlet = {}, series = {}):
 def serialized (cmdlets, rushobjlst, universe = {}, appsetup = {}, fframe = 1, fps = 1, winsize = [10, 10]):
     print ("cmdlets, rushobjlst, universe, appsetup, fframe", cmdlets, rushobjlst, universe , appsetup, fframe)
     basedir = Path(appsetup['project']['name'])
-    preview = appsetup['project']['preview']
+    global globvars
+    globvars['debug']['bspec'] = globvars['debug']['cspec'] = preview = appsetup['project']['preview']
     frameset = {}
     lastindx = 1
     def mergeanimation (series = {}, frames = [], frameset = {}, lastindx = 1):
