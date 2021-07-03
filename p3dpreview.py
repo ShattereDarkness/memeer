@@ -24,8 +24,9 @@ def loadObject (modid = 0, fullanim = {}):
     print ("modfile", modfile)
     if modfile['acts'] != {}:
         model = Actor(modfile['filenm'], modfile['action'])
-        for jname, jparts in modfile['joint'].items():
-            model.makeSubpart(jname, jparts['include'], jparts['exclude'])
+        if isinstance(modfile['joint'], dict) and modfile['joint'] != {}:
+            for jname, jparts in modfile['joint'].items():
+                model.makeSubpart(jname, jparts['include'], jparts['exclude'])
     elif modfile['file'] not in ['line']:
         model = loader.loadModel(modfile['filenm'])
         if 'movie' in modfile['jjrb']: model.find('**/+SequenceNode').node().play()
@@ -78,7 +79,7 @@ base.disableMouse()
 camera.setPos(0, -120, 0)
 camera.setHpr(0, 0, 0)
 rushobjlst[0]['p3dmod'] = camera
-statements = OnscreenText(text=" ", pos=(-0.9, -0.7), scale=0.08, align=0, wordwrap=25)
+statements = OnscreenText(text=" ", pos=(-0.9, -0.6), scale=0.08, align=0, wordwrap=25)
 if preview == 1: textbasics = OnscreenText(text=" ", pos=(-1.0, -0.95), scale=0.08, align=0, wordwrap=25)
 def defaultTask(task):
     if preview == 1: textbasics.text = 'Frame#: '+str(fframe+task.frame-1)
@@ -87,12 +88,13 @@ def defaultTask(task):
     if str(task.frame) not in animes: return Task.cont
     anims = animes[str(task.frame)]
     print ("anims", anims)
-    for anim in  anims:
+    subtext = "\n".join(list(map(lambda x: x['subtxt'], list(filter(lambda x: x['what'] == 'loadsub', anims)))))
+    loadSubtxt (subtext)
+    for anim in anims:
         if anim['what'] == 'loadobj': loadObject (modid = anim['model'], fullanim = anim)
         if anim['what'] == 'moveobj': moveObject (modid = anim['model'], pos = anim['pos'])
         if anim['what'] == 'poseobj': poseObject (modid = anim['model'], action = anim['action'], poseid = anim['poseid'], bpart = anim['bpart'])
         if anim['what'] == 'lineseg': linesegObj (modid = anim['model'], pfrom = anim['from'], pupto = anim['upto'])
-        if anim['what'] == 'loadsub': loadSubtxt (anim['subtxt'])
     return Task.cont
 
 lines = LineSegs()

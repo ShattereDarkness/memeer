@@ -8,6 +8,8 @@ import json
 import copy
 import pyback
 
+globvars = {'debug': {'frames': 1, 'bspec': 1, 'cspec': 1}, 'subtxt': {'style': 1, 'locat': -1}}
+
 def mergeposition (base = [], addit = []):
     if len(addit) < 3: return base
     for idx in range(0, 3): base[idx] = base[idx] + addit[idx]
@@ -57,7 +59,6 @@ def generatedefposts (fcount = 1, baseloc = [], locrange = '', basedir = '.'):
             retval.append(modpos)
         retval.append(modlpos)
     else: retval.append(baseloc)
-    #print ("generatedefposts", retval)
     return retval
 
 def getposlist (bspec = {}, cspec = {}, fcount = 1, basedir = '.'):
@@ -69,18 +70,20 @@ def getposlist (bspec = {}, cspec = {}, fcount = 1, basedir = '.'):
     elif len(cspec['locfrom']) == 9 and len(cspec['locupto']) == 9: locrange = {'locfrom': cspec['locfrom'], 'locupto': cspec['locupto']}
     if len(bspec['locpos']) > 2: mergeposition (base = locpos, addit = bspec['locpos'])
     if len(cspec['locpos']) > 2: mergeposition (base = locpos, addit = cspec['locpos'])
-    print ("bspec, cspec", bspec, cspec)
     retval = generatedefposts (fcount = fcount, baseloc = locpos, locrange = locrange, basedir = basedir)
-    #print ("getposlist", retval)
     return retval
 
-def getstatements (sttmts):
-    subtext = ""
-    for sttmt in sttmts:
-        sttext = sttmt[1:][:-1]
-        if len(sttext) > 0: subtext = subtext + sttext + "\n"
-    subtext = subtext[:-1]
-    return {'what': 'loadsub', 'subtxt': subtext}
+def processscreentext (cmdlet = {}, series = {}):
+    subtitle = []
+    print (f"Series: {series}")
+    if cmdlet['bspec']['sttmts'] != '': subtitle.append(cmdlet['bspec']['sttmts'])
+    if cmdlet['cspec']['sttmts'] != '': subtitle.append(cmdlet['cspec']['sttmts'])
+    if globvars['debug']['bspec'] == 1: subtitle.append(f"MStory#: {cmdlet['bspec']['story']}")
+    if globvars['debug']['cspec'] == 1: subtitle.append(f"LStory#: {cmdlet['cspec']['story']}")
+    subtext = "\n".join(subtitle)
+    for frid, items in series.items():
+        items.append({'what': 'loadsub', 'subtxt': subtext})
+    return series
             
 def serialized (cmdlets, rushobjlst, universe = {}, appsetup = {}, fframe = 1, fps = 1, winsize = [10, 10]):
     print ("cmdlets, rushobjlst, universe, appsetup, fframe", cmdlets, rushobjlst, universe , appsetup, fframe)
@@ -101,8 +104,7 @@ def serialized (cmdlets, rushobjlst, universe = {}, appsetup = {}, fframe = 1, f
         posdet = getposlist (bspec = cmdlet['bspec'], cspec = cmdlet['cspec'], fcount = fcount, basedir = basedir)
         print ("series input (cmdlet and posdet)", cmdlet, posdet)
         series = globals()[cmdlet['func']] (universe = universe, params = cmdlet['params'], posdet = posdet, frames = cmdlet['frames'], rushobjlst = rushobjlst, basedir = basedir)
-        if len(cmdlet['bspec']['sttmts']) > 0:
-            series[str(cmdlet['frames'][0])].append(getstatements (cmdlet['bspec']['sttmts']))
+        series = processscreentext (cmdlet = cmdlet, series = series)
         lastindx = mergeanimation (series = series, frames = cmdlet['frames'], frameset = frameset, lastindx = lastindx)
     animes = {}
     for frid in range(1, fframe+1):
@@ -135,10 +137,8 @@ def loadobjectflet (params = {}, rushobjlst = [], retval = {}, basedir = Path('.
     if params['isnew'] == 1 and p3dmodel['file'] not in ['line']:
         retval[str(frames[0])].append({'what': 'loadobj', 'model': params['modid']})
     p3dmodel['filenm'] = basedir.stem + '/model/' + p3dmodel['file']
-    # if 'type' not in params or params['type'] != 'acts': return p3dmodel
     if len(p3dmodel['acts'].keys()) == 0: return p3dmodel
     p3dmodel['action'] = {}
-    print ("p3dmodel 1", p3dmodel)
     for acts in p3dmodel['acts'].keys():
         for anysyn in p3dmodel['syns']:
             for suffix in ('.egg', '.bam'):
@@ -147,7 +147,6 @@ def loadobjectflet (params = {}, rushobjlst = [], retval = {}, basedir = Path('.
                 p3dmodel['action'][acts] = str(chkfile)
                 break
             if 'acts' in p3dmodel['action']: break
-    print ("p3dmodel 2", p3dmodel)
     return p3dmodel
 
 def object_exists (universe = {},  params = {}, posdet = [], frames = [], rushobjlst = [], basedir = Path('.')):
@@ -174,7 +173,6 @@ def object_multiple (universe = {},  params = {}, posdet = [], frames = [], rush
 def object_named (universe = {},  params = {}, posdet = [], frames = [], rushobjlst = [], basedir = Path('.')):
     retval = createretval (frames = frames)
     p3dmodel = loadobjectflet (params = params, retval = retval, rushobjlst = rushobjlst, basedir = basedir, frames = frames)
-    print ("p3dmodel final", p3dmodel)
     appendmovements (frames = frames, retval = retval, posdet = posdet, append = {'what': 'moveobj', 'model': params['modid'], 'pos': []})
     return retval
 
@@ -213,7 +211,7 @@ def storyparse (story):
     retval = []
     def getspecifics (text):
         print ("Working for text:", text)
-        retval = [text, {'locupto': [], 'locfrom': [], 'locpos': [], 'locfile': '', 'sttmts': [], 'frames': []}]
+        retval = [text, {'locupto': [], 'locfrom': [], 'locpos': [], 'locfile': '', 'sttmts': '', 'frames': []}]
         tofrom=re.match(".+\@\((.+?)\)\-\@\((.+?)\)", retval[0])
         if tofrom and len(tofrom.groups()) == 2:
             retval[1]['locfrom'] = list(map(float, tofrom.groups()[0].split(",")))
@@ -229,9 +227,8 @@ def storyparse (story):
             retval[0] = re.sub("\@f\((.+?)\)", "", retval[0])
         sttmts = re.findall('(".+?")', retval[0])
         if sttmts:
-            retval[1]['sttmts'] = sttmts
-            if len(sttmts) == 1: retval[0] = re.sub('(".+?")', "", retval[0])
-            else: retval[0] = re.sub('(".+?")', ' statement ', retval[0])
+            retval[1]['sttmts'] = re.sub('"', '', "\n".join(sttmts))
+            retval[0] = re.sub('(".+?")', "", retval[0])
         frames = re.findall('#(\d+)\-#(\d+)', retval[0])
         if frames:
             retval[1]['frames'] = list(map(int, frames[0]))
