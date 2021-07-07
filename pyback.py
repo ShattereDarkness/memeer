@@ -136,10 +136,8 @@ def create_media_p3dmodel (ifile = Path(), owrite = 0, appsetup = {}, fps = -1):
     print (f"create_media_p3dmodel: cmdstr={cmdstr}")
     try:
         os.chdir(projdir / 'model')
-        print ("before: os.getcwd()", os.getcwd())
         cmdval = os.system(cmdstr)
     finally: os.chdir('../..')
-    print ("after: os.getcwd()", os.getcwd())
     return cmdval
 
 def reverse_file_check (univ={}, appsetup={}, model_dir = Path(), action_dir = Path()):
