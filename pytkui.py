@@ -289,11 +289,11 @@ def objsuiread (uiset = []):
 
 def objsuisetup (root = {}, objects = []):
     retval = []
-    ttk.Label(root, text='Set Synonym as REMOVE for delete and then refresh').grid(column=0, row=0, columnspan=3, sticky='nw')
+    ttk.Label(root, text=' ').grid(column=0, row=0, columnspan=3, sticky='nw')
     rownum = 1
     for modid, model in enumerate(objects):
         scrllabel (framep = root, text = '-'*120, column=0, row=rownum, columnspan=3, sticky='nw')
-        objdets = model['file'] + " (animations: " + ', '.join(list(model['acts'].keys())) + ")"
+        objdets = model['file']# + " (animations: " + ', '.join(list(model['acts'].keys())) + ")"
         lobjui = {'file': model['file'], 'modid': modid, 'acts': []}
         scrllabel (framep = root, text = 'Model list: '+objdets, column=0, row=rownum, columnspan=3, sticky='nw')
         lobjui['syns'] = newentry (framep=root, width=40, col=1, row=rownum+1, colspan=1, text=', '.join(model['syns']), lbltext='Synonyms')
