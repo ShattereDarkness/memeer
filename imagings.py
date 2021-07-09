@@ -365,7 +365,7 @@ def ui_image_manipulation_basic (entparams = [], appsetup = {}):
             fcount = len(list(inpfile.glob('frame__[0-9][0-9][0-9][0-9][0-9][0-9].png')))
             for ix, ifile in enumerate(inpfile.iterdir()):
                 ofile = outfile / ifile.name
-                enhance_image_basic (ifile = ifile, ofile = ofile, param = entparams[2], nval = 0.1+ix*9.9/fcount)
+                enhance_image_basic (ifile = ifile, ofile = ofile, param = entparams[2], nval = 1+ix*9/fcount)
         else:
             for ifile in inpfile.iterdir():
                 ofile = outfile / ifile.name
