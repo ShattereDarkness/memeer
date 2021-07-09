@@ -75,7 +75,7 @@ procsitems = [
         "params": ["Input file/folder", "Output file name", "Frames range (default is all frames: 1,-1)", "FPS (leave blank for using video's default)", "Final count of frames to be included in model file"]
     }, {"fname": "Pre-process", "text": "Basic image manipulation functions", "descimage": "imgs/basicmanipul.png",
         "function": "ui_image_manipulation_basic", "xtraprocess": {},
-        "params": ["Input image file", "Output file name", "Feature of the Image to be changed\n('contrast'/'color'/'brightness'/'sharpness'/'invert')", "New value (number)\n Or type 'range' for values from 0 to 100 (100 images)"]
+        "params": ["Input image file", "Output file name", "Feature of the Image to be changed\n('contrast'/'color'/'brightness'/'sharpness'/'transparent',\n'invert')", "New value (number)\n Or type 'range' for values from 0 to 100 (100 images)"]
     }, {"fname": "Pre-process", "text": "Advanced image manipulation - Background processing", "descimage": "imgs/bgremove.png" ,
         "function": "ui_image_manipulation_rmback", "xtraprocess": {},
         "params": ["Input image file", "Output file name", "Background removal method\n(AI Based) ibrt / static (static color removal)", "Color name (white/black/red/green/blue/yellow/panda3d)\nOR Range of color in specified format (see left)"]

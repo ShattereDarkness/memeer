@@ -353,26 +353,30 @@ def image_createillustration (ifile = '', ofile = '', method = '', islist = 0, a
     return 1
 
 def ui_image_manipulation_basic (entparams = [], appsetup = {}):
-    permissibles = ['contrast', 'color', 'brightness', 'sharpness', 'invert']
+    permissibles = ['contrast', 'color', 'brightness', 'sharpness', 'invert', 'transparent']
     if entparams[2] not in permissibles:
         localmessage (mtype = 'error', title = 'Incorrect action type', message = f"The feature to be modified should be one of: {', '.join(permissibles)}")
         return -1
     newVal = pyback.forceint(entparams[3], 1) if entparams[3] != 'range' else 'range'
     outfolder = 1 if newVal == 'range' else 0
     inpfile, outfile = create_output_path (param0 = entparams[0], param1 = entparams[1], appsetup = appsetup, outfolder = outfolder)
-    if inpfile.is_dir() and newVal == 'range':
-        localmessage (mtype = 'error', title = 'Range is invalid', message = f"Setting range over already set of images will create too many media. Stopping")
-        return -1
     if inpfile.is_dir():
-        for ifile in inpfile.iterdir():
-            ofile = outfile / ifile.name
-            enhance_image_basic (ifile = ifile, ofile = ofile, param = entparams[2], nval = newVal)
-    elif newVal == 'range':
-        for frid in range(1, 101):
-            newcVal = (frid-1)*0.1
-            ofile = outfile / ("frame__"+"%06d"%(frid)+".png")
-            enhance_image_basic (ifile = inpfile, ofile = ofile, param = entparams[2], nval = newcVal)
-    else: enhance_image_basic (ifile = inpfile, ofile = outfile, param = entparams[2], nval = newVal)
+        if newVal == 'range':
+            fcount = len(list(inpfile.glob('frame__[0-9][0-9][0-9][0-9][0-9][0-9].png')))
+            for ix, ifile in enumerate(inpfile.iterdir()):
+                ofile = outfile / ifile.name
+                enhance_image_basic (ifile = ifile, ofile = ofile, param = entparams[2], nval = 0.1+ix*9.9/fcount)
+        else:
+            for ifile in inpfile.iterdir():
+                ofile = outfile / ifile.name
+                enhance_image_basic (ifile = ifile, ofile = ofile, param = entparams[2], nval = newVal)
+    elif inpfile.is_file():
+        if newVal == 'range':
+            for frid in range(1, 101):
+                newcVal = (frid-1)*0.1
+                ofile = outfile / ("frame__"+"%06d"%(frid)+".png")
+                enhance_image_basic (ifile = inpfile, ofile = ofile, param = entparams[2], nval = newcVal)
+        else: enhance_image_basic (ifile = inpfile, ofile = outfile, param = entparams[2], nval = newVal)
     return 1
 
 def enhance_image_basic (ifile = '', ofile = '', param = '', nval = 1.0):
@@ -393,6 +397,10 @@ def enhance_image_basic (ifile = '', ofile = '', param = '', nval = 1.0):
         rgbimg = image.convert('RGB')
         rgbimginv = ImageOps.invert(rgbimg)
         rgbimginv.save(ofile)
+    if param == 'transparent':
+        rgbimg = image.copy()
+        rgbimg.putalpha(255-int(nval*255/10))
+        rgbimg.save(ofile)
     return 1
 
 # Below function is for internal consumption only
