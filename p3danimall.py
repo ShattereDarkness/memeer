@@ -43,15 +43,17 @@ sid = int(input ("Enter Subject ID (INTEGER): "))
 print ("Enter Range of action files to preview (ex. 20, 28). Leave blank for 1, 1000")
 nrange = str(input ("Enter Range: "))
 if nrange == '': nrange = '1,200'
-nidf, nidl = int(nrange.split(',')[0].strip()), int(nrange.split(',')[1].strip())
+if ',' in nrange: nidf, nidl = int(nrange.split(',')[0].strip()), int(nrange.split(',')[1].strip())
+else: nidf, nidl = int(nrange), int(nrange)+1
 actdir = str(input ("Enter action directory (default is 'actions'): "))
 if actdir == '': actdir = 'actions'
 for nid in range (nidf, nidl):
-    fname = "basemodels/"+actdir+"/A20GFLC-A20g%02d_%02d" %(sid, nid)
+    fname = "basemodels/"+actdir+"/A20GFLC-A20g%02d_%02d.egg" %(sid, nid)
     print ("fname", fname)
-    if not path.isfile(fname+".egg"): continue
-    print ("Working for file: ", fname+".egg")
-    actor = Actor('basemodels/bam files/humanbase.bam', {'anim': fname})
+    if not path.isfile(fname): continue
+    print ("Working for file: ", fname)
+#    actor = Actor('lady_mannequin.bam', {'anim': fname})
+    actor = Actor('basemodels/egg files/basewoman.bam', {'anim': fname})
     ac = actor.getAnimControl('anim')
     animlen = ac.getNumFrames()
     animdat = {'object': actor, 'modegg': 'A05GFEA', 'fname': fname, 'start': gframe, 'end': gframe+animlen, 'finally': 'destroy',
