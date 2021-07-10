@@ -87,7 +87,7 @@ def defaultTask(task):
         return exit(1)
     if str(task.frame) not in animes: return Task.cont
     anims = animes[str(task.frame)]
-    print ("anims", anims)
+    print ("FRID: ", str(fframe+task.frame-1), " anims", anims)
     subtext = "\n".join(list(map(lambda x: x['subtxt'], list(filter(lambda x: x['what'] == 'loadsub', anims)))))
     loadSubtxt (subtext)
     for anim in anims:

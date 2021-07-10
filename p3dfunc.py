@@ -64,6 +64,12 @@ def generatedefposts (fcount = 1, baseloc = [], locrange = '', basedir = '.'):
 def getposlist (bspec = {}, cspec = {}, fcount = 1, basedir = '.'):
     locrange = {}
     locpos = [0, 0, 0, 0, 0, 0, 1, 1, 1]
+    isblank = 1
+    for keys in ['locfile', 'locfrom', 'locupto', 'locpos']:
+        if len(cspec[keys]) != 0 or len(bspec[keys]) != 0:
+            isblank = 0
+            break
+    if isblank == 1: return []
     if bspec['locfile'] != '': locrange = {'locfile': bspec['locfile']}
     elif cspec['locfile'] != '': locrange = {'locfile': cspec['locfile']}
     elif len(bspec['locfrom']) == 9 and len(bspec['locupto']) == 9: locrange = {'locfrom': bspec['locfrom'], 'locupto': bspec['locupto']}
