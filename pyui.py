@@ -254,11 +254,11 @@ def frame_story_cmd ():
             root.clipboard_clear()
             root.clipboard_append(retv)
     if option1.lower() == "Audio/ Video".lower() and option2.lower() == "List Audios".lower():
-        retv = pyback.exec_list_filesets (entparams = entparams, appsetup = appsetup, folder = 'coords', suffix = ['.aac', '.mp3'])
+        retv = pyback.exec_list_filesets (entparams = entparams, appsetup = appsetup, folder = 'audio', suffix = ['.aac', '.mp3'])
         lstoryui['coordbox'].delete('1.0', END)
         lstoryui['coordbox'].insert(1.0, "\n".join(retv['data']))
     if option1.lower() == "Audio/ Video".lower() and option2.lower() == "List Videos".lower():
-        retv = pyback.exec_list_filesets (entparams = entparams, appsetup = appsetup, folder = 'coords', suffix = ['.gif', '.mp4', '.mov', '.avi', '.wmv', '.webm'])
+        retv = pyback.exec_list_filesets (entparams = entparams, appsetup = appsetup, folder = 'video', suffix = ['.gif', '.mp4', '.mov', '.avi', '.wmv', '.webm'])
         lstoryui['coordbox'].delete('1.0', END)
         lstoryui['coordbox'].insert(1.0, "\n".join(retv['data']))
     if option1.lower() == "Audio/ Video".lower() and option2.lower() == "Merge Audio+Video".lower():
