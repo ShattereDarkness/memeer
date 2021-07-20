@@ -21,7 +21,6 @@ import sys
 
 def loadObject (modid = 0, fullanim = {}):
     modfile = rushobjlst[modid]
-    print ("modfile", modfile)
     if modfile['acts'] != {}:
         model = Actor(modfile['filenm'], modfile['action'])
         if isinstance(modfile['joint'], dict) and modfile['joint'] != {}:
@@ -87,7 +86,7 @@ def defaultTask(task):
         return exit(1)
     if str(task.frame) not in animes: return Task.cont
     anims = animes[str(task.frame)]
-    print ("FRID: ", str(fframe+task.frame-1), " anims", anims)
+    #print ("FRID: ", str(fframe+task.frame-1), " anims", anims)
     subtext = "\n".join(list(map(lambda x: x['subtxt'], list(filter(lambda x: x['what'] == 'loadsub', anims)))))
     loadSubtxt (subtext)
     for anim in anims:

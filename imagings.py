@@ -228,7 +228,6 @@ def create_output_path (param0 = None, param1 = None, appsetup = {}, outfolder =
         return None, None
     if outfile.exists():
         UREP = localmessage (mtype = 'ask', title = 'Path already exists', message = f"There is already a filepath with name {outfile}. Overwrite its content?")
-        print ("UREP is", UREP)
         if UREP == False: return None, None
     if inpfile.is_dir() or outfolder == 1:
         if outfile.exists(): shutil.rmtree(outfile)
@@ -257,6 +256,7 @@ def ui_p3dmodel_creation (entparams = [], appsetup = {}):
         print ("PNG COPY COMPLETED")
     if '/' not in entparams[1]: entparams[1] = 'media/' + entparams[1]
     inpfile, outfile, curfps = create_output_path (param0 = entparams[0], param1 = entparams[1], appsetup = appsetup, outfolder = 1, getfps = 1)
+    if inpfile == None and outfile == None: return 1
     if isinstance(curfps, str): curfps = appsetup['project']['fps']
     thinned = pyback.forceint(entparams[4], 0)
     print ("create_output_path returned:", inpfile, outfile, curfps, isinstance(curfps, str))
@@ -306,7 +306,7 @@ def image_createillustration (ifile = '', ofile = '', method = '', islist = 0, a
         src_gray = cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)
         max_thresh = 255
         contours = thresh_callback(thresh)
-        return contours
+        return contours, src.shape[1], src.shape[0]
     def create_image_cartoon (ifile = '', ofile = '', num_down = 2, num_bilateral = 7):
         img_rgb = cv2.imread(ifile)
         img_color = img_rgb
@@ -337,21 +337,16 @@ def image_createillustration (ifile = '', ofile = '', method = '', islist = 0, a
     if method == 'sketch': create_image_sketch (ifile = str(ifile), ofile = str(ofile))
     elif method == 'cartoon': create_image_cartoon (ifile = str(ifile), ofile = str(ofile))
     elif method == 'doodle':
-        contours = create_image_doodle (ifile = str(ifile), ofile = str(ofile))
+        contours, iwide, ihigh = create_image_doodle (ifile = str(ifile), ofile = str(ofile))
         if islist == 1: return 1
         campos, bcenter = '0, -120, 0', '0, 0, 0'
-        # pwide, phigh = Image.open(ifile).size
-        # logictxt, thisf, lastf, groups = '', 1, 1, [0]
-        # canwide, canhigh = 500, 500
-        # diffw, diffh = int((canwide-pwide)/2), int((canhigh-phigh)/2)
-        diffw, diffh = 0, 0
         groups, pxdata = [0], []
         for ix, contour in enumerate(contours):
             for jx, item in enumerate(contour):
                 if jx-1 > len(contour)/2: break
-                pxdata.append([item[0][0]+diffw, item[0][1]+diffh])
+                pxdata.append([item[0][0], item[0][1]])
             groups.append(len(pxdata))
-        pyback.exec_save_coords (entparams = [campos, bcenter, ofile.stem], appsetup = appsetup, coord = str(pxdata), addxtra = {'group': groups})
+        pyback.exec_save_coords (entparams = [campos, bcenter, ofile.stem], appsetup = appsetup, coord = str(pxdata), addxtra = {'group': groups, 'isize': [iwide, ihigh]})
         pyback.set_multifile_coords (file = ofile.stem, appsetup = appsetup, addlogic = 1)
     return 1
 
