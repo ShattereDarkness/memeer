@@ -38,7 +38,8 @@ def base_function (funcname, entparams = {}, appsetup = {}):
     try:
         globals()[funcname] (entparams = entparams, appsetup = appsetup)
         localmessage (mtype = 'info', title = 'Complete', message = 'Function completed successfully')
-    except:
+    except Exception as e:
+        print("ERROR IN EXECUTION", e)
         localmessage (mtype = 'error', title = 'Failure', message = 'Function failed to execute, please check log or contact us if it persists!')
     return 1
 
@@ -318,6 +319,7 @@ def image_createillustration (ifile = '', ofile = '', method = '', islist = 0, a
         img_blur = cv2.medianBlur(img_gray, 7)
         img_edge = cv2.adaptiveThreshold(img_blur, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, blockSize=9, C=2)
         img_edge = cv2.cvtColor(img_edge, cv2.COLOR_GRAY2RGB)
+        img_color = cv2.resize(img_color, (img_edge.shape[1], img_edge.shape[0]))
         img_cartoon = cv2.bitwise_and(img_color, img_edge)
         cv2.imwrite(ofile, img_cartoon)
         return 0
