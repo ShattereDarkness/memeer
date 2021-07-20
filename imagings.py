@@ -228,7 +228,8 @@ def create_output_path (param0 = None, param1 = None, appsetup = {}, outfolder =
         return None, None
     if outfile.exists():
         UREP = localmessage (mtype = 'ask', title = 'Path already exists', message = f"There is already a filepath with name {outfile}. Overwrite its content?")
-        if UREP == 'cancel': return None, None
+        print ("UREP is", UREP)
+        if UREP == False: return None, None
     if inpfile.is_dir() or outfolder == 1:
         if outfile.exists(): shutil.rmtree(outfile)
         if 'fps' not in cmf: cmf = {'fps': appsetup['project']['fps']}
