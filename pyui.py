@@ -1,17 +1,3 @@
-mystory = """earth is named Mypicture @(0,2,7,0,0,0,75,50,50) #1-#120
-line is drawn @(-21,0,0,0,0,0,1,1,1)-@(21,0,0,0,0,0,1,1,1) #61-#120
-Ruchika is a lady #61
-Ruchika ran @(-21,0,0,0,0,0,1,1,1)-@(21,0,0,0,0,0,1,1,1) #61-#120
-front SUV moved away @f(Y_driveaway) #1-#60
-line is drawn @(0,0,22,0,0,0,1,1,1)-@(0,0,-22,0,0,0,1,1,1) #121-#180
-another front SUV @(-21,0,0,0,0,0,1,1,1)
-
-
-line is drawn @f(0000horse1)
-line is drawn @f(0001horse1)
-line is drawn @f(0002horse1)
-"""
-
 import tkinter
 import tkinter.filedialog
 from tkinter import ttk
@@ -35,7 +21,6 @@ import imagings
 import pytkui
 
 projvars = {}
-projvars['animurl'] = 'http://localhost:5000/getanim'
 session = {'coords': [], 'stopact': 0, 'logtext': None}
 
 root = tkinter.Tk()

@@ -18,7 +18,7 @@ import subprocess
 
 yes_synos = ['y', 'yea', 'yeah', 'yo', 'yes', 'aye', 'aaye', 'ya', 'yup', 'yaa', 'jaa']
 nah_synos = ['n', 'no', 'nah', 'nope', 'nay', 'ei', 'not']
-def_imgsize = (2000, 2000)
+def_imgsize = (8120, 8120)
 colorcode = {
     'white': [255,255,255],
     'black': [0,0,0],
@@ -87,10 +87,9 @@ def parse_additionals (strtext = ''):
     try: return ast.literal_eval('{' + strtext + '}')
     except: return {}
 
-def check_system_fonts (fontlike = '', fontsize = 16):
-    if fontlike == '':
-        ffont = ImageFont.load_default()
-        return ffont
+def check_system_fonts (fontlike = 'arial', fontsize = 16):
+    print (f"Function called with {fontlike} and {fontsize}")
+    if fontlike == '': fontlike = 'arial'
     inputt = fontlike.lower().split(' ')
     flist = matplotlib.font_manager.findSystemFonts(fontpaths=None, fontext='ttf')
     maxmatch = 0
@@ -106,6 +105,7 @@ def check_system_fonts (fontlike = '', fontsize = 16):
         if match > maxmatch:
             exptdfname = fname
             maxmatch = match
+    print (f"Final font name is {exptdfname}")
     if exptdfname == '': ffont = ImageFont.load_default()
     else: ffont = ImageFont.truetype(exptdfname, fontsize)
     return ffont
@@ -165,11 +165,11 @@ def ui_text_image_creation (entparams = [], appsetup = {}):
         is_single = 0
     else: imgfile = confirm_file (entparams[0], ftype = 'image', appsetup = appsetup, isnew = 1)
     print (f"FINAL FILE NAME: {imgfile}")
-    if imgfile.exists():
+    if (imgfile.is_file() and imgfile.exists()) or (imgfile.is_dir() and len(list(imgfile.iterdir()))):
         localmessage (mtype = 'error', title = 'Such file already exist', message = f"New file ({imgfile}) exists, kindly delete it or rename this file")
         return -1
     textstr = entparams[1]
-    ffont = check_system_fonts (fontlike = entparams[2], fontsize = pyback.forceint (entparams[3], 16))
+    ffont = check_system_fonts (fontlike = entparams[2], fontsize = pyback.forceint (int(entparams[3]), 16))
     if imgfile == '' or textstr == '':
         localmessage (mtype = 'error', title = 'Missing usable parameters', message = f"New file ({imgfile}) or Text ({textstr}) could not be used")
         return -1
@@ -296,7 +296,7 @@ def image_createillustration (ifile = '', ofile = '', method = '', islist = 0, a
         def thresh_callback(val):
             threshold = val
             canny_output = cv2.Canny(src_gray, threshold, threshold * 2)
-            contours, hierarchy = cv2.findContours(canny_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+            contours, hierarchy = cv2.findContours(canny_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
             drawing = numpy.zeros((canny_output.shape[0], canny_output.shape[1], 3), dtype=numpy.uint8)
             for ix in range(len(contours)):
                 cv2.drawContours(drawing, contours, ix, (255,255,255), 2, cv2.LINE_8, hierarchy, 0)
@@ -343,7 +343,6 @@ def image_createillustration (ifile = '', ofile = '', method = '', islist = 0, a
         groups, pxdata = [0], []
         for ix, contour in enumerate(contours):
             for jx, item in enumerate(contour):
-                if jx-1 > len(contour)/2: break
                 pxdata.append([item[0][0], item[0][1]])
             groups.append(len(pxdata))
         pyback.exec_save_coords (entparams = [campos, bcenter, ofile.stem], appsetup = appsetup, coord = str(pxdata), addxtra = {'group': groups, 'isize': [iwide, ihigh]})
@@ -441,7 +440,7 @@ def image_removebackground (ifile = '', ofile = '', method = 'mrcnn', params = '
         finally: os.chdir(appdir)
         return 1
     def screen_removebackground (ifile = '', ofile = '', crange = None):
-        print (f"Crange: {crange}")
+        print (f"Crange: {crange} for ifile {ifile} (with ofile as {ofile}")
         image = cv2.imread(ifile)
         image_copy = numpy.copy(image)
         image_copy = cv2.cvtColor(image_copy, cv2.COLOR_BGR2HSV)
@@ -488,7 +487,7 @@ def image_removebackground (ifile = '', ofile = '', method = 'mrcnn', params = '
             try:
                 crange = canberange(params)
                 screen_removebackground (ifile = str(ifile), ofile = str(ofile), crange = crange)
-            except: localmessage (mtype = 'error', title = 'Incorrect color', message = "Please check documentation for correct color name/ range.")
+            except: localmessage (mtype = 'error', title = 'Error in execution', message = "Please also check documentation for correct color name/ range.")
     return 1
 
 def ui_prepare_stage (entparams = [], appsetup = {}):

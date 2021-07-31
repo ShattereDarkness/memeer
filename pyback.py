@@ -431,15 +431,19 @@ def set_multifile_coords (file = '', appsetup = {}, addlogic = 0):
     coordls = exec_open_coords (entparams = [ifile.stem], appsetup = appsetup, jskey = 'all')
     if 'addxtra' not in coordls or 'group' not in coordls['addxtra']: return 1
     groups = coordls['addxtra']['group']
-    startf, addons = 1, []
+    grpseq = []
     for gx in range(1, len(groups)):
         npixels = coordls['pixel'][groups[gx-1]:groups[gx]] + [coordls['pixel'][groups[gx]-1]]
         ncoords = coordls['coord'][groups[gx-1]:groups[gx]] + [coordls['coord'][groups[gx]-1]]
-        nfilenm = Path(ifile.parent.parent) / 'coords' / ("%04d" % (gx) + ifile.stem + ".coord")
-        njson = {'campos': coordls['campos'], 'bcenter': coordls['bcenter'], 'pixel': npixels, 'coord': ncoords, 'basef': ifile.stem}
+        grpseq.append({'gx': gx, 'pixel': npixels, 'coord': ncoords, 'leastX': min(npixels, key=lambda x: x[0])[0], 'leastY': min(npixels,key=lambda x: x[1])[1]})
+    grpseqsort = sorted(grpseq, key = lambda i: (i['leastX'], i['leastY']))
+    startf, addons = 1, []
+    for seqdat in grpseqsort:
+        nfilenm = Path(ifile.parent.parent) / 'coords' / ("%04d" % (seqdat['gx']) + ifile.stem + ".coord")
+        njson = {'campos': coordls['campos'], 'bcenter': coordls['bcenter'], 'pixel': seqdat['pixel'], 'coord': seqdat['coord'], 'basef': ifile.stem}
         with open(nfilenm, "w") as lpts: json.dump(njson, lpts)
-        addons.append("line is drawn @f(" + nfilenm.stem + ") #"+str(startf)+'-#'+str(startf+len(npixels)))
-        startf = startf + len(npixels)
+        addons.append("line is drawn @f(" + nfilenm.stem + ") #"+str(startf)+'-#'+str(startf+len(seqdat['pixel'])))
+        startf = startf + len(seqdat['pixel'])
     print (addlogic, "addlogic")
     if addlogic == 0: return 1
     univfile = Path(appsetup['project']['name']) / 'universe.js'
@@ -479,7 +483,7 @@ def exec_save_merge (entparams = [], appsetup = {}):
     video = Path(appsetup['project']['name']) / 'video' / entparams[1]
     merge = Path(appsetup['project']['name']) / 'video' / entparams[2]
     if merge.suffix == '': merge = Path(appsetup['project']['name']) / 'video' / (entparams[2]+video.suffix)
-    cmdstr = "ffmpeg -i " + video.name + " -i " + aidio.name + " -c:v copy -map 0:v:0 -map 1:a:0 " + merge.name
+    cmdstr = "ffmpeg -i " + video.name + " -i " + audio.name + " -c:v copy -map 0:v:0 -map 1:a:0 " + merge.name
     os.system(cmdstr)
     return 1
 
