@@ -31,7 +31,7 @@ colorcode = {
     'all red': [[0,50,100], [15,255,255]],
     'all green': [[45,50,100], [75,255,255]],
     'all blue': [[105,50,100], [135,255,255]],
-    'all panda3d': [[0,0,35], [0,0,50]]
+    'all panda3d': [[104,104,104], [107,107,107]]
 }
 
 def base_function (funcname, entparams = {}, appsetup = {}):
@@ -277,7 +277,7 @@ def ui_p3dmodel_creation (entparams = [], appsetup = {}):
     return 1
 
 def ui_image_manipulation_craft (entparams = [], appsetup = {}):
-    permissibles = ['doodle', 'cartoon', 'sketch']
+    permissibles = ['doodle', 'cartoon', 'qartoon', 'sketch', 'wcolor']
     if entparams[2] not in permissibles:
         localmessage (mtype = 'error', title = 'Incorrect action type', message = f"The feature to be modified should be one of: {', '.join(permissibles)}")
         return -1
@@ -296,10 +296,10 @@ def image_createillustration (ifile = '', ofile = '', method = '', islist = 0, a
         def thresh_callback(val):
             threshold = val
             canny_output = cv2.Canny(src_gray, threshold, threshold * 2)
-            contours, hierarchy = cv2.findContours(canny_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+            contours, hierarchy = cv2.findContours(canny_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
             drawing = numpy.zeros((canny_output.shape[0], canny_output.shape[1], 3), dtype=numpy.uint8)
             for ix in range(len(contours)):
-                cv2.drawContours(drawing, contours, ix, (255,255,255), 2, cv2.LINE_8, hierarchy, 0)
+                cv2.drawContours(drawing, contours, ix, (255,255,255), 1, cv2.LINE_8, hierarchy, 0)
             cv2.imwrite(ofile, drawing)
             return contours
         src = cv2.imread(ifile)
@@ -324,6 +324,16 @@ def image_createillustration (ifile = '', ofile = '', method = '', islist = 0, a
         img_cartoon = cv2.bitwise_and(img_color, img_edge)
         cv2.imwrite(ofile, img_cartoon)
         return 0
+    def create_image_quantization (ifile = '', ofile = '', kcount = 4):
+        img = cv2.imread(ifile)
+        data = numpy.float32(img).reshape((-1, 3))
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 20, 1.0)
+        ret, label, center = cv2.kmeans(data, kcount, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+        center = numpy.uint8(center)
+        result = center[label.flatten()]
+        result = result.reshape(img.shape)
+        cv2.imwrite(ofile, result)
+        return 0
     def create_image_sketch (ifile = '', ofile = '', gindex = 21, sigmaX = 0, sigmaY = 0):
         img = cv2.imread(ifile, 1)
         img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -334,8 +344,15 @@ def image_createillustration (ifile = '', ofile = '', method = '', islist = 0, a
         nimage = dodgeV2(img_gray, img_smoothing)
         cv2.imwrite(ofile, nimage)
         return 1
+    def create_watercolor (ifile = '', ofile = '', sigma_s=4, sigma_r=0.7):
+        img = cv2.imread(ifile)
+        nimg = cv2.stylization(img, sigma_s=sigma_s, sigma_r=sigma_r)
+        cv2.imwrite(ofile, nimg)
+        return 1
     if method == 'sketch': create_image_sketch (ifile = str(ifile), ofile = str(ofile))
     elif method == 'cartoon': create_image_cartoon (ifile = str(ifile), ofile = str(ofile))
+    elif method == 'qartoon': create_image_quantization (ifile = str(ifile), ofile = str(ofile))
+    elif method == 'wcolor': create_watercolor (ifile = str(ifile), ofile = str(ofile))
     elif method == 'doodle':
         contours, iwide, ihigh = create_image_doodle (ifile = str(ifile), ofile = str(ofile))
         if islist == 1: return 1
@@ -457,7 +474,7 @@ def image_removebackground (ifile = '', ofile = '', method = 'mrcnn', params = '
         for ix in range(0, pcount):
             mitem, xitem = mstate[ix], xstate[ix]
             if mitem[0] == 0 and mitem[1] == 0 and mitem[2] == 0:
-                toappend = (xitem[0], xitem[1], xitem[2], 255)
+                toappend = (xitem[0], xitem[1], xitem[2], xitem[3])
             else: toappend = (xitem[0], xitem[1], xitem[2], 0)
             newData.append(toappend)
         ximg.putdata(newData)
@@ -525,8 +542,8 @@ def image_manual_bgremoval (entparams = [], appsetup = {}):
         newData = []
         for ix in range(0, pcount):
             bitem, xitem = bstate[ix], xstate[ix]
-            if (xitem[0] == trans[0] and xitem[1] == trans[1] and xitem[2] == trans[1]):
-                toappend = (bitem[0], bitem[1], bitem[2], alpha)
+            if (xitem[0] == trans[0] and xitem[1] == trans[1] and xitem[2] == trans[2]):
+                toappend = (bitem[0], bitem[1], bitem[2], bitem[3])
             else:
                 toappend = (xitem[0], xitem[1], xitem[2], 0)
             newData.append(toappend)

@@ -66,7 +66,7 @@ procsitems = [
         "params": ["Input image file", "Output file name", "Background removal method\n(AI Based) ibrt / static (static color removal)", "Color name (white/black/red/green/blue/yellow/panda3d)\nOR Range of color in specified format (see left)"]
     }, {"fname": "Pre-process", "text": "Generate illustrations from existing image/s", "descimage": "imgs/icon.png" ,
         "function": "ui_image_manipulation_craft", "xtraprocess": {},
-        "params": ["Input image/s", "Output file name", "Special effect type (doodle / cartoon / sketch)"]
+        "params": ["Input image/s", "Output file name", "Special effect type\n(doodle / cartoon / qartoon / sketch / wcolor)"]
     }, {"fname": "Pre-process", "text": "Make a transparent movie from manipulated rush frames", "descimage": "imgs/transmovfromrush.png" ,
         "function": "image_manual_bgremoval", "xtraprocess": {},
         "params": ["Final image frame", "Output movie name", "Color of pen used - default black\n(options: white/black/red/green/blue/yellow/panda3d)"]
