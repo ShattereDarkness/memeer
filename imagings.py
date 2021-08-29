@@ -151,7 +151,7 @@ def ui_prepare_watermark (entparams = [], appsetup = {}):
     pixels = entparams[2].split(',')
     wpixel = pyback.forceint(pixels[0], 100)
     hpixel = 100 if len(pixels) < 2 else pyback.forceint(pixels[1], 100)
-    cmdstr = f"ffmpeg -i {vidfile} -i {imgfile} -filter_complex \"overlay={wpixel}:{hpixel}\" {outfile} -loglevel error"
+    cmdstr = f"ffmpeg -i {vidfile} -i {imgfile} -filter_complex \"overlay={wpixel}:{hpixel}\" {outfile} -loglevel error -y"
     print (f"cmdstr: {cmdstr}")
     try: os.system(cmdstr)
     except: return ['ERROR', 'The command could not be executed!']
