@@ -1,12 +1,11 @@
 # memeer
 ## Documentaion
 
-Please visit Memeer.in for more details
+run python -m pip install torch==1.5.0 -f https://download.pytorch.org/whl/torch_stable.html
 
-Official website: [Memeer.In](https://memeer.in/)
+next run python setup.py
 
-Meme'er Documentation: [Memeer Documentation](https://memeer.in/documentation/)
+pip install pywin32
 
-Meme'er Quick wrap: [Quick Startup with Memeer](https://memeer.in/documentation/animation-quick-startup-project/)
+Open admin shell and run: python Scripts\pywin32_postinstall.py -install
 
-Meme'er 2 Hour challenege: [Memeer 2 hour Challenge](https://memeer.in/documentation/the-2-hours-video-making-challenge/)
